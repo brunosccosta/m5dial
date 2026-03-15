@@ -1,0 +1,44 @@
+# --- PlatformIO Files ---
+.pio/
+.pioenvs/
+.piolibdeps/
+fpio/
+libdeps/
+pip-log.txt
+
+# --- VS Code Files ---
+.vscode/.browse.vc.db
+.vscode/.cmake.api/
+.vscode/.msvc.db
+.vscode/ipch/
+.vscode/launch.json
+.vscode/tasks.json
+# Keep extensions.json and settings.json if you want to share workspace settings
+# .vscode/settings.json
+# .vscode/extensions.json
+
+# --- Compiled Binaries & Libraries ---
+*.o
+*.a
+*.so
+*.elf
+*.bin
+*.hex
+
+# --- macOS System Files ---
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+.Spotlight-V100
+.Trashes
+
+# --- Logs and Temp Files ---
+*.log
+tmp/
+temp/
+
+# --- Local Environment / Secrets ---
+# (Uncomment the line below if you create a private_header.h for Wi-Fi/HA credentials)
+# src/secrets.h
