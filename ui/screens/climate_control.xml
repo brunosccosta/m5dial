@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Climate Control Screen
+    
+    Interface for controlling air conditioning/heating:
+    - Temperature display
+    - Temperature adjustment
+    - Mode selection
+-->
+<screen>
+    <view width="240" height="240" flex_flow="column" flex_align="center center">
+        <style name="screen_bg"/>
+        
+        <!-- Title -->
+        <lv_label text="Air Conditioner"
+                  width="200"
+                  align="top_mid"
+                  y="20">
+            <style name="menu_item_large"/>
+        </lv_label>
+        
+        <!-- Current temperature display -->
+        <lv_label id="lbl_temperature"
+                  text="22°C"
+                  align="center"
+                  y="-30">
+            <text_font>&amp;lv_font_montserrat_48</text_font>
+            <text_color>#PRIMARY_COLOR</text_color>
+        </lv_label>
+        
+        <!-- Target temperature -->
+        <lv_label id="lbl_target"
+                  text="Target: 24°C"
+                  align="center"
+                  y="30">
+            <style name="menu_item_small"/>
+        </lv_label>
+        
+        <!-- Status -->
+        <lv_label id="lbl_mode"
+                  text="Mode: Cooling"
+                  align="bottom_mid"
+                  y="-20">
+            <style name="menu_item_small"/>
+        </lv_label>
+    </view>
+</screen>

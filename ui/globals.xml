@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Global definitions for M5Dial Smart Home UI
+    
+    This file contains:
+    - Global styles
+    - Color definitions
+    - Font configurations
+    - Image assets
+    - Shared constants
+-->
+<globals>
+    <!-- Constants for M5Dial round display -->
+    <consts>
+        <int name="SCREEN_WIDTH" value="240"/>
+        <int name="SCREEN_HEIGHT" value="240"/>
+        <int name="MENU_ITEM_HEIGHT" value="60"/>
+        <color name="PRIMARY_COLOR" value="0x00A8E1"/>
+        <color name="SECONDARY_COLOR" value="0x888888"/>
+        <color name="BACKGROUND_COLOR" value="0x000000"/>
+        <color name="TEXT_COLOR" value="0xFFFFFF"/>
+    </consts>
+    
+    <!-- Global styles -->
+    <styles>
+        <!-- Style for main menu items -->
+        <style name="menu_item_large">
+            <text_font>&amp;lv_font_montserrat_32</text_font>
+            <text_color>#TEXT_COLOR</text_color>
+            <text_align>center</text_align>
+        </style>
+        
+        <!-- Style for secondary menu items -->
+        <style name="menu_item_small">
+            <text_font>&amp;lv_font_montserrat_14</text_font>
+            <text_color>#SECONDARY_COLOR</text_color>
+            <text_align>center</text_align>
+        </style>
+        
+        <!-- Style for screen background -->
+        <style name="screen_bg">
+            <bg_color>#BACKGROUND_COLOR</bg_color>
+            <border_width>0</border_width>
+            <pad_all>0</pad_all>
+        </style>
+    </styles>
+    
+    <!-- Image assets (will be populated when you add images) -->
+    <images>
+        <!-- Example: <image name="icon_lamp" src="assets/lamp.png"/> -->
+    </images>
+    
+    <!-- Font assets (using built-in Montserrat fonts) -->
+    <fonts>
+        <!-- LVGL built-in fonts are available by default -->
+        <!-- Example for custom fonts: <font name="my_font" path="assets/my_font.ttf" size="24"/> -->
+    </fonts>
+</globals>
