@@ -23,18 +23,18 @@
 	<!-- Global styles -->
 	<styles>
 		<!-- Style for main menu items -->
-		<style name="menu_item_large_" text_font="lv_font_montserrat_32" text_color="#TEXT_COLOR" text_align="center" />
+		<style name="menu_item_large" text_font="lv_font_montserrat_32" text_color="#TEXT_COLOR" text_align="center" />
 
 		<!-- Style for secondary menu items -->
 		<style
-			name="menu_item_small_"
+			name="menu_item_small"
 			text_font="lv_font_montserrat_14"
 			text_color="#SECONDARY_COLOR"
 			text_align="center"
 		/>
 
 		<!-- Style for screen background -->
-		<style name="screen_bg_" bg_color="#BACKGROUND_COLOR" pad_all="0" border_width="0" />
+		<style name="screen_bg" bg_color="#BACKGROUND_COLOR" pad_all="0" border_width="0" />
 	</styles>
 
 	<!-- Image assets (will be populated when you add images) -->
