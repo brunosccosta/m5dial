@@ -4,4 +4,10 @@
     This file defines the project configuration for LVGL Pro Editor.
     Edit using LVGL Pro Editor from https://pro.lvgl.io
 -->
-<project name="m5dial_ui" />
+<project name="m5dial_ui">
+	<targets>
+		<target name="target1">
+			<display width="240" height="240" />
+		</target>
+	</targets>
+</project>
