@@ -1,27 +1,14 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!--
-    Menu Item Component
-    
-    A reusable menu item for the carousel menu.
-    Properties:
-    - label: The text to display
-    - is_center: Whether this is the center (focused) item
--->
 <component>
-    <api>
-        <prop name="label" type="string" default="Menu Item"/>
-        <prop name="is_center" type="bool" default="false"/>
-    </api>
-    
-    <view extends="lv_label" 
-          width="220" 
-          height="60"
-          align="center">
-        <!-- Apply appropriate style based on position -->
-        <style name="menu_item_large" state="default" when="$is_center"/>
-        <style name="menu_item_small" state="default" when="!$is_center"/>
-        
-        <!-- Set the text -->
-        <text>$label</text>
-    </view>
+	<api>
+		<prop name="label" type="string" default="Menu Item" />
+		<prop name="is_center" type="bool" default="false" />
+	</api>
+
+	<view extends="lv_label" width="220" height="60" align="center">
+		<!-- Apply appropriate style based on position -->
+		<style name="menu_item_large" />
+		<style name="menu_item_small" />
+
+		<!-- Set the text -->
+	</view>
 </component>

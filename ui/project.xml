@@ -1,16 +1,7 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--
     M5Dial Smart Home Controller - LVGL Pro Editor Project
     
     This file defines the project configuration for LVGL Pro Editor.
     Edit using LVGL Pro Editor from https://pro.lvgl.io
 -->
-<project name="m5dial_ui">
-    <!-- Project metadata -->
-    <description>Smart Home Controller UI for M5Stack Dial</description>
-    
-    <!-- Export settings -->
-    <export>
-        <output_path>../src/ui_generated</output_path>
-    </export>
-</project>
+<project name="m5dial_ui" />

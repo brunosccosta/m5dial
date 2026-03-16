@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <!--
     Main Menu Screen
     
@@ -6,40 +5,25 @@
     Displays a vertical carousel menu with device categories.
 -->
 <screen>
-    <view width="240" height="240" flex_flow="column" flex_align="center center">
-        <style name="screen_bg"/>
-        
-        <!-- Top menu item (previous) -->
-        <lv_label id="menu_top"
-                  width="220" 
-                  height="60"
-                  text="Settings"
-                  align="center"
-                  y="-80">
-            <style name="menu_item_small"/>
-        </lv_label>
-        
-        <!-- Center menu item (current/focused) -->
-        <lv_label id="menu_center"
-                  width="220" 
-                  height="60"
-                  text="Lamps"
-                  align="center"
-                  y="0">
-            <style name="menu_item_large"/>
-        </lv_label>
-        
-        <!-- Bottom menu item (next) -->
-        <lv_label id="menu_bottom"
-                  width="220" 
-                  height="60"
-                  text="Air Conditioner"
-                  align="center"
-                  y="80">
-            <style name="menu_item_small"/>
-        </lv_label>
-        
-        <!-- Click event to navigate to detail screens -->
-        <!-- These will be connected to your C code event handlers -->
-    </view>
+	<view width="240" height="240" flex_flow="column">
+		<style name="screen_bg" />
+
+		<!-- Top menu item (previous) -->
+		<lv_label width="220" height="60" text="Settings" align="center" y="-80">
+			<style name="menu_item_small" />
+		</lv_label>
+
+		<!-- Center menu item (current/focused) -->
+		<lv_label width="220" height="60" text="Lamps" align="center" y="0">
+			<style name="menu_item_large" />
+		</lv_label>
+
+		<!-- Bottom menu item (next) -->
+		<lv_label width="220" height="60" text="Air Conditioner" align="center" y="80">
+			<style name="menu_item_small" />
+		</lv_label>
+
+		<!-- Click event to navigate to detail screens -->
+		<!-- These will be connected to your C code event handlers -->
+	</view>
 </screen>
