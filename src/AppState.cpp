@@ -16,5 +16,6 @@ AppState appState = {
     .acCount = 2,
 
     .room_temp = 22.5f,
-    .dirty     = false,
+    .dirty      = false,
+    .connection = ConnectionState::WIFI_CONNECTING,
 };

@@ -3,9 +3,11 @@
 #include <esp_log.h>
 #include "input/Input.h"
 #include "AppState.h"
+#include "ha/HAClient.h"
 #include "ui/ScreenManager.h"
 #include "ui/CarouselMenu.h"
 #include "ui/LampControlScreen.h"
+#include "credentials.h"
 
 // --- Main menu ---
 MenuItem mainItems[] = {
@@ -79,6 +81,7 @@ void setup() {
     lv_display_set_buffers(disp, buf, NULL, sizeof(buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
 
     input.begin();
+    haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
     setupNavigation();
     screenManager.push(&mainMenu);
 
@@ -87,6 +90,7 @@ void setup() {
 
 void loop() {
     M5Dial.update();
+    haClient.update();
     lv_timer_handler();
     delay(5);
 

@@ -8,7 +8,7 @@ Display works, encoder and button respond.
 ## Backend Lane
 
 ### B1: WiFi + HA Connection
-- [ ] Connect to WiFi with hardcoded credentials
+- [x] Connect to WiFi with hardcoded credentials — non-blocking state machine, logs IP
 - [ ] Open HA WebSocket connection
 - [ ] Authenticate with long-lived token
 - [ ] Confirm connection with a heartbeat / ping
@@ -28,7 +28,8 @@ Display works, encoder and button respond.
 - **Deliverable**: Device can control HA entities
 
 ### B4: Resilience
-- [ ] Reconnect WiFi on drop
+- [x] `ConnectionState` enum in `AppState` — written by HAClient, readable by UI
+- [x] WiFi retry on drop (auto-reconnect in HAClient state machine)
 - [ ] Reconnect HA WebSocket on drop
 - [ ] Handle HA unavailable gracefully (show stale state)
 - **Deliverable**: Device recovers from connection loss without restart
@@ -60,7 +61,14 @@ Display works, encoder and button respond.
 - [ ] Reads from / writes to `AppState`
 - **Deliverable**: Full AC UI (static state for now)
 
-### F4: Polish
+### F4: Error Overlay ← next
+- [ ] Generic LVGL overlay shown on top of any active screen
+- [ ] Triggered by `ConnectionState` in `AppState` (no WiFi, HA unreachable)
+- [ ] Disappears automatically when connection recovers
+- [ ] Shows appropriate icon + short message per error type
+- **Deliverable**: Device surfaces connection errors without disrupting navigation
+
+### F5: Polish
 - [ ] Haptic feedback on scroll and selection
 - [ ] Screensaver / sleep after inactivity
 - [ ] Smooth screen transition animations
