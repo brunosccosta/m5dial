@@ -14,8 +14,28 @@ void CarouselMenu::init() {
     lv_style_set_text_font(&styleSmall, &lv_font_montserrat_14);
     lv_style_set_text_color(&styleSmall, lv_color_hex(0x888888)); // Gray
     
-    // Create three labels
-    // ...existing code...
+    // Create three labels on the active screen
+    lv_obj_t *scr = lv_scr_act();
+
+    leftLabel = lv_label_create(scr);
+    lv_obj_add_style(leftLabel, &styleSmall, 0);
+    lv_obj_set_width(leftLabel, 220);
+    lv_label_set_long_mode(leftLabel, LV_LABEL_LONG_CLIP);
+    lv_label_set_text_static(leftLabel, "");
+
+    centerLabel = lv_label_create(scr);
+    lv_obj_add_style(centerLabel, &styleLarge, 0);
+    lv_obj_set_width(centerLabel, 220);
+    lv_label_set_long_mode(centerLabel, LV_LABEL_LONG_CLIP);
+    lv_label_set_text_static(centerLabel, "");
+
+    rightLabel = lv_label_create(scr);
+    lv_obj_add_style(rightLabel, &styleSmall, 0);
+    lv_obj_set_width(rightLabel, 220);
+    lv_label_set_long_mode(rightLabel, LV_LABEL_LONG_CLIP);
+    lv_label_set_text_static(rightLabel, "");
+
+    updateDisplay();
 }
 
 void CarouselMenu::scroll(int delta) {
