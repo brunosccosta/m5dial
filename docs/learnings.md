@@ -71,6 +71,36 @@ See [docs/architecture.md logging section](architecture.md) and `agents.md` for 
 
 ---
 
+## GC9A01 color channels swapped (RGB vs BGR)
+
+LVGL v9 outputs RGB565 by default; the GC9A01 display expects bytes in the opposite order. Red appears as blue and vice versa.
+
+**Fix**: declare the swapped format right after `lv_display_create`:
+```cpp
+lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565_SWAPPED);
+```
+Note: the constant is `_SWAPPED` (not `_SWAP`) in this version of LVGL.
+
+---
+
+## Circular display: positions outside r=120 are silently clipped
+
+The GC9A01 is a 240×240 circular display (center 120,120, radius 120). Any pixel outside the circle is simply not rendered — no error, no wrapping. `lv_obj_align(LV_ALIGN_TOP_RIGHT)` places objects in the square bounding box corner, which is outside the circle.
+
+**Fix**: use `lv_obj_set_pos()` with explicit coordinates and verify: `sqrt((x+w/2 - 120)² + (y+h/2 - 120)²) < 120`.
+
+For a "1 o'clock" dot: `lv_obj_set_pos(_dot, 169, 19)` → center at (175, 25), distance ≈ 106px.
+
+---
+
+## `lv_obj_align` on `lv_layer_top()` children — use `lv_obj_set_pos` instead
+
+`lv_obj_align` with parent-relative alignments (e.g. `LV_ALIGN_TOP_RIGHT`) may not resolve correctly for children of `lv_layer_top()` if the layer's size isn't explicitly set. The object ends up at position (0,0) or wrong coordinates.
+
+**Fix**: use `lv_obj_set_pos()` with absolute pixel coordinates for anything parented to a system layer.
+
+---
+
 ## WebSockets library (Links2004)
 
 Not yet integrated — noted here for when Milestone B1 begins:

@@ -20,6 +20,7 @@ void HAClient::begin(const char* ssid, const char* password,
     WiFi.mode(WIFI_STA);
     WiFi.begin(_ssid, _password);
     appState.connection = ConnectionState::WIFI_CONNECTING;
+    appState.setError(ErrorKey::WIFI, 5000);
 }
 
 void HAClient::update() {
@@ -34,6 +35,8 @@ void HAClient::update() {
 void HAClient::handleWifiConnecting() {
     if (WiFi.status() == WL_CONNECTED) {
         appState.connection = ConnectionState::WIFI_CONNECTED;
+        appState.clearError(ErrorKey::WIFI);
+        appState.setError(ErrorKey::HA_WS, 3000);
         ESP_LOGI(TAG, "WiFi connected, IP: %s", WiFi.localIP().toString().c_str());
         return;
     }

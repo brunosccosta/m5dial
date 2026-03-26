@@ -61,11 +61,13 @@ Display works, encoder and button respond.
 - [ ] Reads from / writes to `AppState`
 - **Deliverable**: Full AC UI (static state for now)
 
-### F4: Error Overlay ← next
-- [ ] Generic LVGL overlay shown on top of any active screen
-- [ ] Triggered by `ConnectionState` in `AppState` (no WiFi, HA unreachable)
-- [ ] Disappears automatically when connection recovers
-- [ ] Shows appropriate icon + short message per error type
+### F4: Error Overlay ✅
+- [x] Generic LVGL overlay shown on top of any active screen (`lv_layer_top()`)
+- [x] Triggered by error registry in `AppState` — any subsystem can push/clear errors by key
+- [x] Disappears automatically when all errors clear
+- [x] Shows appropriate icon + short message per error type
+- [x] Collapses to a small dot after 4s — stays visible without blocking navigation
+- [x] Per-error `fireAfterMs` grace period — no flash at boot during normal connect
 - **Deliverable**: Device surfaces connection errors without disrupting navigation
 
 ### F5: Polish

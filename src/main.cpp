@@ -7,6 +7,7 @@
 #include "ui/ScreenManager.h"
 #include "ui/CarouselMenu.h"
 #include "ui/LampControlScreen.h"
+#include "ui/ErrorOverlay.h"
 #include "credentials.h"
 
 // --- Main menu ---
@@ -75,6 +76,7 @@ void setup() {
     lv_tick_set_cb([]() -> uint32_t { return (uint32_t)millis(); });
 
     lv_display_t *disp = lv_display_create(240, 240);
+    lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565_SWAPPED);
     lv_display_set_flush_cb(disp, my_disp_flush);
 
     static lv_color_t buf[240 * 24];
@@ -82,6 +84,8 @@ void setup() {
 
     input.begin();
     haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
+    errorOverlay.init();
+
     setupNavigation();
     screenManager.push(&mainMenu);
 
@@ -99,12 +103,14 @@ void loop() {
     int delta = input.getEncoderDelta();
     if (delta != 0) {
         ESP_LOGD("INPUT", "encoder delta=%d", delta);
-        screenManager.onEncoder(delta);
+        screenManager.onEncoder(-delta);
     }
     if (input.wasButtonPressed()) {
         ESP_LOGD("INPUT", "button pressed");
         screenManager.onButton();
     }
+
+    errorOverlay.update();
 
     if (appState.dirty) {
         screenManager.refresh();

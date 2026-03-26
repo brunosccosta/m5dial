@@ -38,6 +38,19 @@ extern AppState appState; // defined once in AppState.cpp
 
 No business logic lives here. It's a plain data store.
 
+### Error registry
+
+`AppState` owns a UI-agnostic error registry. Any subsystem can push or clear named errors:
+
+```cpp
+appState.setError(ErrorKey::WIFI,  5000); // show after 5s grace
+appState.clearError(ErrorKey::WIFI);
+```
+
+Keys are defined as constants in `AppState.h` (`namespace ErrorKey`). The registry stores timing only — no icons or messages. `ErrorOverlay` owns the key → visual mapping.
+
+`setError` is idempotent: calling it while a key is already active keeps the original timer running.
+
 ---
 
 ## HAClient
@@ -106,6 +119,16 @@ Reusable circular navigation component. Implements `Screen`.
 - Other items as small dimmed icons around the ring at radius 85px
 - Ring rotates via `lv_anim` (250ms ease-out) on encoder turn
 - `setOnSelect(fn)` — caller wires navigation logic
+
+### ErrorOverlay
+
+Lives on `lv_layer_top()` — always above all screens. Three states:
+
+- `HIDDEN` — nothing shown
+- `FULL` — full-screen black bg, pulsing warning icon, message; collapses after 4s
+- `DOT` — small red circle at ~1 o'clock position; stays until error clears
+
+`update()` is called every loop. It scans `AppState.errors`, finds the first active entry past its `fireAfterMs`, looks up its icon/message via an internal config table, then drives the state machine. `appState.connection` is unchanged and available for other consumers (e.g. settings screen).
 
 ### Screen base class
 

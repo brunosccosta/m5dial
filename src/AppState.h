@@ -1,6 +1,18 @@
 #pragma once
 #include <Arduino.h>
 
+namespace ErrorKey {
+    constexpr const char* WIFI  = "wifi";
+    constexpr const char* HA_WS = "ha_ws";
+}
+
+struct ErrorEntry {
+    char     key[20];
+    uint32_t registeredAt;
+    uint32_t fireAfterMs;
+    bool     active;
+};
+
 enum class ConnectionState {
     WIFI_CONNECTING,
     WIFI_CONNECTED,
@@ -32,6 +44,12 @@ struct AppState {
 
     bool            dirty;      // set by HA layer when state changes; cleared by UI after refresh
     ConnectionState connection; // written by HAClient; read by UI for status indicator
+
+    static constexpr int MAX_ERRORS = 6;
+    ErrorEntry errors[MAX_ERRORS];
+
+    void setError(const char* key, uint32_t fireAfterMs = 0);
+    void clearError(const char* key);
 };
 
 extern AppState appState;
