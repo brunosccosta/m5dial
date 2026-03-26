@@ -1,42 +1,34 @@
-#ifndef CAROUSEL_MENU_H
-#define CAROUSEL_MENU_H
-
-#include <Arduino.h>
-#include <M5Unified.h>
+#pragma once
 #include <lvgl.h>
 
 struct MenuItem {
     const char* label;
-    // Future: add icon pointer
+    const char* icon; // LV_SYMBOL_* string
 };
 
 class CarouselMenu {
 public:
-    CarouselMenu(MenuItem* items, int itemCount);
-    
+    CarouselMenu(MenuItem* items, int count);
     void init();
     void scroll(int delta);
     void select();
-    int getCurrentIndex();
-    const char* getCurrentLabel();
-    
-private:
-    void updateDisplay();
-    void animateTransition();
-    int wrapIndex(int index);
-    
-    MenuItem* menuItems;
-    int itemCount;
-    int currentIndex;
-    
-    // LVGL objects
-    lv_obj_t* leftLabel;
-    lv_obj_t* centerLabel;
-    lv_obj_t* rightLabel;
-    
-    // Styling
-    lv_style_t styleLarge;
-    lv_style_t styleSmall;
-};
+    int  getCurrentIndex() const;
 
-#endif
+private:
+    static void animExecCb(void* var, int32_t val);
+    void updateRingPositions();
+    void updateCenter();
+
+    MenuItem*   _items;
+    int         _count;
+    int         _selectedIndex;
+    float       _ringAngle;
+    float       _targetAngle;
+
+    static constexpr int MAX_ITEMS  = 8;
+    static constexpr int RING_RADIUS = 85;
+
+    lv_obj_t*   _ringIcons[MAX_ITEMS];
+    lv_obj_t*   _centerIcon;
+    lv_obj_t*   _centerLabel;
+};

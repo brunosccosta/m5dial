@@ -6,10 +6,10 @@
 
 Input input;
 MenuItem menuItems[] = {
-    {"Lamps"},
-    {"Air Conditioner"},
-    {"Heater"},
-    {"Settings"}
+    {"Lamps",           LV_SYMBOL_EYE_OPEN},
+    {"Air Conditioner", LV_SYMBOL_LOOP},
+    {"Heater",          LV_SYMBOL_CHARGE},
+    {"Settings",        LV_SYMBOL_SETTINGS},
 };
 CarouselMenu menu(menuItems, 4);
 
@@ -36,6 +36,7 @@ void setup() {
     M5Dial.Display.setBrightness(128);
 
     lv_init();
+    lv_tick_set_cb([]() -> uint32_t { return (uint32_t)millis(); }); // LVGL animation timers need a time source
 
     lv_display_t *disp = lv_display_create(240, 240);
     lv_display_set_flush_cb(disp, my_disp_flush);
