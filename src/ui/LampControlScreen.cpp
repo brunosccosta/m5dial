@@ -1,6 +1,6 @@
 #include <esp_log.h>
 #include "LampControlScreen.h"
-#include "AppState.h"
+#include "../AppState.h"
 #include "ScreenManager.h"
 
 static const char* TAG = "LAMP";

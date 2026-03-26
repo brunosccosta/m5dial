@@ -1,11 +1,11 @@
 #include <M5Dial.h>
 #include <lvgl.h>
 #include <esp_log.h>
-#include "Input.h"
+#include "input/Input.h"
 #include "AppState.h"
-#include "ScreenManager.h"
-#include "CarouselMenu.h"
-#include "LampControlScreen.h"
+#include "ui/ScreenManager.h"
+#include "ui/CarouselMenu.h"
+#include "ui/LampControlScreen.h"
 
 // --- Main menu ---
 MenuItem mainItems[] = {
