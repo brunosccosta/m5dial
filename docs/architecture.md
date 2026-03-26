@@ -57,26 +57,32 @@ Keys are defined as constants in `AppState.h` (`namespace ErrorKey`). The regist
 
 Owns the WebSocket connection to Home Assistant. Non-blocking — `update()` is called every loop tick.
 
-Responsibilities:
-- Connect to WiFi and HA WebSocket API
-- Authenticate with long-lived token
-- Subscribe to entity state changes → write into `AppState`
-- Expose command methods that send messages to HA
+### State machine
 
-```cpp
-class HAClient {
-public:
-    void begin(const char* ssid, const char* password,
-               const char* ha_host, const char* ha_token);
-    void update(); // call every loop(), non-blocking
-
-    void setLamp(int id, bool on, uint8_t brightness);
-    void setAC(int id, float target_temp, const char* mode);
-};
+```
+WIFI_CONNECTING → (WiFi up)  → WIFI_CONNECTED
+WIFI_CONNECTED  → (WS open)  → HA_CONNECTING
+HA_CONNECTING   → (auth ok)  → HA_READY
+HA_READY        → (WS drop)  → HA_CONNECTING
+any state       → (WiFi drop)→ WIFI_CONNECTING
 ```
 
-**Library**: `Links2004/WebSockets` (most widely used ESP32 WebSocket lib).
-**Protocol**: [Home Assistant WebSocket API](https://developers.home-assistant.io/docs/api/websocket)
+State is written to `appState.connection` (readable by any UI component). Error overlay is driven via `appState.setError/clearError`.
+
+### Auth flow
+
+HA WebSocket protocol on connect:
+1. Server sends `{"type":"auth_required"}`
+2. Client sends `{"type":"auth","access_token":"TOKEN"}`
+3. Server replies `{"type":"auth_ok"}` → `HA_READY` | `{"type":"auth_invalid"}` → log, stay in `HA_CONNECTING`
+
+WS reconnects automatically (`setReconnectInterval(5000)`); HA resends `auth_required` each time so the flow repeats without extra logic.
+
+### Heartbeat
+
+`enableHeartbeat(15000, 3000, 2)` — WS ping every 15s, pong timeout 3s, 2 retries before disconnect.
+
+**Libraries**: `Links2004/WebSockets`, `ArduinoJson@^7`
 
 ---
 
@@ -168,6 +174,7 @@ void loop() {
 | Display + hardware | M5Unified + M5GFX + M5Dial | Official M5Stack libs |
 | UI | LVGL v9 | Chosen UI framework |
 | WebSocket | Links2004/WebSockets | Most widely used on ESP32 |
+| JSON | ArduinoJson@^7 | Standard for ESP32 JSON parsing |
 
 ---
 

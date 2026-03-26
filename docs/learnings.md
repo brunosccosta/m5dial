@@ -103,7 +103,16 @@ For a "1 o'clock" dot: `lv_obj_set_pos(_dot, 169, 19)` → center at (175, 25), 
 
 ## WebSockets library (Links2004)
 
-Not yet integrated — noted here for when Milestone B1 begins:
-- PlatformIO lib id: `links2004/WebSockets`
-- Non-blocking usage: call `webSocket.loop()` every Arduino loop tick
-- HA WebSocket API requires a specific handshake + auth_required flow before subscribing to entities
+- Non-blocking: call `_ws.loop()` every loop tick (inside `HAClient::update()`)
+- `setReconnectInterval(ms)` — library retries automatically; no manual reconnect logic needed
+- `enableHeartbeat(pingMs, pongTimeoutMs, retries)` — built-in WS ping/pong keepalive
+- HA sends `auth_required` on every new connection, so auth flow repeats automatically after reconnect
+
+## HA WebSocket auth flow
+
+Fixed protocol on connect — no variation:
+1. Server → `{"type":"auth_required","ha_version":"..."}`
+2. Client → `{"type":"auth","access_token":"TOKEN"}`
+3. Server → `{"type":"auth_ok"}` or `{"type":"auth_invalid"}`
+
+`auth_invalid` means the token in `credentials.h` is wrong or expired. HA long-lived tokens don't expire unless manually revoked.

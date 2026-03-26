@@ -7,11 +7,11 @@ Display works, encoder and button respond.
 
 ## Backend Lane
 
-### B1: WiFi + HA Connection
+### B1: WiFi + HA Connection ✅
 - [x] Connect to WiFi with hardcoded credentials — non-blocking state machine, logs IP
-- [ ] Open HA WebSocket connection
-- [ ] Authenticate with long-lived token
-- [ ] Confirm connection with a heartbeat / ping
+- [x] Open HA WebSocket connection (`ws://host:8123/api/websocket`)
+- [x] Authenticate with long-lived token — handles auth_required/auth_ok/auth_invalid
+- [x] Heartbeat via WS ping frames (15s interval, auto-reconnect on drop)
 - **Deliverable**: Device connected to HA, auth confirmed in serial log
 
 ### B2: Entity State
