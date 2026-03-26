@@ -1,5 +1,6 @@
 #include <M5Dial.h>
 #include <lvgl.h>
+#include <esp_log.h>
 #include "Input.h"
 #include "CarouselMenu.h"
 
@@ -13,6 +14,7 @@ MenuItem menuItems[] = {
 CarouselMenu menu(menuItems, 4);
 
 void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
+    ESP_LOGV("DISPLAY", "flush (%d,%d)-(%d,%d)", area->x1, area->y1, area->x2, area->y2);
     uint32_t w = (area->x2 - area->x1 + 1);
     uint32_t h = (area->y2 - area->y1 + 1);
 
@@ -27,6 +29,10 @@ void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
 void setup() {
     auto cfg = M5.config();
     M5Dial.begin(cfg, true, false);
+    Serial.begin(115200);
+
+    ESP_LOGI("BOOT", "M5Dial SmartHome starting");
+
     M5Dial.Display.setBrightness(128);
 
     lv_init();
@@ -39,6 +45,8 @@ void setup() {
 
     input.begin();
     menu.init();
+
+    ESP_LOGI("BOOT", "setup complete");
 }
 
 void loop() {
@@ -50,9 +58,11 @@ void loop() {
 
     int delta = input.getEncoderDelta();
     if (delta != 0) {
+        ESP_LOGD("INPUT", "encoder delta=%d", delta);
         menu.scroll(delta);
     }
     if (input.wasButtonPressed()) {
+        ESP_LOGD("INPUT", "button pressed");
         menu.select();
     }
 }

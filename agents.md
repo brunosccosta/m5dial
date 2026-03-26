@@ -41,14 +41,14 @@ Each device type has its own full-screen control interface, navigated by dial + 
 
 ## Development Milestones
 
-### Milestone 1: Hardware Validation
+### Milestone 1: Hardware Validation ✅
 **Goal**: Display works, input detected
 
 - [x] Initialize M5Stack Dial hardware
 - [x] Setup LVGL v9 with GC9A01 via M5GFX
-- [ ] Render something on screen to confirm the pipeline works
-- [ ] Rotary encoder input read correctly
-- [ ] Center button input detected
+- [x] Render something on screen to confirm the pipeline works
+- [x] Rotary encoder input read correctly
+- [x] Center button input detected
 - **Deliverable**: Screen shows content, encoder and button respond
 
 ### Milestone 2: Circular Menu
@@ -97,6 +97,37 @@ Each device type has its own full-screen control interface, navigated by dial + 
 - [ ] Smooth animations and transitions
 - [ ] Temperature sensor display (if available)
 - **Deliverable**: Production-quality feel
+
+## Logging
+
+Uses ESP-IDF's `esp_log` (`#include <esp_log.h>`). Controlled by `CORE_DEBUG_LEVEL` in `platformio.ini`.
+
+### Levels
+| Level | Macro | When to use |
+|---|---|---|
+| 0 | — | Silent (default / production) |
+| 1 | `ESP_LOGE` | Errors: crashes, unrecoverable failures |
+| 2 | `ESP_LOGW` | Warnings: unexpected but recoverable states |
+| 3 | `ESP_LOGI` | Info: lifecycle events (boot, screen load, WiFi connect) |
+| 4 | `ESP_LOGD` | Debug: user interactions (encoder, button, menu nav) |
+| 5 | `ESP_LOGV` | Verbose: per-frame events (LVGL flush, timer ticks) |
+
+Default: `CORE_DEBUG_LEVEL=1` (errors only). Set to `4` to debug interactions, `5` for render pipeline.
+
+### Tags
+| Tag | File | Covers |
+|---|---|---|
+| `BOOT` | main.cpp | Initialization sequence |
+| `INPUT` | main.cpp | Encoder and button events |
+| `MENU` | CarouselMenu.cpp | Menu scroll, selection, state |
+| `DISPLAY` | main.cpp | LVGL flush / render events |
+| `WIFI` | *(future)* | WiFi connection lifecycle |
+| `HA` | *(future)* | Home Assistant communication |
+
+### Message format
+- Lowercase, no trailing punctuation
+- Data as `key=value` pairs inline: `ESP_LOGD("MENU", "scroll index=%d label=%s", idx, label)`
+- No redundant tag info in the message (the tag already says the component)
 
 ## Open Questions
 - Back navigation: long press center button, or timeout back to menu?
