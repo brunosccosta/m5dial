@@ -3,6 +3,7 @@
 #include <esp_log.h>
 #include "Input.h"
 #include "CarouselMenu.h"
+#include "AppState.h"
 
 Input input;
 MenuItem menuItems[] = {
@@ -65,5 +66,10 @@ void loop() {
     if (input.wasButtonPressed()) {
         ESP_LOGD("INPUT", "button pressed");
         menu.select();
+    }
+
+    if (appState.dirty) {
+        menu.refresh();
+        appState.dirty = false;
     }
 }

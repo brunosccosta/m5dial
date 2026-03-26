@@ -10,6 +10,7 @@ class CarouselMenu {
 public:
     CarouselMenu(MenuItem* items, int count);
     void init();
+    void refresh(); // call when AppState changes
     void scroll(int delta);
     void select();
     int  getCurrentIndex() const;

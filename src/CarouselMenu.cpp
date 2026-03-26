@@ -55,6 +55,11 @@ void CarouselMenu::init() {
     ESP_LOGI(TAG, "init complete items=%d", _count);
 }
 
+void CarouselMenu::refresh() {
+    // Stub: will update icon opacity/state from AppState when integrated
+    ESP_LOGD(TAG, "refresh");
+}
+
 void CarouselMenu::scroll(int delta) {
     if (delta == 0) return;
 
