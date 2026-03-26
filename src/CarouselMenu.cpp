@@ -11,19 +11,21 @@ static constexpr float DEG_TO_RAD = M_PI / 180.0f;
 
 CarouselMenu::CarouselMenu(MenuItem* items, int count)
     : _items(items), _count(count), _selectedIndex(0),
-      _ringAngle(0.0f), _targetAngle(0.0f),
-      _centerIcon(nullptr), _centerLabel(nullptr) {
+      _ringAngle(0.0f), _targetAngle(0.0f), _initialized(false),
+      _lvScreen(nullptr), _centerIcon(nullptr), _centerLabel(nullptr) {
     for (int i = 0; i < MAX_ITEMS; i++) _ringIcons[i] = nullptr;
 }
 
 void CarouselMenu::init() {
-    lv_obj_t* scr = lv_scr_act();
-    lv_obj_set_style_bg_color(scr, lv_color_black(), LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(scr, LV_OPA_COVER, LV_PART_MAIN);
+    if (_initialized) return;
+    _initialized = true;
 
-    // Ring icons — one per item, dimmed, small font
+    _lvScreen = lv_obj_create(NULL);
+    lv_obj_set_style_bg_color(_lvScreen, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(_lvScreen, LV_OPA_COVER, LV_PART_MAIN);
+
     for (int i = 0; i < _count; i++) {
-        lv_obj_t* icon = lv_label_create(scr);
+        lv_obj_t* icon = lv_label_create(_lvScreen);
         lv_obj_set_style_text_font(icon, &lv_font_montserrat_24, LV_PART_MAIN);
         lv_obj_set_style_text_color(icon, lv_color_white(), LV_PART_MAIN);
         lv_obj_set_style_text_opa(icon, LV_OPA_50, LV_PART_MAIN);
@@ -33,15 +35,13 @@ void CarouselMenu::init() {
         _ringIcons[i] = icon;
     }
 
-    // Center icon — large, full brightness
-    _centerIcon = lv_label_create(scr);
+    _centerIcon = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_centerIcon, &lv_font_montserrat_48, LV_PART_MAIN);
     lv_obj_set_style_text_color(_centerIcon, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_centerIcon, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(_centerIcon, 0, LV_PART_MAIN);
 
-    // Center text label — below icon
-    _centerLabel = lv_label_create(scr);
+    _centerLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_centerLabel, &lv_font_montserrat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_centerLabel, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_centerLabel, LV_OPA_TRANSP, LV_PART_MAIN);
@@ -50,14 +50,34 @@ void CarouselMenu::init() {
 
     updateCenter();
     updateRingPositions();
-    lv_refr_now(NULL);
 
     ESP_LOGI(TAG, "init complete items=%d", _count);
+}
+
+void CarouselMenu::show() {
+    lv_scr_load(_lvScreen);
+    lv_refr_now(NULL);
+}
+
+void CarouselMenu::onEncoder(int delta) {
+    scroll(delta);
+}
+
+void CarouselMenu::onButton() {
+    select();
 }
 
 void CarouselMenu::refresh() {
     // Stub: will update icon opacity/state from AppState when integrated
     ESP_LOGD(TAG, "refresh");
+}
+
+void CarouselMenu::setOnSelect(std::function<void(int)> cb) {
+    _onSelect = cb;
+}
+
+int CarouselMenu::getCurrentIndex() const {
+    return _selectedIndex;
 }
 
 void CarouselMenu::scroll(int delta) {
@@ -71,7 +91,6 @@ void CarouselMenu::scroll(int delta) {
 
     updateCenter();
 
-    // Cancel any in-progress animation and start fresh from current angle
     lv_anim_delete(this, CarouselMenu::animExecCb);
 
     lv_anim_t a;
@@ -79,7 +98,7 @@ void CarouselMenu::scroll(int delta) {
     lv_anim_set_var(&a, this);
     lv_anim_set_exec_cb(&a, CarouselMenu::animExecCb);
     lv_anim_set_values(&a,
-        (int32_t)(_ringAngle  * 100.0f),
+        (int32_t)(_ringAngle   * 100.0f),
         (int32_t)(_targetAngle * 100.0f));
     lv_anim_set_duration(&a, 250);
     lv_anim_set_path_cb(&a, lv_anim_path_ease_out);
@@ -90,13 +109,9 @@ void CarouselMenu::scroll(int delta) {
 
 void CarouselMenu::select() {
     ESP_LOGI(TAG, "select index=%d label=%s", _selectedIndex, _items[_selectedIndex].label);
+    if (_onSelect) _onSelect(_selectedIndex);
 }
 
-int CarouselMenu::getCurrentIndex() const {
-    return _selectedIndex;
-}
-
-// Called by LVGL animation engine each frame
 void CarouselMenu::animExecCb(void* var, int32_t val) {
     CarouselMenu* self = static_cast<CarouselMenu*>(var);
     self->_ringAngle = val / 100.0f;
@@ -108,10 +123,8 @@ void CarouselMenu::updateRingPositions() {
     for (int i = 0; i < _count; i++) {
         float angle_deg = _ringAngle + i * step;
         float angle_rad = angle_deg * DEG_TO_RAD;
-        // 0° = top (12 o'clock), y-axis is inverted
         int cx = 120 + (int)(RING_RADIUS * sinf(angle_rad));
         int cy = 120 - (int)(RING_RADIUS * cosf(angle_rad));
-        // Offset by ~half symbol size to center the glyph on (cx, cy)
         lv_obj_set_pos(_ringIcons[i], cx - 12, cy - 12);
     }
 }

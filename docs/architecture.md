@@ -71,19 +71,55 @@ public:
 
 Pure C++ LVGL v9. No XML editor.
 
-### Circular Menu
-- Selected item: center of screen, large font
-- Other items: arranged around the ring edge, small font, dimmed
-- Dial rotation cycles items; button enters selected item's control screen
+### Navigation model
+
+`ScreenManager` owns a stack (max 4 deep). All input is routed through it to the active screen.
+
+```
+ScreenManager::push(screen) → screen->init() (once) → screen->show()
+ScreenManager::pop()        → show previous screen
+```
+
+**Input contract:**
+- Dial (encoder delta) → active screen's `onEncoder(delta)`
+- Button press → active screen's `onButton()`
+- In menus: button = select highlighted item
+- In control screens: button = go back (`screenManager.pop()`)
+- Dial in control screens = value adjustment (brightness, target temp)
 
 ### Screen hierarchy
+
 ```
-CircularMenu (main)
-├── LampScreen
-└── ACScreen
+CarouselMenu (main)              — Lamps / AC / Heater / Settings
+└── CarouselMenu (lamp list)     — Living Room / Bedroom / … / ← Go Back
+    └── LampControlScreen        — brightness dial, button = back
+└── CarouselMenu (AC list)       — (future)
+    └── ACControlScreen          — (future)
 ```
 
-Each screen reads from `AppState` on load and on HA state updates. User interactions call `HAClient` methods.
+**Go Back** is always a ring item in sub-menus — never a gesture.
+
+### CarouselMenu
+
+Reusable circular navigation component. Implements `Screen`.
+- Selected item shown large in center (icon + label)
+- Other items as small dimmed icons around the ring at radius 85px
+- Ring rotates via `lv_anim` (250ms ease-out) on encoder turn
+- `setOnSelect(fn)` — caller wires navigation logic
+
+### Screen base class
+
+```cpp
+class Screen {
+    virtual void init();             // called once on first push
+    virtual void show();             // called on every push/pop
+    virtual void onEncoder(int);
+    virtual void onButton();
+    virtual void refresh();          // called when AppState dirty
+};
+```
+
+Each screen owns its own `lv_obj_t* _lvScreen` (LVGL screen object). `show()` calls `lv_scr_load`.
 
 ---
 
