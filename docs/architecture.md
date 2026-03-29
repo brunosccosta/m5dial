@@ -1,0 +1,239 @@
+# Architecture
+
+## Overview
+
+Two independent lanes (backend, frontend) connected by a shared `AppState` singleton. Both run in the same Arduino loop — no RTOS tasks for now.
+
+```
+[HA WebSocket]  →  [AppState]  →  [LVGL Screens]
+[LVGL Screens]  →  [AppState]  →  [HA WebSocket]
+```
+
+---
+
+## AppState
+
+Central shared state. A global singleton — typical and appropriate for single-core embedded.
+
+```cpp
+struct LampState {
+    bool    on;
+    uint8_t brightness; // 0–255
+};
+
+struct ACState {
+    float  current_temp;
+    float  target_temp;
+    String mode; // "cool", "heat", "auto", "off"
+};
+
+struct AppState {
+    LampState lamps[4];
+    ACState   acs[2];
+    float     room_temp;
+};
+
+extern AppState appState; // defined once in AppState.cpp
+```
+
+No business logic lives here. It's a plain data store.
+
+### Error registry
+
+`AppState` owns a UI-agnostic error registry. Any subsystem can push or clear named errors:
+
+```cpp
+appState.setError(ErrorKey::WIFI,  5000); // show after 5s grace
+appState.clearError(ErrorKey::WIFI);
+```
+
+Keys are defined as constants in `AppState.h` (`namespace ErrorKey`). The registry stores timing only — no icons or messages. `ErrorOverlay` owns the key → visual mapping.
+
+`setError` is idempotent: calling it while a key is already active keeps the original timer running.
+
+---
+
+## HAClient
+
+Owns the WebSocket connection to Home Assistant. Non-blocking — `update()` is called every loop tick.
+
+### State machine
+
+```
+WIFI_CONNECTING → (WiFi up)  → WIFI_CONNECTED
+WIFI_CONNECTED  → (WS open)  → HA_CONNECTING
+HA_CONNECTING   → (auth ok)  → HA_READY
+HA_READY        → (WS drop)  → HA_CONNECTING
+any state       → (WiFi drop)→ WIFI_CONNECTING
+```
+
+State is written to `appState.connection` (readable by any UI component). Error overlay is driven via `appState.setError/clearError`.
+
+### Auth flow
+
+HA WebSocket protocol on connect:
+1. Server sends `{"type":"auth_required"}`
+2. Client sends `{"type":"auth","access_token":"TOKEN"}`
+3. Server replies `{"type":"auth_ok"}` → `HA_READY` | `{"type":"auth_invalid"}` → log, stay in `HA_CONNECTING`
+
+WS reconnects automatically (`setReconnectInterval(5000)`); HA resends `auth_required` each time so the flow repeats without extra logic.
+
+### Heartbeat
+
+`enableHeartbeat(15000, 3000, 2)` — WS ping every 15s, pong timeout 3s, 2 retries before disconnect.
+
+### Entity subscription
+
+After `auth_ok`, HAClient sends a single `subscribe_entities` message with all entity IDs from `devices.h`:
+
+```json
+{"id":1,"type":"subscribe_entities","entity_ids":["climate.forninho_room_temperature","climate.forninho_portatil"]}
+```
+
+**Why not `get_states`**: `get_states` returns all HA entities in one WS frame — easily 50–200KB. The Links2004 WS library drops the connection when the incoming frame exceeds its buffer. `subscribe_entities` with specific IDs returns only the requested entities.
+
+HA responds with:
+- A `result` confirmation (id match, success)
+- An immediate `event.a` (added) with current state for all subscribed entities
+- Subsequent `event.c` (changed) diffs — only the fields that changed
+
+```json
+// Initial: event.a
+{"event":{"a":{"climate.x":{"s":"heat","a":{"current_temperature":23.0,"temperature":21.0}}}}}
+
+// Change: event.c, "+" = updated fields only
+{"event":{"c":{"climate.x":{"+":{"s":"off"}}}}}
+```
+
+`HAClient::updateACState()` handles both cases — `state` or `attrs` may be null on a diff (only changed fields are present).
+
+**Libraries**: `Links2004/WebSockets`, `ArduinoJson@^7`
+
+---
+
+## Device configuration
+
+Entity IDs and display names live in `src/devices.h` (gitignored). Struct definitions in `src/DeviceConfig.h` (committed). `src/devices.h.example` is committed as a template.
+
+```cpp
+// devices.h
+constexpr DeviceEntry ACS[] = {
+    { "climate.forninho_room_temperature", "Forninho"          },
+    { "climate.forninho_portatil",         "Forninho Portátil" },
+};
+constexpr int AC_COUNT = sizeof(ACS) / sizeof(ACS[0]);
+```
+
+`AppState.acs[]` is sized by `AC_COUNT` at compile time. `AppState::initDevices()` (called at boot) copies entity_id and name pointers from `ACS[]` into each slot.
+
+---
+
+## UI / Frontend
+
+Pure C++ LVGL v9. No XML editor.
+
+### Navigation model
+
+`ScreenManager` owns a stack (max 4 deep). All input is routed through it to the active screen.
+
+```
+ScreenManager::push(screen) → screen->init() (once) → screen->show()
+ScreenManager::pop()        → show previous screen
+```
+
+**Input contract:**
+- Dial (encoder delta) → active screen's `onEncoder(delta)`
+- Button press → active screen's `onButton()`
+- In menus: button = select highlighted item
+- In control screens: button = go back (`screenManager.pop()`)
+- Dial in control screens = value adjustment (brightness, target temp)
+
+### Screen hierarchy
+
+```
+CarouselMenu (main)              — Lamps / AC / Heater / Settings
+└── CarouselMenu (lamp list)     — Living Room / Bedroom / … / ← Go Back
+    └── LampControlScreen        — brightness dial, button = back
+└── CarouselMenu (AC list)       — (future)
+    └── ACControlScreen          — (future)
+```
+
+**Go Back** is always a ring item in sub-menus — never a gesture.
+
+### CarouselMenu
+
+Reusable circular navigation component. Implements `Screen`.
+- Selected item shown large in center (icon + label)
+- Other items as small dimmed icons around the ring at radius 85px
+- Ring rotates via `lv_anim` (250ms ease-out) on encoder turn
+- `setOnSelect(fn)` — caller wires navigation logic
+
+### ErrorOverlay
+
+Lives on `lv_layer_top()` — always above all screens. Three states:
+
+- `HIDDEN` — nothing shown
+- `FULL` — full-screen black bg, pulsing warning icon, message; collapses after 4s
+- `DOT` — small red circle at ~1 o'clock position; stays until error clears
+
+`update()` is called every loop. It scans `AppState.errors`, finds the first active entry past its `fireAfterMs`, looks up its icon/message via an internal config table, then drives the state machine. `appState.connection` is unchanged and available for other consumers (e.g. settings screen).
+
+### Screen base class
+
+```cpp
+class Screen {
+    virtual void init();             // called once on first push
+    virtual void show();             // called on every push/pop
+    virtual void onEncoder(int);
+    virtual void onButton();
+    virtual void refresh();          // called when AppState dirty
+};
+```
+
+Each screen owns its own `lv_obj_t* _lvScreen` (LVGL screen object). `show()` calls `lv_scr_load`.
+
+---
+
+## Loop structure
+
+```cpp
+void loop() {
+    M5Dial.update();
+    haClient.update();   // non-blocking HA/WiFi processing
+    lv_timer_handler();  // LVGL rendering
+    delay(5);
+
+    // input handling → AppState / HAClient / UI
+}
+```
+
+---
+
+## Library choices
+
+| Purpose | Library | Reason |
+|---|---|---|
+| Display + hardware | M5Unified + M5GFX + M5Dial | Official M5Stack libs |
+| UI | LVGL v9 | Chosen UI framework |
+| WebSocket | Links2004/WebSockets | Most widely used on ESP32 |
+| JSON | ArduinoJson@^7 | Standard for ESP32 JSON parsing |
+
+---
+
+## Credentials
+
+Hardcoded for now (toy project). In `credentials.h` (gitignored):
+
+```cpp
+#define WIFI_SSID     "your_ssid"
+#define WIFI_PASSWORD "your_password"
+#define HA_HOST       "homeassistant.local"
+#define HA_TOKEN      "your_long_lived_token"
+```
+
+---
+
+## Future considerations
+- If HA comms cause UI jank, move `HAClient` to a FreeRTOS task with a mutex on `AppState`
+- OTA updates: defer to final milestone
+- Config persistence: SPIFFS or NVS for entity IDs and WiFi creds

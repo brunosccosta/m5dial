@@ -1,143 +1,120 @@
 #include <M5Dial.h>
 #include <lvgl.h>
-#include "Input.h"
+#include <esp_log.h>
+#include "input/Input.h"
+#include "AppState.h"
+#include "ha/HAClient.h"
+#include "ui/ScreenManager.h"
+#include "ui/CarouselMenu.h"
+#include "ui/LampControlScreen.h"
+#include "ui/ErrorOverlay.h"
+#include "credentials.h"
 
-// ============================================================================
-// UI INTEGRATION MODES
-// ============================================================================
-// Uncomment ONE of the following modes:
-
-// MODE 1: Use hand-coded CarouselMenu (current temporary mode)
-#define USE_MANUAL_UI
-#include "CarouselMenu.h"
-
-// MODE 2: Use LVGL Pro Editor generated UI (after exporting from editor)
-// #define USE_GENERATED_UI
-// #include "ui_generated/m5dial_ui.h"
-
-// ============================================================================
-
-#ifdef USE_MANUAL_UI
-// Temporary: Manual UI with CarouselMenu
-Input input;
-MenuItem menuItems[] = {
-    {"Lamps"},
-    {"Air Conditioner"},
-    {"Heater"},
-    {"Settings"}
+// --- Main menu ---
+MenuItem mainItems[] = {
+    {"Lamps",           LV_SYMBOL_EYE_OPEN},
+    {"Air Conditioner", LV_SYMBOL_LOOP},
+    {"Heater",          LV_SYMBOL_CHARGE},
+    {"Settings",        LV_SYMBOL_SETTINGS},
 };
-CarouselMenu menu(menuItems, 4);
-#endif
+CarouselMenu mainMenu(mainItems, 4);
 
-#ifdef USE_GENERATED_UI
-// Generated UI mode: Input handling will be integrated with LVGL events
+// --- Lamp list (mirrors AppState.lamps + Go Back) ---
+MenuItem lampItems[] = {
+    {"Living Room", LV_SYMBOL_EYE_OPEN},
+    {"Bedroom",     LV_SYMBOL_EYE_OPEN},
+    {"Kitchen",     LV_SYMBOL_EYE_OPEN},
+    {"Office",      LV_SYMBOL_EYE_OPEN},
+    {"Go Back",     LV_SYMBOL_LEFT},
+};
+CarouselMenu lampMenu(lampItems, 5);
+
+// --- Lamp control ---
+LampControlScreen lampControl;
+
 Input input;
-lv_obj_t* current_screen = NULL;
-#endif
 
-// 1. The Flush Callback: This tells LVGL how to draw on the M5 screen
-void my_disp_flush(lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p) {
+void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
+    ESP_LOGV("DISPLAY", "flush (%d,%d)-(%d,%d)", area->x1, area->y1, area->x2, area->y2);
     uint32_t w = (area->x2 - area->x1 + 1);
     uint32_t h = (area->y2 - area->y1 + 1);
-
     M5Dial.Display.startWrite();
     M5Dial.Display.setAddrWindow(area->x1, area->y1, w, h);
-    M5Dial.Display.pushPixels((uint16_t *)&color_p->full, w * h);
+    M5Dial.Display.pushPixels((uint16_t *)px_map, w * h);
     M5Dial.Display.endWrite();
+    lv_display_flush_ready(disp);
+}
 
-    lv_disp_flush_ready(disp);
+void setupNavigation() {
+    mainMenu.setOnSelect([](int idx) {
+        switch (idx) {
+            case 0: screenManager.push(&lampMenu); break; // Lamps
+            default: ESP_LOGI("NAV", "no screen for index %d", idx); break;
+        }
+    });
+
+    lampMenu.setOnSelect([](int idx) {
+        if (idx == appState.lampCount) { // Go Back is last item
+            screenManager.pop();
+        } else {
+            lampControl.setLampIndex(idx);
+            screenManager.push(&lampControl);
+        }
+    });
 }
 
 void setup() {
-    M5Dial.begin();
-    
-    // Set brightness so you can see it!
+    auto cfg = M5.config();
+    M5Dial.begin(cfg, true, false);
+    Serial.begin(115200);
+
+    ESP_LOGI("BOOT", "M5Dial SmartHome starting");
+
     M5Dial.Display.setBrightness(128);
 
-    // Initialize LVGL
     lv_init();
+    lv_tick_set_cb([]() -> uint32_t { return (uint32_t)millis(); });
 
-    // Setup Display Buffer (Use 1/10th of screen to save RAM)
-    static lv_disp_draw_buf_t draw_buf;
-    static lv_color_t buf[240 * 24]; 
-    lv_disp_draw_buf_init(&draw_buf, buf, NULL, 240 * 24);
+    lv_display_t *disp = lv_display_create(240, 240);
+    lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565_SWAPPED);
+    lv_display_set_flush_cb(disp, my_disp_flush);
 
-    // Register the Display Driver
-    static lv_disp_drv_t disp_drv;
-    lv_disp_drv_init(&disp_drv);
-    disp_drv.hor_res = 240;
-    disp_drv.ver_res = 240;
-    disp_drv.flush_cb = my_disp_flush;
-    disp_drv.draw_buf = &draw_buf;
-    lv_disp_drv_register(&disp_drv);
+    static lv_color_t buf[240 * 24];
+    lv_display_set_buffers(disp, buf, NULL, sizeof(buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    // Initialize Input
+    appState.initDevices();
     input.begin();
+    haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
+    errorOverlay.init();
 
-#ifdef USE_MANUAL_UI
-    // Manual UI mode: Initialize CarouselMenu
-    menu.init();
-    Serial.println("M5Dial Smart Home Controller Ready! (Manual UI Mode)");
-#endif
+    setupNavigation();
+    screenManager.push(&mainMenu);
 
-#ifdef USE_GENERATED_UILVGL task handler - must be called regularly
-    delay(5);
-    
-    input.update();
-
-#ifdef USE_MANUAL_UI
-    // Manual UI mode: Handle input for CarouselMenu
-    int delta = input.getEncoderDelta();
-    if (delta != 0) {
-        menu.scroll(delta);
-    }
-    
-    if (input.wasButtonPressed()) {
-        menu.select();
-    }
-#endif
-
-#ifdef USE_GENERATED_UI
-    // Generated UI mode: Input will be handled by LVGL events
-    // You can add custom input handling here if needed
-    // For example, encoder-based scrolling for lists or sliders
-    
-    int delta = input.getEncoderDelta();
-    if (delta != 0) {
-        // TODO: Send encoder events to LVGL
-        // Example: Scroll focused object, adjust slider, etc.
-        Serial.printf("Encoder delta: %d\n", delta);
-    }
-    
-    if (input.wasButtonPressed()) {
-        // TODO: Send click events to LVGL
-        // Example: Click focused button, select item, etc.
-        Serial.println("Button pressed");
-    }
-#endiferial.println("5. Rebuild and upload");
-#endif
-    
-    Serial.println("\n=== M5Dial Smart Home Controller ===");
-    Serial.println("Rotate dial to navigate");
-    Serial.println("Press button to select");
-    Serial.println("====================================\n");
+    ESP_LOGI("BOOT", "setup complete");
 }
 
 void loop() {
     M5Dial.update();
-    lv_timer_handler(); // This handles the animations
+    haClient.update();
+    lv_timer_handler();
     delay(5);
-    
+
     input.update();
-    
-    // Handle encoder rotation
+
     int delta = input.getEncoderDelta();
     if (delta != 0) {
-        menu.scroll(delta);
+        ESP_LOGD("INPUT", "encoder delta=%d", delta);
+        screenManager.onEncoder(-delta);
     }
-    
-    // Handle button press
     if (input.wasButtonPressed()) {
-        menu.select();
+        ESP_LOGD("INPUT", "button pressed");
+        screenManager.onButton();
     }
-}   
+
+    errorOverlay.update();
+
+    if (appState.dirty) {
+        screenManager.refresh();
+        appState.dirty = false;
+    }
+}
