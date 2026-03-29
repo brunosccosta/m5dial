@@ -1,5 +1,6 @@
 #pragma once
 #include <Arduino.h>
+#include "devices.h"
 
 namespace ErrorKey {
     constexpr const char* WIFI  = "wifi";
@@ -27,18 +28,19 @@ struct LampState {
 };
 
 struct ACState {
+    const char* entity_id;
     const char* name;
     float       current_temp;
     float       target_temp;
-    String      mode; // "cool", "heat", "auto", "off"
+    char        mode[12]; // "off", "cool", "heat", "auto", "fan_only", "dry"
+    bool        valid;    // false until first HA update arrives
 };
 
 struct AppState {
     LampState lamps[4];
     int       lampCount;
 
-    ACState   acs[2];
-    int       acCount;
+    ACState   acs[AC_COUNT];
 
     float     room_temp;
 
@@ -48,6 +50,7 @@ struct AppState {
     static constexpr int MAX_ERRORS = 6;
     ErrorEntry errors[MAX_ERRORS];
 
+    void initDevices();
     void setError(const char* key, uint32_t fireAfterMs = 0);
     void clearError(const char* key);
 };

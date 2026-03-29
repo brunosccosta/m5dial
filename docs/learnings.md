@@ -108,6 +108,29 @@ For a "1 o'clock" dot: `lv_obj_set_pos(_dot, 169, 19)` → center at (175, 25), 
 - `enableHeartbeat(pingMs, pongTimeoutMs, retries)` — built-in WS ping/pong keepalive
 - HA sends `auth_required` on every new connection, so auth flow repeats automatically after reconnect
 
+## `get_states` disconnects the WS — use `subscribe_entities` instead
+
+`get_states` returns all HA entities in a single WS frame. For a typical HA install this is 50–200KB. The Links2004 WebSocketsClient library drops the connection when the incoming frame exceeds its buffer — no error, just `WStype_DISCONNECTED` immediately after the frame arrives.
+
+**Fix**: use `subscribe_entities` with explicit `entity_ids`. HA sends only the requested entities (initial snapshot + incremental diffs), keeping frames small.
+
+```json
+{"id":1,"type":"subscribe_entities","entity_ids":["climate.your_entity"]}
+```
+
+---
+
+## `subscribe_entities` event format is compressed
+
+Unlike `state_changed` events, `subscribe_entities` uses a compact diff format:
+
+- `event.a` (added) — initial snapshot, full state + attributes
+- `event.c` (changed) — only changed fields, nested under `"+"`
+
+Fields absent in a diff mean unchanged — don't overwrite them with defaults.
+
+---
+
 ## HA WebSocket auth flow
 
 Fixed protocol on connect — no variation:

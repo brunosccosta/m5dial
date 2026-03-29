@@ -29,6 +29,17 @@ void AppState::clearError(const char* key) {
     }
 }
 
+void AppState::initDevices() {
+    for (int i = 0; i < AC_COUNT; i++) {
+        acs[i].entity_id    = ACS[i].entity_id;
+        acs[i].name         = ACS[i].name;
+        acs[i].current_temp = 0.0f;
+        acs[i].target_temp  = 0.0f;
+        strncpy(acs[i].mode, "off", sizeof(acs[i].mode));
+        acs[i].valid        = false;
+    }
+}
+
 AppState appState = {
     .lamps = {
         {"Living Room", false, 0},
@@ -36,15 +47,8 @@ AppState appState = {
         {"Kitchen",     false, 0},
         {"Office",      true,  128},
     },
-    .lampCount = 4,
-
-    .acs = {
-        {"Living Room AC", 22.5f, 24.0f, "cool"},
-        {"Bedroom AC",     23.0f, 22.0f, "heat"},
-    },
-    .acCount = 2,
-
-    .room_temp = 22.5f,
+    .lampCount  = 4,
+    .room_temp  = 0.0f,
     .dirty      = false,
     .connection = ConnectionState::WIFI_CONNECTING,
 };

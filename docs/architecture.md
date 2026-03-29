@@ -82,7 +82,49 @@ WS reconnects automatically (`setReconnectInterval(5000)`); HA resends `auth_req
 
 `enableHeartbeat(15000, 3000, 2)` — WS ping every 15s, pong timeout 3s, 2 retries before disconnect.
 
+### Entity subscription
+
+After `auth_ok`, HAClient sends a single `subscribe_entities` message with all entity IDs from `devices.h`:
+
+```json
+{"id":1,"type":"subscribe_entities","entity_ids":["climate.forninho_room_temperature","climate.forninho_portatil"]}
+```
+
+**Why not `get_states`**: `get_states` returns all HA entities in one WS frame — easily 50–200KB. The Links2004 WS library drops the connection when the incoming frame exceeds its buffer. `subscribe_entities` with specific IDs returns only the requested entities.
+
+HA responds with:
+- A `result` confirmation (id match, success)
+- An immediate `event.a` (added) with current state for all subscribed entities
+- Subsequent `event.c` (changed) diffs — only the fields that changed
+
+```json
+// Initial: event.a
+{"event":{"a":{"climate.x":{"s":"heat","a":{"current_temperature":23.0,"temperature":21.0}}}}}
+
+// Change: event.c, "+" = updated fields only
+{"event":{"c":{"climate.x":{"+":{"s":"off"}}}}}
+```
+
+`HAClient::updateACState()` handles both cases — `state` or `attrs` may be null on a diff (only changed fields are present).
+
 **Libraries**: `Links2004/WebSockets`, `ArduinoJson@^7`
+
+---
+
+## Device configuration
+
+Entity IDs and display names live in `src/devices.h` (gitignored). Struct definitions in `src/DeviceConfig.h` (committed). `src/devices.h.example` is committed as a template.
+
+```cpp
+// devices.h
+constexpr DeviceEntry ACS[] = {
+    { "climate.forninho_room_temperature", "Forninho"          },
+    { "climate.forninho_portatil",         "Forninho Portátil" },
+};
+constexpr int AC_COUNT = sizeof(ACS) / sizeof(ACS[0]);
+```
+
+`AppState.acs[]` is sized by `AC_COUNT` at compile time. `AppState::initDevices()` (called at boot) copies entity_id and name pointers from `ACS[]` into each slot.
 
 ---
 

@@ -82,6 +82,7 @@ void setup() {
     static lv_color_t buf[240 * 24];
     lv_display_set_buffers(disp, buf, NULL, sizeof(buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
 
+    appState.initDevices();
     input.begin();
     haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
     errorOverlay.init();

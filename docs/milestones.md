@@ -14,18 +14,19 @@ Display works, encoder and button respond.
 - [x] Heartbeat via WS ping frames (15s interval, auto-reconnect on drop)
 - **Deliverable**: Device connected to HA, auth confirmed in serial log
 
-### B2: Entity State
-- [x] Define `AppState` singleton (lamps, ACs, room temp) — structs + static dummy data done
-- [ ] Subscribe to HA entity state changes
-- [ ] Parse incoming state → write into `AppState`
-- [ ] Log state updates
-- **Deliverable**: `AppState` reflects live HA entity states
+### B2: Entity State ✅ (AC only — lamps deferred)
+- [x] Define `AppState` singleton (ACs, room temp) — structs populated from `devices.h`
+- [x] Subscribe to HA entity state via `subscribe_entities` (targeted, not full `get_states`)
+- [x] Parse incoming state → write into `AppState` (initial snapshot + incremental diffs)
+- [x] Log state updates
+- [ ] Lamp state — deferred until lamp entities are added to `devices.h`
+- **Deliverable**: `AppState` reflects live AC states from HA
 
 ### B3: Commands
-- [ ] Send lamp on/off + brightness commands
+- [ ] ~~Send lamp on/off + brightness commands~~ — deferred with lamps
 - [ ] Send AC target temp + mode commands
 - [ ] Confirm HA acknowledges commands
-- **Deliverable**: Device can control HA entities
+- **Deliverable**: Device can control AC entities
 
 ### B4: Resilience
 - [x] `ConnectionState` enum in `AppState` — written by HAClient, readable by UI
@@ -45,21 +46,15 @@ Display works, encoder and button respond.
 - [x] Button press navigates into control screen
 - [x] Back navigation via "Go Back" ring item (replaces long press)
 
-### F2: Lamp Control Screen ✅ (static)
-- [x] Screen navigation stack (ScreenManager, Screen base class)
-- [x] Lamp list drill-down with Go Back
-- [x] Shows lamp name + on/off state + brightness
-- [x] Dial adjusts brightness, button = go back
-- [x] Reads from / writes to `AppState`
-- [ ] Toggle on/off (pending — needs dedicated interaction)
-- **Deliverable**: Full lamp UI connected to live HA (pending I2)
+### F2: Lamp Control Screen — deferred
+All lamp UI work is deferred until lamps are added to `devices.h` and B2 lamp state is live.
 
 ### F3: AC Control Screen
 - [ ] Shows current temp + target temp + mode
 - [ ] Dial adjusts target temperature
 - [ ] Button cycles mode (cool → heat → auto → off)
 - [ ] Reads from / writes to `AppState`
-- **Deliverable**: Full AC UI (static state for now)
+- **Deliverable**: Full AC UI connected to live HA
 
 ### F4: Error Overlay ✅
 - [x] Generic LVGL overlay shown on top of any active screen (`lv_layer_top()`)
@@ -81,13 +76,11 @@ Display works, encoder and button respond.
 
 ## Integration
 
-### I1: Live Menu (B2 + F1)
-- [ ] Menu items show real entity names from `AppState`
-- [ ] Menu reflects current on/off state (e.g. dim if lamp is off)
+### I1: Live Menu — deferred with lamps
+Depends on lamp entities being live in `AppState`.
 
-### I2: Live Lamp Control (B3 + F2)
-- [ ] Lamp screen sends real commands via `HAClient`
-- [ ] Screen updates when HA confirms state change
+### I2: Live Lamp Control — deferred with lamps
+Depends on F2 and B3 lamp commands.
 
 ### I3: Live AC Control (B3 + F3)
 - [ ] AC screen sends real commands via `HAClient`
@@ -96,9 +89,8 @@ Display works, encoder and button respond.
 ---
 
 ## Open Questions
-- Lamp toggle on/off: dedicated dial position (dial to 0 = off) or button double-tap?
-- Multiple lamps: flat list (current) or grouped by room?
-- AC modes: depends on HA climate entity config — discover at B2
+- Lamps: deferred — add entity IDs to `devices.h` when ready to pick this up
+- AC modes: supported modes vary by device — read `hvac_modes` attribute if needed
 - Temperature sensor: which entity, where displayed?
 - Settings screen: WiFi status + IP for now; what else?
 
