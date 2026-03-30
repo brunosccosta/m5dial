@@ -37,3 +37,7 @@ void ScreenManager::onButton() {
 void ScreenManager::refresh() {
     if (_depth > 0) _stack[_depth - 1]->refresh();
 }
+
+void ScreenManager::tick() {
+    if (_depth > 0) _stack[_depth - 1]->tick();
+}

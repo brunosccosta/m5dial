@@ -36,13 +36,21 @@ struct ACState {
     bool        valid;    // false until first HA update arrives
 };
 
+struct WeatherState {
+    char  condition[32];  // weather.buienradar state e.g. "sunny"
+    float temperature;    // weather.buienradar a.temperature
+    float feelsLike;      // weather.buienradar a.apparent_temperature
+    float outdoorTemp;    // sensor.atc_3294_temperature state
+    float outdoorHumidity;// sensor.atc_3294_humidity state
+    bool  valid;          // false until first HA update arrives
+};
+
 struct AppState {
     LampState lamps[4];
     int       lampCount;
 
-    ACState   acs[AC_COUNT];
-
-    float     room_temp;
+    ACState      acs[AC_COUNT];
+    WeatherState weather;
 
     bool            dirty;      // set by HA layer when state changes; cleared by UI after refresh
     ConnectionState connection; // written by HAClient; read by UI for status indicator

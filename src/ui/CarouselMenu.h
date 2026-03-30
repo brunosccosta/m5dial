@@ -12,13 +12,15 @@ class CarouselMenu : public Screen {
 public:
     CarouselMenu(MenuItem* items, int count);
 
-    void init()             override;
-    void show()             override;
+    void init()               override;
+    void show()               override;
     void onEncoder(int delta) override;
-    void onButton()         override;
-    void refresh()          override;
+    void onButton()           override;
+    void refresh()            override;
+    void tick()               override;
 
     void setOnSelect(std::function<void(int)> cb);
+    void enableInactivityTimer(uint32_t ms); // pop after ms of no input
     int  getCurrentIndex() const;
 
 private:
@@ -36,6 +38,9 @@ private:
     bool        _initialized;
 
     std::function<void(int)> _onSelect;
+
+    uint32_t _inactivityMs      = 0;
+    uint32_t _lastActivityMs    = 0;
 
     static constexpr int MAX_ITEMS   = 8;
     static constexpr int RING_RADIUS = 85;

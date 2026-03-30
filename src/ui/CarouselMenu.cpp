@@ -1,13 +1,16 @@
 #include <esp_log.h>
 #include <math.h>
+#include <Arduino.h>
 #include "CarouselMenu.h"
+#include "ScreenManager.h"
+#include "fonts/fa_icons.h"
 
 static const char* TAG = "MENU";
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846f
 #endif
-static constexpr float DEG_TO_RAD = M_PI / 180.0f;
+static constexpr float CAROUSEL_DEG_TO_RAD = M_PI / 180.0f;
 
 CarouselMenu::CarouselMenu(MenuItem* items, int count)
     : _items(items), _count(count), _selectedIndex(0),
@@ -26,7 +29,7 @@ void CarouselMenu::init() {
 
     for (int i = 0; i < _count; i++) {
         lv_obj_t* icon = lv_label_create(_lvScreen);
-        lv_obj_set_style_text_font(icon, &lv_font_montserrat_24, LV_PART_MAIN);
+        lv_obj_set_style_text_font(icon, &font_awesome_solid_32, LV_PART_MAIN);
         lv_obj_set_style_text_color(icon, lv_color_white(), LV_PART_MAIN);
         lv_obj_set_style_text_opa(icon, LV_OPA_50, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(icon, LV_OPA_TRANSP, LV_PART_MAIN);
@@ -36,7 +39,7 @@ void CarouselMenu::init() {
     }
 
     _centerIcon = lv_label_create(_lvScreen);
-    lv_obj_set_style_text_font(_centerIcon, &lv_font_montserrat_48, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_centerIcon, &font_awesome_solid_32, LV_PART_MAIN);
     lv_obj_set_style_text_color(_centerIcon, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_centerIcon, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(_centerIcon, 0, LV_PART_MAIN);
@@ -55,15 +58,18 @@ void CarouselMenu::init() {
 }
 
 void CarouselMenu::show() {
+    _lastActivityMs = millis();
     lv_scr_load(_lvScreen);
     lv_refr_now(NULL);
 }
 
 void CarouselMenu::onEncoder(int delta) {
+    _lastActivityMs = millis();
     scroll(delta);
 }
 
 void CarouselMenu::onButton() {
+    _lastActivityMs = millis();
     select();
 }
 
@@ -74,6 +80,19 @@ void CarouselMenu::refresh() {
 
 void CarouselMenu::setOnSelect(std::function<void(int)> cb) {
     _onSelect = cb;
+}
+
+void CarouselMenu::enableInactivityTimer(uint32_t ms) {
+    _inactivityMs = ms;
+}
+
+void CarouselMenu::tick() {
+    if (_inactivityMs == 0) return;
+    if (millis() - _lastActivityMs >= _inactivityMs) {
+        _lastActivityMs = millis(); // reset to prevent repeated pops
+        ESP_LOGI("MENU", "inactivity timeout, popping");
+        screenManager.pop();
+    }
 }
 
 int CarouselMenu::getCurrentIndex() const {
@@ -122,10 +141,10 @@ void CarouselMenu::updateRingPositions() {
     float step = 360.0f / _count;
     for (int i = 0; i < _count; i++) {
         float angle_deg = _ringAngle + i * step;
-        float angle_rad = angle_deg * DEG_TO_RAD;
+        float angle_rad = angle_deg * CAROUSEL_DEG_TO_RAD;
         int cx = 120 + (int)(RING_RADIUS * sinf(angle_rad));
         int cy = 120 - (int)(RING_RADIUS * cosf(angle_rad));
-        lv_obj_set_pos(_ringIcons[i], cx - 12, cy - 12);
+        lv_obj_set_pos(_ringIcons[i], cx - 16, cy - 16);
     }
 }
 

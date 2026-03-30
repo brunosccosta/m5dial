@@ -40,6 +40,34 @@ And `lv_disp_flush_ready(drv)` → `lv_display_flush_ready(disp)`.
 
 ---
 
+## `lv_label_set_text_fmt` does not support `%f`
+
+LVGL's internal formatter does not handle float format specifiers. Using `%.0f` or `%f` in `lv_label_set_text_fmt` outputs the literal `f` character instead of a number.
+
+**Fix**: use `snprintf` into a local buffer, then `lv_label_set_text`:
+```cpp
+char buf[32];
+snprintf(buf, sizeof(buf), "%.1f°", value);
+lv_label_set_text(label, buf);
+```
+
+---
+
+## LVGL Montserrat font sizes — must be explicitly enabled in platformio.ini
+
+LVGL ships Montserrat in many sizes but only compiles those explicitly enabled via build flags. Using an unenabled size compiles but renders garbage — it reads uninitialised memory.
+
+Enable in `platformio.ini`:
+```ini
+-DLV_FONT_MONTSERRAT_14=1
+-DLV_FONT_MONTSERRAT_24=1
+-DLV_FONT_MONTSERRAT_28=1
+-DLV_FONT_MONTSERRAT_32=1
+-DLV_FONT_MONTSERRAT_48=1
+```
+
+---
+
 ## LVGL partial refresh doesn't trigger automatically
 
 `lv_label_set_text()` marks the object dirty, but `lv_timer_handler()` alone may not flush it to the display in all cases.
@@ -93,6 +121,41 @@ For a "1 o'clock" dot: `lv_obj_set_pos(_dot, 169, 19)` → center at (175, 25), 
 
 ---
 
+## `lv_obj_align` positions are not committed until layout is resolved
+
+`lv_obj_get_x/y/width/height` return stale values (often 0) immediately after `lv_obj_align` — LVGL resolves layout lazily. Reading positions before a redraw cycle gives wrong results.
+
+**Fix**: call `lv_obj_update_layout(screen)` before reading any positions:
+```cpp
+lv_scr_load(_lvScreen);
+lv_obj_update_layout(_lvScreen);
+// now lv_obj_get_x/y are correct
+```
+
+This also applies to `lv_obj_align_to` — the base object's size must be resolved first or the relative position will be wrong:
+```cpp
+lv_obj_align(_icon, LV_ALIGN_CENTER, -20, 53);
+lv_obj_update_layout(_lvScreen);
+lv_obj_align_to(_text, _icon, LV_ALIGN_OUT_RIGHT_MID, 6, 0); // now icon width is known
+```
+
+---
+
+## Mixing fonts requires separate label objects
+
+LVGL labels use a single font — there's no inline font switching within one label. To render an icon glyph (FA font) next to text (Montserrat) in the same row, create two labels and position the second relative to the first with `lv_obj_align_to`:
+
+```cpp
+lv_obj_set_style_text_font(_iconLabel, &font_awesome_solid_18, LV_PART_MAIN);
+lv_obj_set_style_text_font(_textLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+
+lv_obj_align(_iconLabel, LV_ALIGN_CENTER, -20, y);
+lv_obj_update_layout(screen);
+lv_obj_align_to(_textLabel, _iconLabel, LV_ALIGN_OUT_RIGHT_MID, 6, 0);
+```
+
+---
+
 ## `lv_obj_align` on `lv_layer_top()` children — use `lv_obj_set_pos` instead
 
 `lv_obj_align` with parent-relative alignments (e.g. `LV_ALIGN_TOP_RIGHT`) may not resolve correctly for children of `lv_layer_top()` if the layer's size isn't explicitly set. The object ends up at position (0,0) or wrong coordinates.
@@ -128,6 +191,14 @@ Unlike `state_changed` events, `subscribe_entities` uses a compact diff format:
 - `event.c` (changed) — only changed fields, nested under `"+"`
 
 Fields absent in a diff mean unchanged — don't overwrite them with defaults.
+
+---
+
+## weather.buienradar — no forecast in subscribe_entities
+
+`subscribe_entities` for `weather.buienradar` returns current conditions only (`supported_features: 1`). The forecast array is **not** included. Hourly forecast requires a separate `weather.get_forecasts` call with `return_response: true`.
+
+Fields available via subscribe: `s` (condition), `apparent_temperature` (feels like), `temperature`, `humidity`, `wind_speed`, `wind_bearing`, `pressure`.
 
 ---
 

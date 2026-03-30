@@ -17,20 +17,36 @@ Central shared state. A global singleton — typical and appropriate for single-
 
 ```cpp
 struct LampState {
-    bool    on;
-    uint8_t brightness; // 0–255
+    const char* name;
+    bool        on;
+    uint8_t     brightness; // 0–255
 };
 
 struct ACState {
-    float  current_temp;
-    float  target_temp;
-    String mode; // "cool", "heat", "auto", "off"
+    const char* entity_id;
+    const char* name;
+    float       current_temp;
+    float       target_temp;
+    char        mode[12]; // "off", "cool", "heat", "auto", "fan_only", "dry"
+    bool        valid;    // false until first HA update
+};
+
+struct WeatherState {
+    char  condition[32];   // e.g. "sunny" — weather.buienradar state
+    float temperature;     // weather.buienradar a.temperature
+    float feelsLike;       // weather.buienradar a.apparent_temperature
+    float outdoorTemp;     // sensor.atc_3294_temperature state
+    float outdoorHumidity; // sensor.atc_3294_humidity state
+    bool  valid;
 };
 
 struct AppState {
-    LampState lamps[4];
-    ACState   acs[2];
-    float     room_temp;
+    LampState    lamps[4];
+    int          lampCount;
+    ACState      acs[AC_COUNT];
+    WeatherState weather;
+    bool         dirty;      // set by HA layer; cleared by UI after refresh
+    ConnectionState connection;
 };
 
 extern AppState appState; // defined once in AppState.cpp
@@ -107,6 +123,35 @@ HA responds with:
 
 `HAClient::updateACState()` handles both cases — `state` or `attrs` may be null on a diff (only changed fields are present).
 
+### Sending commands
+
+`HAClient` exposes two methods for AC control:
+
+```cpp
+haClient.sendACTemperature(entity_id, temp);  // climate.set_temperature
+haClient.sendACMode(entity_id, mode);         // climate.set_hvac_mode
+```
+
+Payload format:
+
+```json
+{"id":2,"type":"call_service","domain":"climate","service":"set_temperature",
+ "service_data":{"temperature":21.5},"target":{"entity_id":"climate.x"}}
+
+{"id":3,"type":"call_service","domain":"climate","service":"set_hvac_mode",
+ "service_data":{"hvac_mode":"heat"},"target":{"entity_id":"climate.x"}}
+```
+
+`_msgId` is incremented on each real send to keep message IDs unique across the session.
+
+### Dry-run mode
+
+`begin()` accepts an optional `dryRun` flag (default `false`). When enabled, send methods log the payload at INFO level instead of transmitting — useful for validating payloads without touching HA:
+
+```cpp
+haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN, true);
+```
+
 **Libraries**: `Links2004/WebSockets`, `ArduinoJson@^7`
 
 ---
@@ -145,20 +190,144 @@ ScreenManager::pop()        → show previous screen
 - Dial (encoder delta) → active screen's `onEncoder(delta)`
 - Button press → active screen's `onButton()`
 - In menus: button = select highlighted item
-- In control screens: button = go back (`screenManager.pop()`)
-- Dial in control screens = value adjustment (brightness, target temp)
+- In ACControlScreen: dial cycles selected property, button confirms/edits (see below)
+- Any input on RestScreen → push main CarouselMenu
+- Auto-return to RestScreen after 30s inactivity on main menu
+- Auto-return to previous screen after 30s inactivity on any control screen
 
 ### Screen hierarchy
 
 ```
-CarouselMenu (main)              — Lamps / AC / Heater / Settings
-└── CarouselMenu (lamp list)     — Living Room / Bedroom / … / ← Go Back
-    └── LampControlScreen        — brightness dial, button = back
-└── CarouselMenu (AC list)       — (future)
-    └── ACControlScreen          — (future)
+RestScreen (root)                — idle/screensaver, boots here
+└── CarouselMenu (main)          — Lamps / AC / Heater
+    └── CarouselMenu (lamp list) — Living Room / Bedroom / … / ← Go Back
+        └── LampControlScreen   — brightness dial, button = back
+    └── ACControlScreen         — direct push, no list (single device skips list)
 ```
 
-**Go Back** is always a ring item in sub-menus — never a gesture.
+**RestScreen** is the root of the stack — it is never popped. Any dial or button input pushes the main CarouselMenu. After 30s inactivity on the main menu it pops back to RestScreen. ACControlScreen already has its own 30s timer that pops to the previous screen.
+
+**Go Back** is a selectable property in ACControlScreen (dial to it, button confirms) — no gestures.
+
+### RestScreen
+
+Idle/screensaver shown at boot and after 30s inactivity on the main menu. Displays at-a-glance home status — no interaction beyond "wake up".
+
+**Layout** (240×240 circle):
+
+```
+         ☁  15°          ← current weather: condition icon + temp   (~y=50)
+        Cloudy            ← condition text
+
+       → 🌤  17°         ← 1h forecast: arrow + icon + temp         (~y=105)
+
+         12.4°            ← outside temp, small grey                (~y=140)
+
+   ❄ AUTO 21°  🔥 OFF    ← AC + heater status, side by side        (~y=175)
+```
+
+**Data sources:**
+
+| Field | HA entity | Attribute |
+|---|---|---|
+| Current condition | `weather.*` | `state` (e.g. `"cloudy"`) |
+| Current temp | `weather.*` | `temperature` attribute |
+| 1h forecast | `weather.*` | `forecast` attribute (first entry) |
+| Outside temp | `sensor.atc_3294_temperature` | `state` |
+| AC status | `climate.forninho_room_temperature` | already in `appState.acs[0]` |
+| Heater status | `climate.forninho_portatil` | already in `appState.acs[1]` |
+
+**Weather icons:** FontAwesome Solid glyphs mapped to HA condition strings. Animated icons deferred — static FA icons first, animation as a later enhancement.
+
+**HA weather forecast:** Buienradar does not include forecast in `subscribe_entities` — the payload only contains current conditions. Forecast requires a separate `weather.get_forecasts` service call (see below).
+
+**Confirmed fields from `weather.buienradar` via `subscribe_entities`:**
+
+```json
+"s": "sunny",
+"a": {
+  "temperature": 3.7,
+  "apparent_temperature": 0.9,
+  "humidity": 79,
+  "wind_speed": 10.8,
+  "wind_bearing": 298,
+  "pressure": 1024.8
+}
+```
+
+Fields used by RestScreen: `s` (condition), `temperature` (current), `apparent_temperature` (feels like).
+
+**Fetching hourly forecast:**
+
+Forecast requires a one-shot `call_service` + response via `result`:
+```json
+{"id":N,"type":"call_service","domain":"weather","service":"get_forecasts",
+ "service_data":{"type":"hourly"},"target":{"entity_id":"weather.buienradar"},
+ "return_response":true}
+```
+
+Response includes an array of hourly entries with `datetime`, `condition`, `temperature`. Request after `auth_ok` and re-request periodically (e.g. every 30 min).
+
+### ACControlScreen
+
+Displays live AC state and allows editing target temp and mode.
+
+**Layout** (240×240 circle):
+```
+    ╭────────────╮    ← lv_arc, top 180°, orange=heat / blue=cool / grey=off
+         name         ← small grey label
+        23.0°         ← current temp, medium grey
+          21°         ← target temp, large white, center
+       ⚡  HEAT       ← mode icon + label
+           ←          ← go back
+```
+
+Arc fill = target temp mapped to range 16–30°C. Color driven by mode.
+
+**Interaction states:**
+
+| State | Dial | Button |
+|---|---|---|
+| `HERO` (idle) | cycles selected property: Target → Mode → Go Back | confirms selection, enters edit |
+| `EDIT_TEMP` | adjusts target temp (live preview, no HA send) | sends to HA → back to HERO |
+| `EDIT_MODE` | cycles modes with icons (live preview) | sends to HA → back to HERO |
+| `GO_BACK` selected | — | `screenManager.pop()` |
+
+**Dual arc:**
+- Outer arc (thicker, full opacity) = target temp — color follows mode
+- Inner arc (thinner, dimmed) = current temp — color follows temperature thresholds:
+
+| Range | Color | Meaning |
+|---|---|---|
+| < 18°C | blue `0x0088FF` | Cold |
+| 18–21°C | yellow `0xFFCC00` | Transitional |
+| ≥ 21°C | orange `0xFF6600` | Warm |
+
+Arc range: 10–30°C. Midpoint 20°C = half fill.
+
+**Mode icons** (FontAwesome Solid via `fa_icons.h`):
+
+| Mode | Macro | FA name |
+|---|---|---|
+| heat | `FA_FIRE` | fa-fire |
+| cool | `FA_SNOWFLAKE` | fa-snowflake |
+| auto | `FA_ARROWS_ROTATE` | fa-arrows-rotate |
+| fan_only | `FA_FAN` | fa-fan |
+| dry | `FA_DROPLET` | fa-droplet |
+| off | `FA_POWER_OFF` | fa-power-off |
+
+**Main menu icons:**
+
+| Item | Macro | FA name | Rationale |
+|---|---|---|---|
+| Lamps | `FA_LIGHTBULB` | fa-lightbulb | — |
+| Air Conditioner | `FA_WIND` | fa-wind | Unit heats in winter too — snowflake implies cooling only |
+| Heater | `FA_FIRE` | fa-fire | Infrared heater, heat-only |
+| Settings | `FA_GEAR` | fa-gear | — |
+
+Icon font: FontAwesome Solid 32px, generated as `src/ui/fonts/font_awesome_solid_32.c`. See `docs/dev.md` for how to regenerate.
+
+Selection highlight: underline bar repositioned under the active property.
 
 ### CarouselMenu
 
@@ -187,8 +356,15 @@ class Screen {
     virtual void onEncoder(int);
     virtual void onButton();
     virtual void refresh();          // called when AppState dirty
+    virtual void tick();             // called every loop; default no-op
 };
 ```
+
+`tick()` is forwarded by `ScreenManager` to the active screen every loop. Use it for timers or animations that need to fire independently of input or AppState changes.
+
+### Inactivity timer
+
+`ACControlScreen` auto-pops after 30s of no input. Implemented via `tick()`: any `onEncoder` or `onButton` call (and `show()`) resets `_lastActivityMs = millis()`; `tick()` calls `screenManager.pop()` when the delta exceeds `INACTIVITY_TIMEOUT_MS`.
 
 Each screen owns its own `lv_obj_t* _lvScreen` (LVGL screen object). `show()` calls `lv_scr_load`.
 

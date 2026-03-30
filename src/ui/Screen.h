@@ -8,4 +8,5 @@ public:
     virtual void onEncoder(int delta) = 0;
     virtual void onButton()         = 0;
     virtual void refresh()          {} // called when AppState dirty; override as needed
+    virtual void tick()             {} // called every loop; override for timers/animations
 };

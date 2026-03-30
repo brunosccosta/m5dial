@@ -8,6 +8,7 @@ public:
     void onEncoder(int delta);
     void onButton();
     void refresh(); // forward to active screen when AppState dirty
+    void tick();    // forward to active screen every loop
 
 private:
     static constexpr int MAX_DEPTH = 4;

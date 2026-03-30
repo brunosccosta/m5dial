@@ -48,7 +48,6 @@ AppState appState = {
         {"Office",      true,  128},
     },
     .lampCount  = 4,
-    .room_temp  = 0.0f,
     .dirty      = false,
     .connection = ConnectionState::WIFI_CONNECTING,
 };

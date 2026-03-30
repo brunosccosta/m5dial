@@ -12,12 +12,14 @@ static constexpr uint32_t WIFI_RETRY_MS = 5000;
 HAClient haClient;
 
 void HAClient::begin(const char* ssid, const char* password,
-                     const char* host, uint16_t port, const char* token) {
+                     const char* host, uint16_t port, const char* token,
+                     bool dryRun) {
     _ssid     = ssid;
     _password = password;
     _host     = host;
     _port     = port;
     _token    = token;
+    _dryRun   = dryRun;
 
     ESP_LOGI(TAG, "connecting to WiFi: %s", _ssid);
     WiFi.mode(WIFI_STA);
@@ -161,20 +163,27 @@ void HAClient::handleMessage(uint8_t* payload, size_t length) {
         JsonObject added = doc["event"]["a"];
         if (!added.isNull()) {
             for (JsonPair kv : added) {
-                updateACState(kv.key().c_str(),
-                              kv.value()["s"] | (const char*)nullptr,
-                              kv.value()["a"]);
+                const char* eid = kv.key().c_str();
+                if (strncmp(eid, "climate.", 8) == 0) {
+                    updateACState(eid, kv.value()["s"] | (const char*)nullptr, kv.value()["a"]);
+                } else {
+                    updateWeatherState(eid, kv.value()["s"] | (const char*)nullptr, kv.value()["a"]);
+                }
             }
         }
         // Incremental diffs: event.c = changed entities, "+" = updated fields
         JsonObject changed = doc["event"]["c"];
         if (!changed.isNull()) {
             for (JsonPair kv : changed) {
+                const char* eid = kv.key().c_str();
                 JsonObject patch = kv.value()["+"];
-                if (!patch.isNull())
-                    updateACState(kv.key().c_str(),
-                                  patch["s"] | (const char*)nullptr,
-                                  patch["a"]);
+                if (!patch.isNull()) {
+                    if (strncmp(eid, "climate.", 8) == 0) {
+                        updateACState(eid, patch["s"] | (const char*)nullptr, patch["a"]);
+                    } else {
+                        updateWeatherState(eid, patch["s"] | (const char*)nullptr, patch["a"]);
+                    }
+                }
             }
         }
     } else if (strcmp(type, "auth_invalid") == 0) {
@@ -193,14 +202,17 @@ void HAClient::sendAuth() {
 void HAClient::subscribeEntities() {
     _msgId = 0;
 
-    // Build entity_ids array from devices.h
-    char entityIds[256] = "[";
+    // Build entity_ids array from devices.h + weather entity
+    char entityIds[512] = "[";
     for (int i = 0; i < AC_COUNT; i++) {
         if (i > 0) strncat(entityIds, ",", sizeof(entityIds) - strlen(entityIds) - 1);
-        strncat(entityIds, "\"",           sizeof(entityIds) - strlen(entityIds) - 1);
+        strncat(entityIds, "\"",             sizeof(entityIds) - strlen(entityIds) - 1);
         strncat(entityIds, ACS[i].entity_id, sizeof(entityIds) - strlen(entityIds) - 1);
-        strncat(entityIds, "\"",           sizeof(entityIds) - strlen(entityIds) - 1);
+        strncat(entityIds, "\"",             sizeof(entityIds) - strlen(entityIds) - 1);
     }
+    strncat(entityIds, ",\"weather.buienradar\"",          sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"sensor.atc_3294_temperature\"", sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"sensor.atc_3294_humidity\"",    sizeof(entityIds) - strlen(entityIds) - 1);
     strncat(entityIds, "]", sizeof(entityIds) - strlen(entityIds) - 1);
 
     char buf[320];
@@ -211,6 +223,70 @@ void HAClient::subscribeEntities() {
     ESP_LOGD(TAG, "<< %s", buf);
     _ws.sendTXT(buf);
     ESP_LOGI(TAG, "sent subscribe_entities (id=%d)", _subscribeId);
+}
+
+void HAClient::sendACTemperature(const char* entity_id, float temp) {
+    char buf[256];
+    snprintf(buf, sizeof(buf),
+             "{\"id\":%d,\"type\":\"call_service\",\"domain\":\"climate\","
+             "\"service\":\"set_temperature\","
+             "\"service_data\":{\"temperature\":%.1f},"
+             "\"target\":{\"entity_id\":\"%s\"}}",
+             _msgId + 1, temp, entity_id);
+    if (_dryRun) {
+        ESP_LOGI(TAG, "sendACTemperature (dry run): %s", buf);
+        return;
+    }
+    ++_msgId;
+    ESP_LOGD(TAG, "<< %s", buf);
+    _ws.sendTXT(buf);
+}
+
+void HAClient::sendACMode(const char* entity_id, const char* mode) {
+    char buf[256];
+    snprintf(buf, sizeof(buf),
+             "{\"id\":%d,\"type\":\"call_service\",\"domain\":\"climate\","
+             "\"service\":\"set_hvac_mode\","
+             "\"service_data\":{\"hvac_mode\":\"%s\"},"
+             "\"target\":{\"entity_id\":\"%s\"}}",
+             _msgId + 1, mode, entity_id);
+    if (_dryRun) {
+        ESP_LOGI(TAG, "sendACMode (dry run): %s", buf);
+        return;
+    }
+    ++_msgId;
+    ESP_LOGD(TAG, "<< %s", buf);
+    _ws.sendTXT(buf);
+}
+
+void HAClient::updateWeatherState(const char* entity_id, const char* state, JsonObject attrs) {
+    if (!entity_id) return;
+
+    if (strncmp(entity_id, "weather.", 8) == 0) {
+        if (state) {
+            strncpy(appState.weather.condition, state, sizeof(appState.weather.condition) - 1);
+            appState.weather.condition[sizeof(appState.weather.condition) - 1] = '\0';
+        }
+        if (!attrs.isNull()) {
+            if (attrs["temperature"].is<float>())
+                appState.weather.temperature = attrs["temperature"];
+            if (attrs["apparent_temperature"].is<float>())
+                appState.weather.feelsLike = attrs["apparent_temperature"];
+        }
+        appState.weather.valid = true;
+        ESP_LOGI(TAG, "weather: %s %.1f°C feels %.1f°C",
+                 appState.weather.condition, appState.weather.temperature, appState.weather.feelsLike);
+
+    } else if (strcmp(entity_id, "sensor.atc_3294_temperature") == 0) {
+        if (state) appState.weather.outdoorTemp = atof(state);
+        ESP_LOGI(TAG, "outdoor temp: %.1f°C", appState.weather.outdoorTemp);
+
+    } else if (strcmp(entity_id, "sensor.atc_3294_humidity") == 0) {
+        if (state) appState.weather.outdoorHumidity = atof(state);
+        ESP_LOGI(TAG, "outdoor humidity: %.0f%%", appState.weather.outdoorHumidity);
+    }
+
+    appState.dirty = true;
 }
 
 void HAClient::updateACState(const char* entity_id, const char* state, JsonObject attrs) {

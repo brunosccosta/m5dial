@@ -7,17 +7,19 @@
 #include "ui/ScreenManager.h"
 #include "ui/CarouselMenu.h"
 #include "ui/LampControlScreen.h"
+#include "ui/ACControlScreen.h"
+#include "ui/RestScreen.h"
 #include "ui/ErrorOverlay.h"
 #include "credentials.h"
+#include "ui/fonts/fa_icons.h"
 
 // --- Main menu ---
 MenuItem mainItems[] = {
-    {"Lamps",           LV_SYMBOL_EYE_OPEN},
-    {"Air Conditioner", LV_SYMBOL_LOOP},
-    {"Heater",          LV_SYMBOL_CHARGE},
-    {"Settings",        LV_SYMBOL_SETTINGS},
+    {"Lamps",           FA_LIGHTBULB},
+    {"Air Conditioner", FA_WIND},
+    {"Heater",          FA_FIRE},
 };
-CarouselMenu mainMenu(mainItems, 4);
+CarouselMenu mainMenu(mainItems, 3);
 
 // --- Lamp list (mirrors AppState.lamps + Go Back) ---
 MenuItem lampItems[] = {
@@ -31,6 +33,9 @@ CarouselMenu lampMenu(lampItems, 5);
 
 // --- Lamp control ---
 LampControlScreen lampControl;
+
+// --- AC control ---
+ACControlScreen acControl;
 
 Input input;
 
@@ -46,9 +51,16 @@ void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
 }
 
 void setupNavigation() {
+    restScreen.setOnWake([]() {
+        screenManager.push(&mainMenu);
+    });
+
+    mainMenu.enableInactivityTimer(30000);
     mainMenu.setOnSelect([](int idx) {
         switch (idx) {
-            case 0: screenManager.push(&lampMenu); break; // Lamps
+            case 0: screenManager.push(&lampMenu); break;
+            case 1: acControl.setACIndex(0); screenManager.push(&acControl); break;
+            case 2: acControl.setACIndex(1); screenManager.push(&acControl); break;
             default: ESP_LOGI("NAV", "no screen for index %d", idx); break;
         }
     });
@@ -88,7 +100,7 @@ void setup() {
     errorOverlay.init();
 
     setupNavigation();
-    screenManager.push(&mainMenu);
+    screenManager.push(&restScreen);
 
     ESP_LOGI("BOOT", "setup complete");
 }
@@ -112,6 +124,8 @@ void loop() {
     }
 
     errorOverlay.update();
+
+    screenManager.tick();
 
     if (appState.dirty) {
         screenManager.refresh();

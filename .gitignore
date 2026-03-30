@@ -13,6 +13,7 @@ pip-log.txt
 .vscode/ipch/
 .vscode/launch.json
 .vscode/tasks.json
+.vscode/c_cpp_properties.json
 # Keep extensions.json and settings.json if you want to share workspace settings
 # .vscode/settings.json
 # .vscode/extensions.json
