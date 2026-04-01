@@ -54,12 +54,6 @@ Adding a glyph = add one decimal codepoint to `GLYPHS`, run the script, add the 
 
 ---
 
-## Haptic feedback on encoder scroll and button press
-
-The M5Dial has a DRV2605L haptic motor but no library support in the current stack. Needs either an Adafruit DRV2605 library or direct I2C via `M5Dial.In_I2C`. Once wired up, fire a short pulse on every encoder tick and a distinct pattern on selection.
-
----
-
 ## Screen transition animations
 
 Smooth slide or fade between screens on push/pop. LVGL has `lv_scr_load_anim()` for this — replace the bare `lv_scr_load()` calls in each screen's `show()`. Decide on animation style (fade, slide left/right) and duration.

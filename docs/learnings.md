@@ -242,6 +242,26 @@ lv_label_set_text(_rainIconLeft, FA_DROPLET);
 
 ---
 
+## ACState::entity_id must be set by the parse handler
+
+`ACState` holds a `const char* entity_id` pointer used by `sendACMode` / `sendACTemperature`. As a global struct it zero-inits to `nullptr`. The parse handler receives `entity_id` as a parameter but the old code never wrote it back to the struct — so the first send after boot crashes with a `LoadProhibited` null-deref.
+
+**Fix**: set `ac.entity_id` to the known string literal inside `parseAC()`:
+```cpp
+bool isMain = strcmp(entity_id, "climate.forninho_room_temperature") == 0;
+ACState& ac  = isMain ? appState.ac : appState.heater;
+ac.entity_id = isMain ? "climate.forninho_room_temperature" : "climate.forninho_portatil";
+```
+Storing a string literal is safe — it has static storage duration.
+
+---
+
+## M5Dial has no vibration motor
+
+The M5Dial spec lists: encoder, buzzer, RFID, touch, display. No haptic/vibration motor. An I2C scan of the internal bus (GPIO 11/12) found `0x38` (FT3267 touch), `0x51` (BM8563 RTC), `0x28` (unknown — likely AW8624 buzzer amp) — no DRV2605L at `0x5A`. The DRV2605L is not present.
+
+---
+
 ## HA WebSocket auth flow
 
 Fixed protocol on connect — no variation:

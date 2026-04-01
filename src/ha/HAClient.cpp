@@ -199,8 +199,9 @@ struct SensorEntry {
 };
 
 static void parseAC(const char* entity_id, const char* state, JsonObject attrs) {
-    ACState& ac = (strcmp(entity_id, "climate.forninho_room_temperature") == 0)
-                  ? appState.ac : appState.heater;
+    bool isMain = strcmp(entity_id, "climate.forninho_room_temperature") == 0;
+    ACState& ac = isMain ? appState.ac : appState.heater;
+    ac.entity_id = isMain ? "climate.forninho_room_temperature" : "climate.forninho_portatil";
     if (state) {
         strncpy(ac.mode, state, sizeof(ac.mode) - 1);
         ac.mode[sizeof(ac.mode) - 1] = '\0';
