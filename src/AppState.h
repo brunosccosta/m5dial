@@ -44,6 +44,10 @@ struct WeatherState {
     float feelsLike;             // weather.buienradar a.apparent_temperature
     float outdoorTemp;           // sensor.atc_3294_temperature state
     float outdoorHumidity;       // sensor.atc_3294_humidity state
+    float bedroomTemp;           // sensor.atc_03be_temperature state
+    float bedroomHumidity;       // sensor.atc_03be_humidity state
+    float bathroomTemp;          // sensor.atc_88dc_temperature state
+    float bathroomHumidity;      // sensor.atc_88dc_humidity state
     bool  isDaytime;             // sun.sun: true = above_horizon, false = below_horizon
     bool  valid;                 // false until first HA update arrives
 };

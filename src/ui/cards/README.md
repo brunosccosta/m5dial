@@ -123,5 +123,5 @@ The display is a **240×240 circle**. All coordinates below are offsets from cen
 | File | Content | y range |
 |---|---|---|
 | `WeatherNowCard` | Temp 48px + feels-like 14px / icon + condition 24px | -45 to -8 |
-| `WeatherDetailsCard` | Feels like / outdoor temp / humidity (labelled rows) | -25 to +15 |
+| `IndoorTempsCard` | 3 rows: balcony/bedroom/bathroom — icon + temp 24px + droplet + humidity | -58 to +8 |
 | `ForecastCard` | 2-column: TODAY / TMR — icon + max temp + rain % | -72 to -8 |

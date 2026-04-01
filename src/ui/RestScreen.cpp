@@ -35,7 +35,7 @@ void RestScreen::init() {
     //   1. Add a member instance above
     //   2. Add one line here
     _cards[_cardCount++] = &_cardWeatherNow;
-    _cards[_cardCount++] = &_cardWeatherDetails;
+    _cards[_cardCount++] = &_cardIndoorTemps;
     _cards[_cardCount++] = &_cardForecast;
 
     // Init all cards; show first (or pinned), hide the rest

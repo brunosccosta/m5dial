@@ -255,6 +255,26 @@ static void parseOutdoorHumidity(const char* entity_id, const char* state, JsonO
     ESP_LOGI(TAG, "outdoor humidity: %.0f%%", appState.weather.outdoorHumidity);
 }
 
+static void parseBedroomTemp(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.weather.bedroomTemp = atof(state);
+    ESP_LOGI(TAG, "bedroom temp: %.1f°C", appState.weather.bedroomTemp);
+}
+
+static void parseBedroomHumidity(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.weather.bedroomHumidity = atof(state);
+    ESP_LOGI(TAG, "bedroom humidity: %.0f%%", appState.weather.bedroomHumidity);
+}
+
+static void parseBathroomTemp(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.weather.bathroomTemp = atof(state);
+    ESP_LOGI(TAG, "bathroom temp: %.1f°C", appState.weather.bathroomTemp);
+}
+
+static void parseBathroomHumidity(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.weather.bathroomHumidity = atof(state);
+    ESP_LOGI(TAG, "bathroom humidity: %.0f%%", appState.weather.bathroomHumidity);
+}
+
 static void parseSun(const char* entity_id, const char* state, JsonObject attrs) {
     if (state) appState.weather.isDaytime = (strcmp(state, "above_horizon") == 0);
     ESP_LOGI(TAG, "sun: %s", appState.weather.isDaytime ? "day" : "night");
@@ -297,6 +317,10 @@ static const SensorEntry SENSORS[] = {
     { "sensor.temperature_2d",             parseForecastTemp      },
     { "sensor.rainchance_1d",              parseForecastRain      },
     { "sensor.rainchance_2d",              parseForecastRain      },
+    { "sensor.quarto_temperature",         parseBedroomTemp       },
+    { "sensor.quarto_humidity",            parseBedroomHumidity   },
+    { "sensor.atc_88dc_temperature",       parseBathroomTemp      },
+    { "sensor.atc_88dc_humidity",          parseBathroomHumidity  },
 };
 static constexpr int SENSOR_COUNT = sizeof(SENSORS) / sizeof(SENSORS[0]);
 

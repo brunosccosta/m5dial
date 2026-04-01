@@ -307,7 +307,7 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 | # | Card | Data sources |
 |---|---|---|
 | 0 | `WeatherNowCard` | `weather.buienradar` + `sensor.detailed_condition` + `sun.sun` |
-| 1 | `WeatherDetailsCard` | `weather.buienradar` attrs + outdoor sensors |
+| 1 | `IndoorTempsCard` | `sensor.atc_3294/03be/88dc` temp + humidity (balcony, bedroom, bathroom) |
 | 2 | `ForecastCard` | `sensor.*_1d` / `sensor.*_2d` Buienradar forecast sensors |
 
 Adding a card = new `.h`/`.cpp` file + one line in `RestScreen`'s card array. Card content and layout are fully self-contained.

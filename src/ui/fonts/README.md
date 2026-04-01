@@ -41,19 +41,19 @@ Run from the repo root:
 # 32px — CarouselMenu / RestScreen
 lv_font_conv --bpp 4 --size 32 --no-compress \
   --font tools/fonts/fa-solid-900.ttf \
-  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671 \
+  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671,62006,62156 \
   --format lvgl -o src/ui/fonts/font_awesome_solid_32.c
 
 # 24px — ForecastCard
 lv_font_conv --bpp 4 --size 24 --no-compress \
   --font tools/fonts/fa-solid-900.ttf \
-  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671 \
+  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671,62006,62156 \
   --format lvgl -o src/ui/fonts/font_awesome_solid_24.c
 
 # 18px — ACControlScreen / ForecastCard rain icon
 lv_font_conv --bpp 4 --size 18 --no-compress \
   --font tools/fonts/fa-solid-900.ttf \
-  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671 \
+  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671,62006,62156 \
   --format lvgl -o src/ui/fonts/font_awesome_solid_18.c
 ```
 
@@ -97,6 +97,8 @@ Update the codepoints table below.
 | 63299 | F743 | fa-cloud-sun-rain | `FA_CLOUD_SUN_RAIN` |
 | 63327 | F75F | fa-smog | `FA_SMOG` |
 | 63340 | F76C | fa-cloud-bolt | `FA_CLOUD_BOLT` |
+| 62006 | F236 | fa-bed | `FA_BED` |
+| 62156 | F2CC | fa-shower | `FA_SHOWER` |
 | 63587 | F863 | fa-fan | `FA_FAN` |
 
 ---

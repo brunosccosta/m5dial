@@ -54,6 +54,12 @@ Adding a glyph = add one decimal codepoint to `GLYPHS`, run the script, add the 
 
 ---
 
+## Audit compiled Montserrat font sizes
+
+`platformio.ini` enables 14, 24, 28, 32, 48. Each adds flash cost. Grep the codebase and verify each size is actually referenced — remove any that aren't used.
+
+---
+
 ## Screen transition animations
 
 Smooth slide or fade between screens on push/pop. LVGL has `lv_scr_load_anim()` for this — replace the bare `lv_scr_load()` calls in each screen's `show()`. Decide on animation style (fade, slide left/right) and duration.

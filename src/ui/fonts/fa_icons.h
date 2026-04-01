@@ -28,3 +28,7 @@ extern const lv_font_t font_awesome_solid_18;
 #define FA_SMOG              "\xEF\x9D\x9F"  // U+F75F — fa-smog
 #define FA_CLOUD_BOLT        "\xEF\x9D\xAC"  // U+F76C — fa-cloud-bolt
 #define FA_BOLT              "\xEF\x83\xA7"  // U+F0E7 — fa-bolt
+
+// Indoor room icons
+#define FA_BED               "\xEF\x88\xB6"  // U+F236 — fa-bed
+#define FA_SHOWER            "\xEF\x8B\x8C"  // U+F2CC — fa-shower

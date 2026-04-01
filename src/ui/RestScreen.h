@@ -4,7 +4,7 @@
 #include "Screen.h"
 #include "RestCard.h"
 #include "cards/WeatherNowCard.h"
-#include "cards/WeatherDetailsCard.h"
+#include "cards/IndoorTempsCard.h"
 #include "cards/ForecastCard.h"
 
 class RestScreen : public Screen {
@@ -45,9 +45,9 @@ private:
     lv_obj_t* _lvScreen;
 
     // Card instances — add new cards here
-    WeatherNowCard     _cardWeatherNow;
-    WeatherDetailsCard _cardWeatherDetails;
-    ForecastCard       _cardForecast;
+    WeatherNowCard   _cardWeatherNow;
+    IndoorTempsCard  _cardIndoorTemps;
+    ForecastCard     _cardForecast;
 
     // Card registry — populated in init()
     RestCard* _cards[MAX_CARDS] = {};
