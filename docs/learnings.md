@@ -156,6 +156,29 @@ lv_obj_align_to(_textLabel, _iconLabel, LV_ALIGN_OUT_RIGHT_MID, 6, 0);
 
 ---
 
+## Grouping LVGL objects for show/hide — use a transparent container
+
+To show or hide a set of labels together (e.g. a card that replaces another), parent them all to a single transparent `lv_obj_t` container. Toggling `LV_OBJ_FLAG_HIDDEN` on the container propagates to all children automatically.
+
+```cpp
+_container = lv_obj_create(parent);
+lv_obj_set_size(_container, 240, 240);   // match screen size so child coords stay in screen space
+lv_obj_set_pos(_container, 0, 0);
+lv_obj_set_style_bg_opa(_container, LV_OPA_TRANSP, LV_PART_MAIN);
+lv_obj_set_style_border_width(_container, 0, LV_PART_MAIN);
+lv_obj_set_style_pad_all(_container, 0, LV_PART_MAIN);        // avoid child offset
+lv_obj_clear_flag(_container, LV_OBJ_FLAG_SCROLLABLE);
+lv_obj_clear_flag(_container, LV_OBJ_FLAG_CLICKABLE);
+
+// then show/hide the whole group:
+lv_obj_clear_flag(_container, LV_OBJ_FLAG_HIDDEN); // show
+lv_obj_add_flag(_container,   LV_OBJ_FLAG_HIDDEN); // hide
+```
+
+`pad_all(0)` is important — default LVGL padding shifts children away from the container origin, making `LV_ALIGN_CENTER` misalign relative to the screen center.
+
+---
+
 ## `lv_obj_align` on `lv_layer_top()` children — use `lv_obj_set_pos` instead
 
 `lv_obj_align` with parent-relative alignments (e.g. `LV_ALIGN_TOP_RIGHT`) may not resolve correctly for children of `lv_layer_top()` if the layer's size isn't explicitly set. The object ends up at position (0,0) or wrong coordinates.
@@ -199,6 +222,23 @@ Fields absent in a diff mean unchanged — don't overwrite them with defaults.
 `subscribe_entities` for `weather.buienradar` returns current conditions only (`supported_features: 1`). The forecast array is **not** included. Hourly forecast requires a separate `weather.get_forecasts` call with `return_response: true`.
 
 Fields available via subscribe: `s` (condition), `apparent_temperature` (feels like), `temperature`, `humidity`, `wind_speed`, `wind_bearing`, `pressure`.
+
+---
+
+## Uninitialized LVGL labels render default text through the active font
+
+`lv_label_create()` sets a default text string. If the label uses a symbol font (e.g. FontAwesome) and its text is never explicitly set, LVGL renders the default text through that font — producing colored squares for every character that has no glyph.
+
+**Fix**: always call `lv_label_set_text()` before the label is shown, even for static content that never changes. For icons that are constant, set the text in `init()`.
+
+```cpp
+// Wrong — text never set; renders as colored boxes
+_rainIconLeft = lv_label_create(_container);
+lv_obj_set_style_text_font(_rainIconLeft, &font_awesome_solid_18, LV_PART_MAIN);
+
+// Correct
+lv_label_set_text(_rainIconLeft, FA_DROPLET);
+```
 
 ---
 

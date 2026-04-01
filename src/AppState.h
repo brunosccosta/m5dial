@@ -32,17 +32,28 @@ struct ACState {
     const char* name;
     float       current_temp;
     float       target_temp;
-    char        mode[12]; // "off", "cool", "heat", "auto", "fan_only", "dry"
-    bool        valid;    // false until first HA update arrives
+    char        mode[12];             // "off", "cool", "heat", "auto", "fan_only", "dry"
+    char        availableModes[6][12]; // populated from hvac_modes on first HA update
+    int         modeCount;
+    bool        valid;                // false until first HA update arrives
 };
 
 struct WeatherState {
-    char  condition[32];  // weather.buienradar state e.g. "sunny"
-    float temperature;    // weather.buienradar a.temperature
-    float feelsLike;      // weather.buienradar a.apparent_temperature
-    float outdoorTemp;    // sensor.atc_3294_temperature state
-    float outdoorHumidity;// sensor.atc_3294_humidity state
-    bool  valid;          // false until first HA update arrives
+    char  condition[32];         // weather.buienradar state e.g. "sunny"
+    char  detailedCondition[32]; // sensor.detailed_condition e.g. "partlycloudy-rain"
+    float temperature;           // weather.buienradar a.temperature
+    float feelsLike;             // weather.buienradar a.apparent_temperature
+    float outdoorTemp;           // sensor.atc_3294_temperature state
+    float outdoorHumidity;       // sensor.atc_3294_humidity state
+    bool  isDaytime;             // sun.sun: true = above_horizon, false = below_horizon
+    bool  valid;                 // false until first HA update arrives
+};
+
+struct ForecastDay {
+    char  detailedCondition[32]; // sensor.detailed_condition_1d / _2d
+    float temperature;           // sensor.temperature_1d / _2d (max)
+    int   rainChance;            // sensor.rainchance_1d / _2d (0–100)
+    bool  valid;                 // false until first HA update arrives
 };
 
 struct AppState {
@@ -51,6 +62,7 @@ struct AppState {
 
     ACState      acs[AC_COUNT];
     WeatherState weather;
+    ForecastDay  forecast[2];   // [0] = 1d (today), [1] = 2d (tomorrow)
 
     bool            dirty;      // set by HA layer when state changes; cleared by UI after refresh
     ConnectionState connection; // written by HAClient; read by UI for status indicator

@@ -27,16 +27,27 @@ struct ACState {
     const char* name;
     float       current_temp;
     float       target_temp;
-    char        mode[12]; // "off", "cool", "heat", "auto", "fan_only", "dry"
-    bool        valid;    // false until first HA update
+    char        mode[12];              // "off", "cool", "heat", "auto", "fan_only", "dry"
+    char        availableModes[6][12]; // populated from hvac_modes on first HA snapshot
+    int         modeCount;             // 0 until first HA update; use as fallback guard
+    bool        valid;                 // false until first HA update
 };
 
 struct WeatherState {
-    char  condition[32];   // e.g. "sunny" — weather.buienradar state
-    float temperature;     // weather.buienradar a.temperature
-    float feelsLike;       // weather.buienradar a.apparent_temperature
-    float outdoorTemp;     // sensor.atc_3294_temperature state
-    float outdoorHumidity; // sensor.atc_3294_humidity state
+    char  condition[32];         // e.g. "sunny" — weather.buienradar state
+    char  detailedCondition[32]; // sensor.detailed_condition e.g. "partlycloudy-rain"
+    float temperature;           // weather.buienradar a.temperature
+    float feelsLike;             // weather.buienradar a.apparent_temperature
+    float outdoorTemp;           // sensor.atc_3294_temperature state
+    float outdoorHumidity;       // sensor.atc_3294_humidity state
+    bool  isDaytime;             // sun.sun: true = above_horizon
+    bool  valid;
+};
+
+struct ForecastDay {
+    char  detailedCondition[32]; // sensor.detailed_condition_1d / _2d
+    float temperature;           // max temp — sensor.temperature_1d / _2d
+    int   rainChance;            // 0–100 — sensor.rainchance_1d / _2d
     bool  valid;
 };
 
@@ -45,7 +56,8 @@ struct AppState {
     int          lampCount;
     ACState      acs[AC_COUNT];
     WeatherState weather;
-    bool         dirty;      // set by HA layer; cleared by UI after refresh
+    ForecastDay  forecast[2];   // [0] = 1d (today), [1] = 2d (tomorrow)
+    bool         dirty;         // set by HA layer; cleared by UI after refresh
     ConnectionState connection;
 };
 
@@ -209,37 +221,77 @@ RestScreen (root)                — idle/screensaver, boots here
 
 **Go Back** is a selectable property in ACControlScreen (dial to it, button confirms) — no gestures.
 
+**Per-device modes:** Each AC device exposes its own `hvac_modes` attribute in the initial HA snapshot. HAClient parses this once into `ACState.availableModes[]` / `modeCount`. ACControlScreen uses the device's own mode list when cycling; falls back to static `MODES[]` if `modeCount == 0` (e.g. before first HA update). Devices like the portable heater that only support `["off","heat"]` are handled automatically — no hardcoded per-device config needed.
+
+**Initial selection when off:** If the device is off when the screen opens, the selector starts on Mode (not Target Temp) since temp editing is blocked while off.
+
 ### RestScreen
 
-Idle/screensaver shown at boot and after 30s inactivity on the main menu. Displays at-a-glance home status — no interaction beyond "wake up".
+Idle/screensaver shown at boot and after 30s inactivity on the main menu. Displays at-a-glance home status — no interaction beyond "wake up" (any input pushes the main menu).
 
 **Layout** (240×240 circle):
 
 ```
-         ☁  15°          ← current weather: condition icon + temp   (~y=50)
-        Cloudy            ← condition text
-
-       → 🌤  17°         ← 1h forecast: arrow + icon + temp         (~y=105)
-
-         12.4°            ← outside temp, small grey                (~y=140)
-
-   ❄ AUTO 21°  🔥 OFF    ← AC + heater status, side by side        (~y=175)
+┌──────────────────────────────┐
+│                              │
+│     [ rotating card area ]   │  ← cycles every CARD_INTERVAL_MS (60s)
+│                              │
+│  ────────────────────────    │
+│   ❄ auto 21°   🔥 heat 21°  │  ← static device strip, always visible
+└──────────────────────────────┘
 ```
 
-**Data sources:**
+The screen is split into two zones:
+- **Card area** (upper ~70%): auto-advances through a set of `RestCard` objects every 60s. Easy to add new cards.
+- **Device strip** (lower ~30%): always visible — AC + heater icon, mode, target temp.
 
-| Field | HA entity | Attribute |
+#### Card system
+
+Each card is a `RestCard` subclass. The interface:
+
+```cpp
+class RestCard {
+public:
+    virtual void init(lv_obj_t* parent) = 0;  // create LVGL objects once
+    virtual void update()               = 0;  // refresh labels from AppState
+    virtual void show()                 = 0;  // make objects visible
+    virtual void hide()                 = 0;  // hide objects
+};
+```
+
+`RestScreen` owns a `RestCard* _cards[]` array and a `_cardCount`. To add a new card: implement `RestCard`, instantiate it, add it to the array. No other changes needed.
+
+`tick()` checks `millis() - _lastAdvanceMs >= CARD_INTERVAL_MS`. When it fires: hide current card, advance index, call `show()` + `update()` on next card, reset timer.
+
+`CARD_INTERVAL_MS` is a `static constexpr` in `RestScreen.h` — easy to tune.
+
+#### Cards
+
+| # | Card | Data sources |
 |---|---|---|
-| Current condition | `weather.*` | `state` (e.g. `"cloudy"`) |
-| Current temp | `weather.*` | `temperature` attribute |
-| 1h forecast | `weather.*` | `forecast` attribute (first entry) |
-| Outside temp | `sensor.atc_3294_temperature` | `state` |
-| AC status | `climate.forninho_room_temperature` | already in `appState.acs[0]` |
-| Heater status | `climate.forninho_portatil` | already in `appState.acs[1]` |
+| 0 | `WeatherNowCard` | `weather.buienradar` + `sensor.detailed_condition` + `sun.sun` |
+| 1 | `WeatherDetailsCard` | `weather.buienradar` attrs + outdoor sensors |
+| 2 | `ForecastCard` | `sensor.*_1d` / `sensor.*_2d` Buienradar forecast sensors |
 
-**Weather icons:** FontAwesome Solid glyphs mapped to HA condition strings. Animated icons deferred — static FA icons first, animation as a later enhancement.
+Adding a card = new `.h`/`.cpp` file + one line in `RestScreen`'s card array. Card content and layout are fully self-contained.
 
-**HA weather forecast:** Buienradar does not include forecast in `subscribe_entities` — the payload only contains current conditions. Forecast requires a separate `weather.get_forecasts` service call (see below).
+#### Data sources
+
+| Field | Source |
+|---|---|
+| Current condition | `appState.weather.condition` |
+| Detailed condition | `appState.weather.detailedCondition` |
+| Current temp | `appState.weather.temperature` |
+| Feels like | `appState.weather.feelsLike` |
+| Outdoor temp | `appState.weather.outdoorTemp` |
+| Outdoor humidity | `appState.weather.outdoorHumidity` |
+| Day/night | `appState.weather.isDaytime` |
+| Forecast today | `appState.forecast[0]` |
+| Forecast tomorrow | `appState.forecast[1]` |
+| AC status | `appState.acs[0]` |
+| Heater status | `appState.acs[1]` |
+
+**Forecast data** comes from Buienradar's per-day sensor entities (`sensor.detailed_condition_1d`, `sensor.temperature_1d`, `sensor.rainchance_1d`, etc.) subscribed via the same `subscribe_entities` call. These must be enabled in HA (disabled by default).
 
 **Confirmed fields from `weather.buienradar` via `subscribe_entities`:**
 
@@ -254,19 +306,6 @@ Idle/screensaver shown at boot and after 30s inactivity on the main menu. Displa
   "pressure": 1024.8
 }
 ```
-
-Fields used by RestScreen: `s` (condition), `temperature` (current), `apparent_temperature` (feels like).
-
-**Fetching hourly forecast:**
-
-Forecast requires a one-shot `call_service` + response via `result`:
-```json
-{"id":N,"type":"call_service","domain":"weather","service":"get_forecasts",
- "service_data":{"type":"hourly"},"target":{"entity_id":"weather.buienradar"},
- "return_response":true}
-```
-
-Response includes an array of hourly entries with `datetime`, `condition`, `temperature`. Request after `auth_ok` and re-request periodically (e.g. every 30 min).
 
 ### ACControlScreen
 
@@ -325,7 +364,7 @@ Arc range: 10–30°C. Midpoint 20°C = half fill.
 | Heater | `FA_FIRE` | fa-fire | Infrared heater, heat-only |
 | Settings | `FA_GEAR` | fa-gear | — |
 
-Icon font: FontAwesome Solid 32px, generated as `src/ui/fonts/font_awesome_solid_32.c`. See `docs/dev.md` for how to regenerate.
+Icon font: FontAwesome Solid, generated as `font_awesome_solid_32.c` (32px), `font_awesome_solid_24.c` (24px), and `font_awesome_solid_18.c` (18px). See [`src/ui/fonts/README.md`](../src/ui/fonts/README.md) for how to add glyphs and regenerate.
 
 Selection highlight: underline bar repositioned under the active property.
 

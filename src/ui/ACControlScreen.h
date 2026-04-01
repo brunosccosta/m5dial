@@ -1,6 +1,7 @@
 #pragma once
 #include <lvgl.h>
 #include "Screen.h"
+#include "../AppState.h"
 
 class ACControlScreen : public Screen {
 public:
@@ -18,7 +19,7 @@ private:
 
     void updateDisplay();
     void updateUnderline();
-    int  findModeIdx(const char* mode);
+    int  findModeIdx(const char* mode, const ACState& ac);
     void resetActivityTimer();
 
     int  _acIdx       = 0;

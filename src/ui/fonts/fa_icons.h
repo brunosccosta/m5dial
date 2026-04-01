@@ -1,8 +1,9 @@
 #pragma once
 #include <lvgl.h>
 
-// FontAwesome Solid — declared in font_awesome_solid_32.c / font_awesome_solid_18.c
+// FontAwesome Solid — declared in font_awesome_solid_32.c / font_awesome_solid_24.c / font_awesome_solid_18.c
 extern const lv_font_t font_awesome_solid_32;
+extern const lv_font_t font_awesome_solid_24;
 extern const lv_font_t font_awesome_solid_18;
 
 // UTF-8 encoded glyph strings (U+F000 range → 3-byte sequences)
@@ -15,3 +16,15 @@ extern const lv_font_t font_awesome_solid_18;
 #define FA_DROPLET        "\xEF\x81\x83"  // U+F043 — fa-droplet
 #define FA_POWER_OFF      "\xEF\x80\x91"  // U+F011 — fa-power-off
 #define FA_WIND           "\xEF\x9C\xAE"  // U+F72E — fa-wind
+
+// Weather condition icons
+#define FA_SUN               "\xEF\x86\x85"  // U+F185 — fa-sun
+#define FA_MOON              "\xEF\x86\x86"  // U+F186 — fa-moon
+#define FA_CLOUD             "\xEF\x83\x82"  // U+F0C2 — fa-cloud
+#define FA_CLOUD_SUN         "\xEF\x9B\x84"  // U+F6C4 — fa-cloud-sun
+#define FA_CLOUD_RAIN        "\xEF\x9C\xBD"  // U+F73D — fa-cloud-rain
+#define FA_CLOUD_SHOWERS     "\xEF\x9D\x80"  // U+F740 — fa-cloud-showers-heavy
+#define FA_CLOUD_SUN_RAIN    "\xEF\x9D\x83"  // U+F743 — fa-cloud-sun-rain
+#define FA_SMOG              "\xEF\x9D\x9F"  // U+F75F — fa-smog
+#define FA_CLOUD_BOLT        "\xEF\x9D\xAC"  // U+F76C — fa-cloud-bolt
+#define FA_BOLT              "\xEF\x83\xA7"  // U+F0E7 — fa-bolt

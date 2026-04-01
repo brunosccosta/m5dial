@@ -40,6 +40,9 @@ Icon?
 tmp/
 temp/
 
+# --- Font source files (TTF/WOFF2 — download separately, see src/ui/fonts/README.md) ---
+tools/fonts/
+
 # --- Local Environment / Secrets ---
 # (Uncomment the line below if you create a private_header.h for Wi-Fi/HA credentials)
 # src/secrets.h

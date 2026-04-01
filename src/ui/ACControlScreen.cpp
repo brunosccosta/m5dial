@@ -138,7 +138,9 @@ void ACControlScreen::resetActivityTimer() {
 }
 
 void ACControlScreen::show() {
-    _selected = 0;
+    // Start on mode when off — temp editing is blocked anyway
+    ACState& ac = appState.acs[_acIdx];
+    _selected = (ac.valid && strcmp(ac.mode, "off") == 0) ? 1 : 0;
     _state    = State::HERO;
     resetActivityTimer();
     updateDisplay();
@@ -174,14 +176,17 @@ void ACControlScreen::onEncoder(int delta) {
               lv_label_set_text(_targetTempLabel, buf); }
             break;
 
-        case State::EDIT_MODE:
-            _pendingModeIdx = (_pendingModeIdx + delta + MODE_COUNT) % MODE_COUNT;
-            { ModeInfo info = modeInfo(MODES[_pendingModeIdx]);
-              lv_label_set_text(_modeIconLabel, info.icon);
-              lv_label_set_text(_modeTextLabel, info.label);
-              lv_obj_update_layout(_lvScreen);
-              lv_obj_align_to(_modeTextLabel, _modeIconLabel, LV_ALIGN_OUT_RIGHT_MID, 6, 2); }
+        case State::EDIT_MODE: {
+            int count = ac.modeCount > 0 ? ac.modeCount : MODE_COUNT;
+            _pendingModeIdx = (_pendingModeIdx + delta + count) % count;
+            const char* modeName = ac.modeCount > 0 ? ac.availableModes[_pendingModeIdx] : MODES[_pendingModeIdx];
+            ModeInfo info = modeInfo(modeName);
+            lv_label_set_text(_modeIconLabel, info.icon);
+            lv_label_set_text(_modeTextLabel, info.label);
+            lv_obj_update_layout(_lvScreen);
+            lv_obj_align_to(_modeTextLabel, _modeIconLabel, LV_ALIGN_OUT_RIGHT_MID, 6, 2);
             break;
+        }
     }
 
     lv_refr_now(NULL);
@@ -200,7 +205,7 @@ void ACControlScreen::onButton() {
                 _state = State::EDIT_TEMP;
                 lv_obj_set_style_bg_color(_underline, modeInfo(ac.mode).color, LV_PART_MAIN);
             } else {
-                _pendingModeIdx = findModeIdx(ac.mode);
+                _pendingModeIdx = findModeIdx(ac.mode, ac);
                 _state = State::EDIT_MODE;
                 lv_obj_set_style_bg_color(_underline, modeInfo(ac.mode).color, LV_PART_MAIN);
             }
@@ -215,15 +220,17 @@ void ACControlScreen::onButton() {
             updateDisplay();
             break;
 
-        case State::EDIT_MODE:
-            strncpy(ac.mode, MODES[_pendingModeIdx], sizeof(ac.mode) - 1);
+        case State::EDIT_MODE: {
+            const char* newMode = ac.modeCount > 0 ? ac.availableModes[_pendingModeIdx] : MODES[_pendingModeIdx];
+            strncpy(ac.mode, newMode, sizeof(ac.mode) - 1);
             ac.mode[sizeof(ac.mode) - 1] = '\0';
             appState.dirty = true;
-            haClient.sendACMode(ac.entity_id, MODES[_pendingModeIdx]);
+            haClient.sendACMode(ac.entity_id, newMode);
             _state = State::HERO;
             lv_obj_set_style_bg_color(_underline, lv_color_white(), LV_PART_MAIN);
             updateDisplay();
             break;
+        }
     }
 
     lv_refr_now(NULL);
@@ -235,7 +242,12 @@ void ACControlScreen::refresh() {
 
 // --- Display ---
 
-int ACControlScreen::findModeIdx(const char* mode) {
+int ACControlScreen::findModeIdx(const char* mode, const ACState& ac) {
+    if (ac.modeCount > 0) {
+        for (int i = 0; i < ac.modeCount; i++)
+            if (strcmp(ac.availableModes[i], mode) == 0) return i;
+        return 0;
+    }
     for (int i = 0; i < MODE_COUNT; i++)
         if (strcmp(MODES[i], mode) == 0) return i;
     return 0;

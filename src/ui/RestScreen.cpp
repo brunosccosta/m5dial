@@ -7,8 +7,6 @@ static const char* TAG = "REST";
 
 RestScreen restScreen;
 
-
-// Minimal mode icon lookup — mirrors ACControlScreen but only needs the icon glyph
 static const char* modeIcon(const char* mode) {
     if (strcmp(mode, "heat")     == 0) return FA_FIRE;
     if (strcmp(mode, "cool")     == 0) return FA_SNOWFLAKE;
@@ -33,30 +31,22 @@ void RestScreen::init() {
     lv_obj_set_style_bg_opa(_lvScreen, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_clear_flag(_lvScreen, LV_OBJ_FLAG_SCROLLABLE);
 
-    // Current weather — condition + temp, prominent
-    _currentTempLabel = lv_label_create(_lvScreen);
-    lv_obj_set_style_text_font(_currentTempLabel, &lv_font_montserrat_32, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_currentTempLabel, lv_color_white(), LV_PART_MAIN);
-    lv_obj_align(_currentTempLabel, LV_ALIGN_CENTER, 0, -65);
+    // Register cards — order defines display order. To add a card:
+    //   1. Add a member instance above
+    //   2. Add one line here
+    _cards[_cardCount++] = &_cardWeatherNow;
+    _cards[_cardCount++] = &_cardWeatherDetails;
+    _cards[_cardCount++] = &_cardForecast;
 
-    _conditionLabel = lv_label_create(_lvScreen);
-    lv_obj_set_style_text_font(_conditionLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_conditionLabel, lv_color_hex(0x888888), LV_PART_MAIN);
-    lv_obj_align(_conditionLabel, LV_ALIGN_CENTER, 0, -40);
+    // Init all cards; show first (or pinned), hide the rest
+    _activeCard = (DEV_CARD_PIN >= 0 && DEV_CARD_PIN < _cardCount) ? DEV_CARD_PIN : 0;
+    for (int i = 0; i < _cardCount; i++) {
+        _cards[i]->init(_lvScreen);
+        _cards[i]->hide();
+    }
+    _cards[_activeCard]->show();
 
-    // 1h forecast — smaller, grey
-    _forecastLabel = lv_label_create(_lvScreen);
-    lv_obj_set_style_text_font(_forecastLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_forecastLabel, lv_color_hex(0xAAAAAA), LV_PART_MAIN);
-    lv_obj_align(_forecastLabel, LV_ALIGN_CENTER, 0, -14);
-
-    // Outside temp — small, dim
-    _outsideTempLabel = lv_label_create(_lvScreen);
-    lv_obj_set_style_text_font(_outsideTempLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_outsideTempLabel, lv_color_hex(0x555555), LV_PART_MAIN);
-    lv_obj_align(_outsideTempLabel, LV_ALIGN_CENTER, 0, +14);
-
-    // AC status — icon above, state below, left side
+    // Device strip — AC (left)
     _acIconLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_acIconLabel, &font_awesome_solid_18, LV_PART_MAIN);
     lv_obj_set_style_text_color(_acIconLabel, lv_color_white(), LV_PART_MAIN);
@@ -67,7 +57,7 @@ void RestScreen::init() {
     lv_obj_set_style_text_color(_acStateLabel, lv_color_hex(0xAAAAAA), LV_PART_MAIN);
     lv_obj_align(_acStateLabel, LV_ALIGN_CENTER, -45, +60);
 
-    // Heater status — icon above, state below, right side
+    // Device strip — Heater (right)
     _heaterIconLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_heaterIconLabel, &font_awesome_solid_18, LV_PART_MAIN);
     lv_obj_set_style_text_color(_heaterIconLabel, lv_color_white(), LV_PART_MAIN);
@@ -78,12 +68,30 @@ void RestScreen::init() {
     lv_obj_set_style_text_color(_heaterStateLabel, lv_color_hex(0xAAAAAA), LV_PART_MAIN);
     lv_obj_align(_heaterStateLabel, LV_ALIGN_CENTER, +45, +60);
 
-    ESP_LOGI(TAG, "init complete");
+    ESP_LOGI(TAG, "init complete, %d cards", _cardCount);
 }
 
 void RestScreen::show() {
-    updateDisplay();
+    _lastAdvanceMs = millis();
+    _cards[_activeCard]->update();
+    updateDeviceStrip();
     lv_scr_load(_lvScreen);
+    lv_refr_now(NULL);
+}
+
+void RestScreen::tick() {
+    if (DEV_CARD_PIN >= 0) return;
+    if (millis() - _lastAdvanceMs >= CARD_INTERVAL_MS) {
+        advanceCard();
+    }
+}
+
+void RestScreen::advanceCard() {
+    _cards[_activeCard]->hide();
+    _activeCard = (_activeCard + 1) % _cardCount;
+    _cards[_activeCard]->show();
+    _cards[_activeCard]->update();
+    _lastAdvanceMs = millis();
     lv_refr_now(NULL);
 }
 
@@ -107,47 +115,34 @@ void RestScreen::wake() {
 // --- Display ---
 
 void RestScreen::updateDisplay() {
-    char buf[48];
+    _cards[_activeCard]->update();
+    updateDeviceStrip();
+}
 
-    // Current weather
-    WeatherState& w = appState.weather;
-    if (w.valid) {
-        snprintf(buf, sizeof(buf), "%.0f°  %.0f°", w.temperature, w.feelsLike);
-        lv_label_set_text(_currentTempLabel, buf);
-        lv_label_set_text(_conditionLabel, w.condition);
-        snprintf(buf, sizeof(buf), "outside  %.1f°  %.0f%%", w.outdoorTemp, w.outdoorHumidity);
-        lv_label_set_text(_outsideTempLabel, buf);
-    } else {
-        lv_label_set_text(_currentTempLabel, "--°");
-        lv_label_set_text(_conditionLabel, "---");
-        lv_label_set_text(_outsideTempLabel, "outside  --");
-    }
-    lv_label_set_text(_forecastLabel, ""); // forecast deferred
+void RestScreen::updateDeviceStrip() {
+    char buf[24];
 
-    // Re-align after text update
-    lv_obj_align(_currentTempLabel,  LV_ALIGN_CENTER, 0, -65);
-    lv_obj_align(_conditionLabel,    LV_ALIGN_CENTER, 0, -40);
-    lv_obj_align(_forecastLabel,     LV_ALIGN_CENTER, 0, -14);
-    lv_obj_align(_outsideTempLabel,  LV_ALIGN_CENTER, 0, +14);
-
-    // AC status
     ACState& ac = appState.acs[0];
     if (ac.valid) {
         lv_label_set_text(_acIconLabel, modeIcon(ac.mode));
         snprintf(buf, sizeof(buf), "%s %.0f°", ac.mode, ac.target_temp);
         lv_label_set_text(_acStateLabel, buf);
     } else {
-        lv_label_set_text(_acIconLabel, FA_POWER_OFF);
+        lv_label_set_text(_acIconLabel,  FA_POWER_OFF);
         lv_label_set_text(_acStateLabel, "---");
     }
 
-    // Heater status
     ACState& heater = appState.acs[1];
     if (heater.valid) {
-        lv_label_set_text(_heaterIconLabel, FA_FIRE);
-        lv_label_set_text(_heaterStateLabel, strcmp(heater.mode, "off") == 0 ? "OFF" : "ON");
+        lv_label_set_text(_heaterIconLabel, modeIcon(heater.mode));
+        if (strcmp(heater.mode, "off") == 0) {
+            lv_label_set_text(_heaterStateLabel, "off");
+        } else {
+            snprintf(buf, sizeof(buf), "%s %.0f°", heater.mode, heater.target_temp);
+            lv_label_set_text(_heaterStateLabel, buf);
+        }
     } else {
-        lv_label_set_text(_heaterIconLabel, FA_FIRE);
+        lv_label_set_text(_heaterIconLabel,  FA_POWER_OFF);
         lv_label_set_text(_heaterStateLabel, "---");
     }
 

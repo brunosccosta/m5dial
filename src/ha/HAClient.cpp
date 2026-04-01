@@ -203,19 +203,27 @@ void HAClient::subscribeEntities() {
     _msgId = 0;
 
     // Build entity_ids array from devices.h + weather entity
-    char entityIds[512] = "[";
+    char entityIds[768] = "[";
     for (int i = 0; i < AC_COUNT; i++) {
         if (i > 0) strncat(entityIds, ",", sizeof(entityIds) - strlen(entityIds) - 1);
         strncat(entityIds, "\"",             sizeof(entityIds) - strlen(entityIds) - 1);
         strncat(entityIds, ACS[i].entity_id, sizeof(entityIds) - strlen(entityIds) - 1);
         strncat(entityIds, "\"",             sizeof(entityIds) - strlen(entityIds) - 1);
     }
-    strncat(entityIds, ",\"weather.buienradar\"",          sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, ",\"sensor.atc_3294_temperature\"", sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, ",\"sensor.atc_3294_humidity\"",    sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"weather.buienradar\"",           sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"sensor.atc_3294_temperature\"",  sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"sensor.atc_3294_humidity\"",     sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"sensor.detailed_condition\"",    sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"sun.sun\"",                        sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"sensor.detailed_condition_1d\"",   sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"sensor.detailed_condition_2d\"",   sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"sensor.temperature_1d\"",          sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"sensor.temperature_2d\"",          sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"sensor.rainchance_1d\"",           sizeof(entityIds) - strlen(entityIds) - 1);
+    strncat(entityIds, ",\"sensor.rainchance_2d\"",           sizeof(entityIds) - strlen(entityIds) - 1);
     strncat(entityIds, "]", sizeof(entityIds) - strlen(entityIds) - 1);
 
-    char buf[320];
+    char buf[1024];
     _subscribeId = ++_msgId;
     snprintf(buf, sizeof(buf),
              "{\"id\":%d,\"type\":\"subscribe_entities\",\"entity_ids\":%s}",
@@ -284,6 +292,53 @@ void HAClient::updateWeatherState(const char* entity_id, const char* state, Json
     } else if (strcmp(entity_id, "sensor.atc_3294_humidity") == 0) {
         if (state) appState.weather.outdoorHumidity = atof(state);
         ESP_LOGI(TAG, "outdoor humidity: %.0f%%", appState.weather.outdoorHumidity);
+
+    } else if (strcmp(entity_id, "sensor.detailed_condition") == 0) {
+        if (state) {
+            strncpy(appState.weather.detailedCondition, state, sizeof(appState.weather.detailedCondition) - 1);
+            appState.weather.detailedCondition[sizeof(appState.weather.detailedCondition) - 1] = '\0';
+        }
+        ESP_LOGI(TAG, "detailed condition: %s", appState.weather.detailedCondition);
+
+    } else if (strcmp(entity_id, "sun.sun") == 0) {
+        if (state) appState.weather.isDaytime = (strcmp(state, "above_horizon") == 0);
+        ESP_LOGI(TAG, "sun: %s", appState.weather.isDaytime ? "day" : "night");
+
+    } else if (strcmp(entity_id, "sensor.detailed_condition_1d") == 0) {
+        if (state) {
+            strncpy(appState.forecast[0].detailedCondition, state, sizeof(appState.forecast[0].detailedCondition) - 1);
+            appState.forecast[0].detailedCondition[sizeof(appState.forecast[0].detailedCondition) - 1] = '\0';
+            appState.forecast[0].valid = true;
+        }
+        ESP_LOGI(TAG, "forecast[0] condition: %s", appState.forecast[0].detailedCondition);
+
+    } else if (strcmp(entity_id, "sensor.detailed_condition_2d") == 0) {
+        if (state) {
+            strncpy(appState.forecast[1].detailedCondition, state, sizeof(appState.forecast[1].detailedCondition) - 1);
+            appState.forecast[1].detailedCondition[sizeof(appState.forecast[1].detailedCondition) - 1] = '\0';
+            appState.forecast[1].valid = true;
+        }
+        ESP_LOGI(TAG, "forecast[1] condition: %s", appState.forecast[1].detailedCondition);
+
+    } else if (strcmp(entity_id, "sensor.temperature_1d") == 0) {
+        if (state) appState.forecast[0].temperature = atof(state);
+        ESP_LOGI(TAG, "forecast[0] temp: %.1f", appState.forecast[0].temperature);
+
+    } else if (strcmp(entity_id, "sensor.temperature_2d") == 0) {
+        if (state) appState.forecast[1].temperature = atof(state);
+        ESP_LOGI(TAG, "forecast[1] temp: %.1f", appState.forecast[1].temperature);
+
+    } else if (strcmp(entity_id, "sensor.rainchance_1d") == 0) {
+        if (state) appState.forecast[0].rainChance = atoi(state);
+        ESP_LOGI(TAG, "forecast[0] rain: %d%%", appState.forecast[0].rainChance);
+
+    } else if (strcmp(entity_id, "sensor.rainchance_2d") == 0) {
+        if (state) appState.forecast[1].rainChance = atoi(state);
+        ESP_LOGI(TAG, "forecast[1] rain: %d%%", appState.forecast[1].rainChance);
+
+    } else {
+        // Unknown sensor — log state so we can see what it returns before wiring it up
+        ESP_LOGI(TAG, "sensor [%s] state=%s", entity_id, state ? state : "(null)");
     }
 
     appState.dirty = true;
@@ -304,6 +359,19 @@ void HAClient::updateACState(const char* entity_id, const char* state, JsonObjec
                 appState.acs[i].current_temp = attrs["current_temperature"];
             if (attrs["temperature"].is<float>())
                 appState.acs[i].target_temp = attrs["temperature"];
+            // Parse available modes once on initial snapshot (array only present then)
+            JsonArray modes = attrs["hvac_modes"];
+            if (!modes.isNull() && appState.acs[i].modeCount == 0) {
+                int count = 0;
+                for (JsonVariant m : modes) {
+                    if (count >= 6) break;
+                    strncpy(appState.acs[i].availableModes[count], m.as<const char*>(), 11);
+                    appState.acs[i].availableModes[count][11] = '\0';
+                    count++;
+                }
+                appState.acs[i].modeCount = count;
+                ESP_LOGI(TAG, "AC[%d] modes: %d available", i, count);
+            }
         }
         appState.acs[i].valid = true;
         appState.dirty        = true;

@@ -2,6 +2,10 @@
 #include <functional>
 #include <lvgl.h>
 #include "Screen.h"
+#include "RestCard.h"
+#include "cards/WeatherNowCard.h"
+#include "cards/WeatherDetailsCard.h"
+#include "cards/ForecastCard.h"
 
 class RestScreen : public Screen {
 public:
@@ -12,31 +16,42 @@ public:
     void onEncoder(int delta) override;
     void onButton()           override;
     void refresh()            override;
+    void tick()               override;
+
+    // Milliseconds per card. Adjust to taste.
+    static constexpr uint32_t CARD_INTERVAL_MS = 60000;
+
+    // Pin to a specific card index during development (-1 = normal rotation).
+    // 0 = WeatherNowCard, 1 = WeatherDetailsCard, etc.
+    static constexpr int DEV_CARD_PIN = -1;
 
 private:
     void updateDisplay();
+    void updateDeviceStrip();
+    void advanceCard();
     void wake();
+
+    static constexpr int MAX_CARDS = 8;
 
     bool _initialized = false;
     std::function<void()> _onWake;
 
     lv_obj_t* _lvScreen;
 
-    // Current weather
-    lv_obj_t* _currentTempLabel;
-    lv_obj_t* _conditionLabel;
+    // Card instances — add new cards here
+    WeatherNowCard     _cardWeatherNow;
+    WeatherDetailsCard _cardWeatherDetails;
+    ForecastCard       _cardForecast;
 
-    // 1h forecast
-    lv_obj_t* _forecastLabel;
+    // Card registry — populated in init()
+    RestCard* _cards[MAX_CARDS] = {};
+    int       _cardCount        = 0;
+    int       _activeCard       = 0;
+    uint32_t  _lastAdvanceMs    = 0;
 
-    // Outside temp
-    lv_obj_t* _outsideTempLabel;
-
-    // AC status (left)
+    // Device strip (always visible, not part of card rotation)
     lv_obj_t* _acIconLabel;
     lv_obj_t* _acStateLabel;
-
-    // Heater status (right)
     lv_obj_t* _heaterIconLabel;
     lv_obj_t* _heaterStateLabel;
 };
