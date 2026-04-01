@@ -5,7 +5,7 @@
 
 class ACControlScreen : public Screen {
 public:
-    void setACIndex(int idx);
+    void setAC(ACState* ac);
 
     void init()               override;
     void show()               override;
@@ -22,7 +22,7 @@ private:
     int  findModeIdx(const char* mode, const ACState& ac);
     void resetActivityTimer();
 
-    int  _acIdx       = 0;
+    ACState* _ac      = nullptr;
     bool _initialized = false;
 
     State _state          = State::HERO;

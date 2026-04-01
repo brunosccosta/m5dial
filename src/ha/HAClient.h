@@ -24,8 +24,10 @@ private:
     void handleMessage(uint8_t* payload, size_t length);
     void sendAuth();
     void subscribeEntities();
-    void updateACState(const char* entity_id, const char* state, JsonObject attrs);
-    void updateWeatherState(const char* entity_id, const char* state, JsonObject attrs);
+    void dispatchSensor(const char* entity_id, const char* state, JsonObject attrs);
+
+    static constexpr int BATCH_SIZE    = 5;
+    static constexpr int MAX_BATCHES   = 4; // ceil(SENSOR_COUNT / BATCH_SIZE)
 
     const char* _ssid;
     const char* _password;
@@ -37,8 +39,9 @@ private:
     uint32_t         _lastRetryMs = 0;
     WebSocketsClient _ws;
 
-    uint16_t _msgId       = 0;
-    uint16_t _subscribeId = 0;
+    uint16_t _msgId                    = 0;
+    uint16_t _subscribeIds[MAX_BATCHES] = {};
+    int      _subscribeCount            = 0;
 };
 
 extern HAClient haClient;

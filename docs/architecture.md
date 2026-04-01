@@ -54,9 +54,11 @@ struct ForecastDay {
 struct AppState {
     LampState    lamps[4];
     int          lampCount;
-    ACState      acs[AC_COUNT];
+    ACState      ac;               // climate.forninho_room_temperature
+    ACState      heater;           // climate.forninho_portatil
     WeatherState weather;
-    ForecastDay  forecast[2];   // [0] = 1d (today), [1] = 2d (tomorrow)
+    ForecastDay  forecastToday;    // sensor.*_1d
+    ForecastDay  forecastTomorrow; // sensor.*_2d
     bool         dirty;         // set by HA layer; cleared by UI after refresh
     ConnectionState connection;
 };
@@ -112,11 +114,14 @@ WS reconnects automatically (`setReconnectInterval(5000)`); HA resends `auth_req
 
 ### Entity subscription
 
-After `auth_ok`, HAClient sends a single `subscribe_entities` message with all entity IDs from `devices.h`:
+After `auth_ok`, HAClient sends `subscribe_entities` in batches of 5, one message per batch. All entity IDs come from the `SENSORS[]` registry in `HAClient.cpp`:
 
 ```json
-{"id":1,"type":"subscribe_entities","entity_ids":["climate.forninho_room_temperature","climate.forninho_portatil"]}
+{"id":1,"type":"subscribe_entities","entity_ids":["climate.x","weather.buienradar","sensor.a","sensor.b","sensor.c"]}
+{"id":2,"type":"subscribe_entities","entity_ids":["sensor.d","sensor.e",...]}
 ```
+
+Each batch gets its own message ID. `_subscribeIds[]` tracks all active IDs; the event handler accepts events from any of them.
 
 **Why not `get_states`**: `get_states` returns all HA entities in one WS frame — easily 50–200KB. The Links2004 WS library drops the connection when the incoming frame exceeds its buffer. `subscribe_entities` with specific IDs returns only the requested entities.
 
@@ -168,20 +173,25 @@ haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN, true);
 
 ---
 
-## Device configuration
+## Sensor registry
 
-Entity IDs and display names live in `src/devices.h` (gitignored). Struct definitions in `src/DeviceConfig.h` (committed). `src/devices.h.example` is committed as a template.
+All subscribed entities and their parse handlers live in `SENSORS[]` in `src/ha/HAClient.cpp`. Adding a new sensor = one row in the table + a handler function + a field in `AppState`.
 
 ```cpp
-// devices.h
-constexpr DeviceEntry ACS[] = {
-    { "climate.forninho_room_temperature", "Forninho"          },
-    { "climate.forninho_portatil",         "Forninho Portátil" },
+struct SensorEntry {
+    const char* entity_id;
+    void (*parse)(const char* entity_id, const char* state, JsonObject attrs);
 };
-constexpr int AC_COUNT = sizeof(ACS) / sizeof(ACS[0]);
+
+static const SensorEntry SENSORS[] = {
+    { "climate.forninho_room_temperature", parseAC                },
+    { "climate.forninho_portatil",         parseAC                },
+    { "weather.buienradar",                parseWeather           },
+    // ... one line per sensor
+};
 ```
 
-`AppState.acs[]` is sized by `AC_COUNT` at compile time. `AppState::initDevices()` (called at boot) copies entity_id and name pointers from `ACS[]` into each slot.
+The `entity_id` is passed into every handler so shared handlers (e.g. `parseForecastCondition`) can self-route to the correct `AppState` field using the triggering entity ID.
 
 ---
 
@@ -286,10 +296,10 @@ Adding a card = new `.h`/`.cpp` file + one line in `RestScreen`'s card array. Ca
 | Outdoor temp | `appState.weather.outdoorTemp` |
 | Outdoor humidity | `appState.weather.outdoorHumidity` |
 | Day/night | `appState.weather.isDaytime` |
-| Forecast today | `appState.forecast[0]` |
-| Forecast tomorrow | `appState.forecast[1]` |
-| AC status | `appState.acs[0]` |
-| Heater status | `appState.acs[1]` |
+| Forecast today | `appState.forecastToday` |
+| Forecast tomorrow | `appState.forecastTomorrow` |
+| AC status | `appState.ac` |
+| Heater status | `appState.heater` |
 
 **Forecast data** comes from Buienradar's per-day sensor entities (`sensor.detailed_condition_1d`, `sensor.temperature_1d`, `sensor.rainchance_1d`, etc.) subscribed via the same `subscribe_entities` call. These must be enabled in HA (disabled by default).
 

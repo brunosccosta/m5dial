@@ -122,7 +122,7 @@ void RestScreen::updateDisplay() {
 void RestScreen::updateDeviceStrip() {
     char buf[24];
 
-    ACState& ac = appState.acs[0];
+    ACState& ac = appState.ac;
     if (ac.valid) {
         lv_label_set_text(_acIconLabel, modeIcon(ac.mode));
         snprintf(buf, sizeof(buf), "%s %.0f°", ac.mode, ac.target_temp);
@@ -132,7 +132,7 @@ void RestScreen::updateDeviceStrip() {
         lv_label_set_text(_acStateLabel, "---");
     }
 
-    ACState& heater = appState.acs[1];
+    ACState& heater = appState.heater;
     if (heater.valid) {
         lv_label_set_text(_heaterIconLabel, modeIcon(heater.mode));
         if (strcmp(heater.mode, "off") == 0) {

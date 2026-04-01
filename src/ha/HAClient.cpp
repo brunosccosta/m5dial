@@ -3,7 +3,6 @@
 #include <esp_log.h>
 #include "HAClient.h"
 #include "../AppState.h"
-#include "../devices.h"
 #include "../Config.h"
 
 static const char* TAG = "HA";
@@ -151,39 +150,32 @@ void HAClient::handleMessage(uint8_t* payload, size_t length) {
         appState.clearError(ErrorKey::HA_WS);
         subscribeEntities();
     } else if (strcmp(type, "result") == 0) {
-        int id  = doc["id"] | 0;
+        int  id = doc["id"] | 0;
         bool ok = doc["success"] | false;
-        if (id == _subscribeId)
-            ESP_LOGI(TAG, "subscribe_entities %s", ok ? "confirmed" : "failed");
+        for (int i = 0; i < _subscribeCount; i++) {
+            if (_subscribeIds[i] == id)
+                ESP_LOGI(TAG, "subscribe_entities batch id=%d %s", id, ok ? "confirmed" : "failed");
+        }
     } else if (strcmp(type, "event") == 0) {
         int id = doc["id"] | 0;
-        if (id != _subscribeId) return;
+        bool known = false;
+        for (int i = 0; i < _subscribeCount; i++)
+            if (_subscribeIds[i] == id) { known = true; break; }
+        if (!known) return;
 
         // Initial snapshot: event.a = added entities
         JsonObject added = doc["event"]["a"];
         if (!added.isNull()) {
-            for (JsonPair kv : added) {
-                const char* eid = kv.key().c_str();
-                if (strncmp(eid, "climate.", 8) == 0) {
-                    updateACState(eid, kv.value()["s"] | (const char*)nullptr, kv.value()["a"]);
-                } else {
-                    updateWeatherState(eid, kv.value()["s"] | (const char*)nullptr, kv.value()["a"]);
-                }
-            }
+            for (JsonPair kv : added)
+                dispatchSensor(kv.key().c_str(), kv.value()["s"] | (const char*)nullptr, kv.value()["a"]);
         }
         // Incremental diffs: event.c = changed entities, "+" = updated fields
         JsonObject changed = doc["event"]["c"];
         if (!changed.isNull()) {
             for (JsonPair kv : changed) {
-                const char* eid = kv.key().c_str();
                 JsonObject patch = kv.value()["+"];
-                if (!patch.isNull()) {
-                    if (strncmp(eid, "climate.", 8) == 0) {
-                        updateACState(eid, patch["s"] | (const char*)nullptr, patch["a"]);
-                    } else {
-                        updateWeatherState(eid, patch["s"] | (const char*)nullptr, patch["a"]);
-                    }
-                }
+                if (!patch.isNull())
+                    dispatchSensor(kv.key().c_str(), patch["s"] | (const char*)nullptr, patch["a"]);
             }
         }
     } else if (strcmp(type, "auth_invalid") == 0) {
@@ -199,38 +191,150 @@ void HAClient::sendAuth() {
     _ws.sendTXT(buf);
 }
 
-void HAClient::subscribeEntities() {
-    _msgId = 0;
+// --- Sensor registry ---
 
-    // Build entity_ids array from devices.h + weather entity
-    char entityIds[768] = "[";
-    for (int i = 0; i < AC_COUNT; i++) {
-        if (i > 0) strncat(entityIds, ",", sizeof(entityIds) - strlen(entityIds) - 1);
-        strncat(entityIds, "\"",             sizeof(entityIds) - strlen(entityIds) - 1);
-        strncat(entityIds, ACS[i].entity_id, sizeof(entityIds) - strlen(entityIds) - 1);
-        strncat(entityIds, "\"",             sizeof(entityIds) - strlen(entityIds) - 1);
+struct SensorEntry {
+    const char* entity_id;
+    void (*parse)(const char* entity_id, const char* state, JsonObject attrs);
+};
+
+static void parseAC(const char* entity_id, const char* state, JsonObject attrs) {
+    ACState& ac = (strcmp(entity_id, "climate.forninho_room_temperature") == 0)
+                  ? appState.ac : appState.heater;
+    if (state) {
+        strncpy(ac.mode, state, sizeof(ac.mode) - 1);
+        ac.mode[sizeof(ac.mode) - 1] = '\0';
     }
-    strncat(entityIds, ",\"weather.buienradar\"",           sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, ",\"sensor.atc_3294_temperature\"",  sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, ",\"sensor.atc_3294_humidity\"",     sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, ",\"sensor.detailed_condition\"",    sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, ",\"sun.sun\"",                        sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, ",\"sensor.detailed_condition_1d\"",   sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, ",\"sensor.detailed_condition_2d\"",   sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, ",\"sensor.temperature_1d\"",          sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, ",\"sensor.temperature_2d\"",          sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, ",\"sensor.rainchance_1d\"",           sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, ",\"sensor.rainchance_2d\"",           sizeof(entityIds) - strlen(entityIds) - 1);
-    strncat(entityIds, "]", sizeof(entityIds) - strlen(entityIds) - 1);
+    if (!attrs.isNull()) {
+        if (attrs["current_temperature"].is<float>()) ac.current_temp = attrs["current_temperature"];
+        if (attrs["temperature"].is<float>())         ac.target_temp  = attrs["temperature"];
+        JsonArray modes = attrs["hvac_modes"];
+        if (!modes.isNull() && ac.modeCount == 0) {
+            int count = 0;
+            for (JsonVariant m : modes) {
+                if (count >= 6) break;
+                strncpy(ac.availableModes[count], m.as<const char*>(), 11);
+                ac.availableModes[count][11] = '\0';
+                count++;
+            }
+            ac.modeCount = count;
+        }
+    }
+    ac.valid = true;
+    ESP_LOGI(TAG, "AC [%s]: mode=%s cur=%.1f tgt=%.1f", entity_id, ac.mode, ac.current_temp, ac.target_temp);
+}
 
-    char buf[1024];
-    _subscribeId = ++_msgId;
-    snprintf(buf, sizeof(buf),
-             "{\"id\":%d,\"type\":\"subscribe_entities\",\"entity_ids\":%s}",
-             _subscribeId, entityIds);
-    ESP_LOGD(TAG, "<< %s", buf);
-    _ws.sendTXT(buf);
-    ESP_LOGI(TAG, "sent subscribe_entities (id=%d)", _subscribeId);
+static void parseWeather(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) {
+        strncpy(appState.weather.condition, state, sizeof(appState.weather.condition) - 1);
+        appState.weather.condition[sizeof(appState.weather.condition) - 1] = '\0';
+    }
+    if (!attrs.isNull()) {
+        if (attrs["temperature"].is<float>())          appState.weather.temperature = attrs["temperature"];
+        if (attrs["apparent_temperature"].is<float>()) appState.weather.feelsLike   = attrs["apparent_temperature"];
+    }
+    appState.weather.valid = true;
+    ESP_LOGI(TAG, "weather: %s %.1f° feels %.1f°", appState.weather.condition, appState.weather.temperature, appState.weather.feelsLike);
+}
+
+static void parseDetailedCondition(const char* entity_id, const char* state, JsonObject attrs) {
+    if (!state) return;
+    strncpy(appState.weather.detailedCondition, state, sizeof(appState.weather.detailedCondition) - 1);
+    appState.weather.detailedCondition[sizeof(appState.weather.detailedCondition) - 1] = '\0';
+    ESP_LOGI(TAG, "detailed condition: %s", appState.weather.detailedCondition);
+}
+
+static void parseOutdoorTemp(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.weather.outdoorTemp = atof(state);
+    ESP_LOGI(TAG, "outdoor temp: %.1f°C", appState.weather.outdoorTemp);
+}
+
+static void parseOutdoorHumidity(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.weather.outdoorHumidity = atof(state);
+    ESP_LOGI(TAG, "outdoor humidity: %.0f%%", appState.weather.outdoorHumidity);
+}
+
+static void parseSun(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.weather.isDaytime = (strcmp(state, "above_horizon") == 0);
+    ESP_LOGI(TAG, "sun: %s", appState.weather.isDaytime ? "day" : "night");
+}
+
+static void parseForecastCondition(const char* entity_id, const char* state, JsonObject attrs) {
+    if (!state) return;
+    ForecastDay& f = strstr(entity_id, "_2d") ? appState.forecastTomorrow : appState.forecastToday;
+    strncpy(f.detailedCondition, state, sizeof(f.detailedCondition) - 1);
+    f.detailedCondition[sizeof(f.detailedCondition) - 1] = '\0';
+    f.valid = true;
+    ESP_LOGI(TAG, "forecast condition [%s]: %s", entity_id, f.detailedCondition);
+}
+
+static void parseForecastTemp(const char* entity_id, const char* state, JsonObject attrs) {
+    if (!state) return;
+    ForecastDay& f = strstr(entity_id, "_2d") ? appState.forecastTomorrow : appState.forecastToday;
+    f.temperature = atof(state);
+    ESP_LOGI(TAG, "forecast temp [%s]: %.1f", entity_id, f.temperature);
+}
+
+static void parseForecastRain(const char* entity_id, const char* state, JsonObject attrs) {
+    if (!state) return;
+    ForecastDay& f = strstr(entity_id, "_2d") ? appState.forecastTomorrow : appState.forecastToday;
+    f.rainChance = atoi(state);
+    ESP_LOGI(TAG, "forecast rain [%s]: %d%%", entity_id, f.rainChance);
+}
+
+static const SensorEntry SENSORS[] = {
+    { "climate.forninho_room_temperature", parseAC                },
+    { "climate.forninho_portatil",         parseAC                },
+    { "weather.buienradar",                parseWeather           },
+    { "sensor.detailed_condition",         parseDetailedCondition },
+    { "sensor.atc_3294_temperature",       parseOutdoorTemp       },
+    { "sensor.atc_3294_humidity",          parseOutdoorHumidity   },
+    { "sun.sun",                           parseSun               },
+    { "sensor.detailed_condition_1d",      parseForecastCondition },
+    { "sensor.detailed_condition_2d",      parseForecastCondition },
+    { "sensor.temperature_1d",             parseForecastTemp      },
+    { "sensor.temperature_2d",             parseForecastTemp      },
+    { "sensor.rainchance_1d",              parseForecastRain      },
+    { "sensor.rainchance_2d",              parseForecastRain      },
+};
+static constexpr int SENSOR_COUNT = sizeof(SENSORS) / sizeof(SENSORS[0]);
+
+void HAClient::subscribeEntities() {
+    _msgId           = 0;
+    _subscribeCount  = 0;
+
+    for (int start = 0; start < SENSOR_COUNT; start += BATCH_SIZE) {
+        int end = start + BATCH_SIZE;
+        if (end > SENSOR_COUNT) end = SENSOR_COUNT;
+
+        char buf[512];
+        int  id  = ++_msgId;
+        int  pos = snprintf(buf, sizeof(buf), "{\"id\":%d,\"type\":\"subscribe_entities\",\"entity_ids\":[", id);
+
+        for (int i = start; i < end; i++) {
+            if (i > start) buf[pos++] = ',';
+            pos += snprintf(buf + pos, sizeof(buf) - pos, "\"%s\"", SENSORS[i].entity_id);
+        }
+        pos += snprintf(buf + pos, sizeof(buf) - pos, "]}");
+
+        if (_subscribeCount < MAX_BATCHES)
+            _subscribeIds[_subscribeCount++] = id;
+
+        ESP_LOGD(TAG, "<< %s", buf);
+        _ws.sendTXT(buf);
+        ESP_LOGI(TAG, "sent subscribe_entities batch (id=%d, sensors %d-%d)", id, start, end - 1);
+    }
+}
+
+void HAClient::dispatchSensor(const char* entity_id, const char* state, JsonObject attrs) {
+    for (int i = 0; i < SENSOR_COUNT; i++) {
+        if (strcmp(SENSORS[i].entity_id, entity_id) == 0) {
+            SENSORS[i].parse(entity_id, state, attrs);
+            appState.dirty = true;
+            return;
+        }
+    }
+    ESP_LOGI(TAG, "unregistered sensor [%s] state=%s", entity_id, state ? state : "(null)");
 }
 
 void HAClient::sendACTemperature(const char* entity_id, float temp) {
@@ -267,118 +371,3 @@ void HAClient::sendACMode(const char* entity_id, const char* mode) {
     _ws.sendTXT(buf);
 }
 
-void HAClient::updateWeatherState(const char* entity_id, const char* state, JsonObject attrs) {
-    if (!entity_id) return;
-
-    if (strncmp(entity_id, "weather.", 8) == 0) {
-        if (state) {
-            strncpy(appState.weather.condition, state, sizeof(appState.weather.condition) - 1);
-            appState.weather.condition[sizeof(appState.weather.condition) - 1] = '\0';
-        }
-        if (!attrs.isNull()) {
-            if (attrs["temperature"].is<float>())
-                appState.weather.temperature = attrs["temperature"];
-            if (attrs["apparent_temperature"].is<float>())
-                appState.weather.feelsLike = attrs["apparent_temperature"];
-        }
-        appState.weather.valid = true;
-        ESP_LOGI(TAG, "weather: %s %.1f°C feels %.1f°C",
-                 appState.weather.condition, appState.weather.temperature, appState.weather.feelsLike);
-
-    } else if (strcmp(entity_id, "sensor.atc_3294_temperature") == 0) {
-        if (state) appState.weather.outdoorTemp = atof(state);
-        ESP_LOGI(TAG, "outdoor temp: %.1f°C", appState.weather.outdoorTemp);
-
-    } else if (strcmp(entity_id, "sensor.atc_3294_humidity") == 0) {
-        if (state) appState.weather.outdoorHumidity = atof(state);
-        ESP_LOGI(TAG, "outdoor humidity: %.0f%%", appState.weather.outdoorHumidity);
-
-    } else if (strcmp(entity_id, "sensor.detailed_condition") == 0) {
-        if (state) {
-            strncpy(appState.weather.detailedCondition, state, sizeof(appState.weather.detailedCondition) - 1);
-            appState.weather.detailedCondition[sizeof(appState.weather.detailedCondition) - 1] = '\0';
-        }
-        ESP_LOGI(TAG, "detailed condition: %s", appState.weather.detailedCondition);
-
-    } else if (strcmp(entity_id, "sun.sun") == 0) {
-        if (state) appState.weather.isDaytime = (strcmp(state, "above_horizon") == 0);
-        ESP_LOGI(TAG, "sun: %s", appState.weather.isDaytime ? "day" : "night");
-
-    } else if (strcmp(entity_id, "sensor.detailed_condition_1d") == 0) {
-        if (state) {
-            strncpy(appState.forecast[0].detailedCondition, state, sizeof(appState.forecast[0].detailedCondition) - 1);
-            appState.forecast[0].detailedCondition[sizeof(appState.forecast[0].detailedCondition) - 1] = '\0';
-            appState.forecast[0].valid = true;
-        }
-        ESP_LOGI(TAG, "forecast[0] condition: %s", appState.forecast[0].detailedCondition);
-
-    } else if (strcmp(entity_id, "sensor.detailed_condition_2d") == 0) {
-        if (state) {
-            strncpy(appState.forecast[1].detailedCondition, state, sizeof(appState.forecast[1].detailedCondition) - 1);
-            appState.forecast[1].detailedCondition[sizeof(appState.forecast[1].detailedCondition) - 1] = '\0';
-            appState.forecast[1].valid = true;
-        }
-        ESP_LOGI(TAG, "forecast[1] condition: %s", appState.forecast[1].detailedCondition);
-
-    } else if (strcmp(entity_id, "sensor.temperature_1d") == 0) {
-        if (state) appState.forecast[0].temperature = atof(state);
-        ESP_LOGI(TAG, "forecast[0] temp: %.1f", appState.forecast[0].temperature);
-
-    } else if (strcmp(entity_id, "sensor.temperature_2d") == 0) {
-        if (state) appState.forecast[1].temperature = atof(state);
-        ESP_LOGI(TAG, "forecast[1] temp: %.1f", appState.forecast[1].temperature);
-
-    } else if (strcmp(entity_id, "sensor.rainchance_1d") == 0) {
-        if (state) appState.forecast[0].rainChance = atoi(state);
-        ESP_LOGI(TAG, "forecast[0] rain: %d%%", appState.forecast[0].rainChance);
-
-    } else if (strcmp(entity_id, "sensor.rainchance_2d") == 0) {
-        if (state) appState.forecast[1].rainChance = atoi(state);
-        ESP_LOGI(TAG, "forecast[1] rain: %d%%", appState.forecast[1].rainChance);
-
-    } else {
-        // Unknown sensor — log state so we can see what it returns before wiring it up
-        ESP_LOGI(TAG, "sensor [%s] state=%s", entity_id, state ? state : "(null)");
-    }
-
-    appState.dirty = true;
-}
-
-void HAClient::updateACState(const char* entity_id, const char* state, JsonObject attrs) {
-    if (!entity_id) return;
-
-    for (int i = 0; i < AC_COUNT; i++) {
-        if (strcmp(appState.acs[i].entity_id, entity_id) != 0) continue;
-
-        if (state) {
-            strncpy(appState.acs[i].mode, state, sizeof(appState.acs[i].mode) - 1);
-            appState.acs[i].mode[sizeof(appState.acs[i].mode) - 1] = '\0';
-        }
-        if (!attrs.isNull()) {
-            if (attrs["current_temperature"].is<float>())
-                appState.acs[i].current_temp = attrs["current_temperature"];
-            if (attrs["temperature"].is<float>())
-                appState.acs[i].target_temp = attrs["temperature"];
-            // Parse available modes once on initial snapshot (array only present then)
-            JsonArray modes = attrs["hvac_modes"];
-            if (!modes.isNull() && appState.acs[i].modeCount == 0) {
-                int count = 0;
-                for (JsonVariant m : modes) {
-                    if (count >= 6) break;
-                    strncpy(appState.acs[i].availableModes[count], m.as<const char*>(), 11);
-                    appState.acs[i].availableModes[count][11] = '\0';
-                    count++;
-                }
-                appState.acs[i].modeCount = count;
-                ESP_LOGI(TAG, "AC[%d] modes: %d available", i, count);
-            }
-        }
-        appState.acs[i].valid = true;
-        appState.dirty        = true;
-
-        ESP_LOGI(TAG, "AC[%d] %s: mode=%s cur=%.1f tgt=%.1f",
-                 i, entity_id, appState.acs[i].mode,
-                 appState.acs[i].current_temp, appState.acs[i].target_temp);
-        return;
-    }
-}

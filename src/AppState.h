@@ -1,6 +1,5 @@
 #pragma once
 #include <Arduino.h>
-#include "devices.h"
 
 namespace ErrorKey {
     constexpr const char* WIFI  = "wifi";
@@ -60,9 +59,11 @@ struct AppState {
     LampState lamps[4];
     int       lampCount;
 
-    ACState      acs[AC_COUNT];
+    ACState      ac;               // climate.forninho_room_temperature
+    ACState      heater;           // climate.forninho_portatil
     WeatherState weather;
-    ForecastDay  forecast[2];   // [0] = 1d (today), [1] = 2d (tomorrow)
+    ForecastDay  forecastToday;    // sensor.*_1d
+    ForecastDay  forecastTomorrow; // sensor.*_2d
 
     bool            dirty;      // set by HA layer when state changes; cleared by UI after refresh
     ConnectionState connection; // written by HAClient; read by UI for status indicator
@@ -70,7 +71,6 @@ struct AppState {
     static constexpr int MAX_ERRORS = 6;
     ErrorEntry errors[MAX_ERRORS];
 
-    void initDevices();
     void setError(const char* key, uint32_t fireAfterMs = 0);
     void clearError(const char* key);
 };

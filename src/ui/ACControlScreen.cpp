@@ -34,8 +34,8 @@ static lv_color_t tempColor(float temp) {
 
 // --- Lifecycle ---
 
-void ACControlScreen::setACIndex(int idx) {
-    _acIdx = idx;
+void ACControlScreen::setAC(ACState* ac) {
+    _ac = ac;
 }
 
 void ACControlScreen::init() {
@@ -139,7 +139,7 @@ void ACControlScreen::resetActivityTimer() {
 
 void ACControlScreen::show() {
     // Start on mode when off — temp editing is blocked anyway
-    ACState& ac = appState.acs[_acIdx];
+    ACState& ac = *_ac;
     _selected = (ac.valid && strcmp(ac.mode, "off") == 0) ? 1 : 0;
     _state    = State::HERO;
     resetActivityTimer();
@@ -159,7 +159,7 @@ void ACControlScreen::tick() {
 
 void ACControlScreen::onEncoder(int delta) {
     resetActivityTimer();
-    ACState& ac = appState.acs[_acIdx];
+    ACState& ac = *_ac;
 
     switch (_state) {
         case State::HERO:
@@ -194,7 +194,7 @@ void ACControlScreen::onEncoder(int delta) {
 
 void ACControlScreen::onButton() {
     resetActivityTimer();
-    ACState& ac = appState.acs[_acIdx];
+    ACState& ac = *_ac;
 
     switch (_state) {
         case State::HERO:
@@ -273,7 +273,7 @@ void ACControlScreen::updateUnderline() {
 }
 
 void ACControlScreen::updateDisplay() {
-    ACState& ac = appState.acs[_acIdx];
+    ACState& ac = *_ac;
 
     if (ac.valid) {
         ModeInfo info = modeInfo(ac.mode);

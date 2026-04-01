@@ -59,8 +59,8 @@ void setupNavigation() {
     mainMenu.setOnSelect([](int idx) {
         switch (idx) {
             case 0: screenManager.push(&lampMenu); break;
-            case 1: acControl.setACIndex(0); screenManager.push(&acControl); break;
-            case 2: acControl.setACIndex(1); screenManager.push(&acControl); break;
+            case 1: acControl.setAC(&appState.ac);     screenManager.push(&acControl); break;
+            case 2: acControl.setAC(&appState.heater); screenManager.push(&acControl); break;
             default: ESP_LOGI("NAV", "no screen for index %d", idx); break;
         }
     });
@@ -94,7 +94,6 @@ void setup() {
     static lv_color_t buf[240 * 24];
     lv_display_set_buffers(disp, buf, NULL, sizeof(buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    appState.initDevices();
     input.begin();
     haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
     errorOverlay.init();

@@ -121,7 +121,7 @@ void ForecastCard::update() {
 }
 
 void ForecastCard::updateColumn(int col) {
-    ForecastDay& f = appState.forecast[col];
+    ForecastDay& f = (col == 0) ? appState.forecastToday : appState.forecastTomorrow;
 
     lv_obj_t* iconLbl  = (col == 0) ? _iconLeft  : _iconRight;
     lv_obj_t* tempLbl  = (col == 0) ? _tempLeft  : _tempRight;
