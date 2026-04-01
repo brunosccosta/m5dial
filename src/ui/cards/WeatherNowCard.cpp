@@ -1,6 +1,7 @@
 #include "WeatherNowCard.h"
 #include "../../AppState.h"
 #include "../fonts/fa_icons.h"
+#include "../Theme.h"
 
 // Condition map — key matches sensor.detailed_condition state values.
 // To add/change an icon: update the icon field below; only this table needs touching.
@@ -50,22 +51,22 @@ void WeatherNowCard::init(lv_obj_t* parent) {
 
     _tempLabel = lv_label_create(_container);
     lv_obj_set_style_text_font(_tempLabel, &lv_font_montserrat_48, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_tempLabel, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_tempLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_tempLabel, LV_ALIGN_CENTER, -9, -45);
 
     _feelsLikeLabel = lv_label_create(_container);
     lv_obj_set_style_text_font(_feelsLikeLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_feelsLikeLabel, lv_color_hex(0x888888), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_feelsLikeLabel, lv_color_hex(Theme::TEXT_FAINT), LV_PART_MAIN);
     lv_obj_align(_feelsLikeLabel, LV_ALIGN_CENTER, 20, -45);
 
     _iconLabel = lv_label_create(_container);
     lv_obj_set_style_text_font(_iconLabel, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_iconLabel, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_iconLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_iconLabel, LV_ALIGN_CENTER, -40, -8);
 
     _conditionLabel = lv_label_create(_container);
     lv_obj_set_style_text_font(_conditionLabel, &lv_font_montserrat_24, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_conditionLabel, lv_color_hex(0x888888), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_conditionLabel, lv_color_hex(Theme::TEXT_FAINT), LV_PART_MAIN);
     lv_obj_align(_conditionLabel, LV_ALIGN_CENTER, 0, -8);
 }
 

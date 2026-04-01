@@ -2,6 +2,7 @@
 #include "LampControlScreen.h"
 #include "../AppState.h"
 #include "ScreenManager.h"
+#include "Theme.h"
 
 static const char* TAG = "LAMP";
 
@@ -14,22 +15,22 @@ void LampControlScreen::init() {
     _initialized = true;
 
     _lvScreen = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(_lvScreen, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(_lvScreen, lv_color_hex(Theme::BG), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_lvScreen, LV_OPA_COVER, LV_PART_MAIN);
 
     _nameLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_nameLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_nameLabel, lv_color_hex(0x888888), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_nameLabel, lv_color_hex(Theme::TEXT_FAINT), LV_PART_MAIN);
     lv_obj_align(_nameLabel, LV_ALIGN_CENTER, 0, -50);
 
     _stateLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_stateLabel, &lv_font_montserrat_32, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_stateLabel, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_stateLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_stateLabel, LV_ALIGN_CENTER, 0, 0);
 
     _brightnessLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_brightnessLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_brightnessLabel, lv_color_hex(0x888888), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_brightnessLabel, lv_color_hex(Theme::TEXT_FAINT), LV_PART_MAIN);
     lv_obj_align(_brightnessLabel, LV_ALIGN_CENTER, 0, 45);
 
     ESP_LOGI(TAG, "init complete");
@@ -67,7 +68,7 @@ void LampControlScreen::updateDisplay() {
 
     lv_label_set_text(_stateLabel, lamp.on ? "ON" : "OFF");
     lv_obj_set_style_text_color(_stateLabel,
-        lamp.on ? lv_color_white() : lv_color_hex(0x444444),
+        lamp.on ? lv_color_hex(Theme::TEXT_PRIMARY) : lv_color_hex(Theme::SURFACE_FAINT),
         LV_PART_MAIN);
     lv_obj_align(_stateLabel, LV_ALIGN_CENTER, 0, 0);
 

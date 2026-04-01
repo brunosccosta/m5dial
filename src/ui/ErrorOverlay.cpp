@@ -2,6 +2,7 @@
 #include <esp_log.h>
 #include "ErrorOverlay.h"
 #include "../AppState.h"
+#include "Theme.h"
 
 static const char* TAG = "OVERLAY";
 
@@ -61,7 +62,7 @@ void ErrorOverlay::init() {
     _bg = lv_obj_create(layer);
     lv_obj_set_size(_bg, 240, 240);
     lv_obj_set_pos(_bg, 0, 0);
-    lv_obj_set_style_bg_color(_bg, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(_bg, lv_color_hex(Theme::BG), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_bg, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_border_width(_bg, 0, LV_PART_MAIN);
     lv_obj_set_style_radius(_bg, 0, LV_PART_MAIN);
@@ -70,7 +71,7 @@ void ErrorOverlay::init() {
     // Warning icon
     _icon = lv_label_create(_bg);
     lv_obj_set_style_text_font(_icon, &lv_font_montserrat_48, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_icon, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_icon, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_icon, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(_icon, 0, LV_PART_MAIN);
     lv_label_set_text(_icon, LV_SYMBOL_WARNING);
@@ -79,7 +80,7 @@ void ErrorOverlay::init() {
     // Message label
     _label = lv_label_create(_bg);
     lv_obj_set_style_text_font(_label, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_label, lv_color_hex(0xAAAAAA), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_label, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_label, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(_label, 0, LV_PART_MAIN);
     lv_obj_set_style_text_align(_label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
@@ -89,7 +90,7 @@ void ErrorOverlay::init() {
     _dot = lv_obj_create(layer);
     lv_obj_set_size(_dot, 10, 10);
     lv_obj_set_style_radius(_dot, LV_RADIUS_CIRCLE, LV_PART_MAIN);
-    lv_obj_set_style_bg_color(_dot, lv_color_hex(0xFF3333), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(_dot, lv_color_hex(Theme::ACCENT_ERROR), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_dot, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_border_width(_dot, 0, LV_PART_MAIN);
     lv_obj_set_pos(_dot, 169, 19); // ~1 o'clock on the circular display (r≈106, inside r=120)

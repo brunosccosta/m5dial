@@ -5,6 +5,7 @@
 #include "ScreenManager.h"
 #include "../ha/HAClient.h"
 #include "fonts/fa_icons.h"
+#include "Theme.h"
 
 static const char* TAG = "AC";
 
@@ -14,12 +15,12 @@ static constexpr int         MODE_COUNT = 6;
 struct ModeInfo { const char* icon; const char* label; lv_color_t color; };
 
 static ModeInfo modeInfo(const char* mode) {
-    if (strcmp(mode, "heat")     == 0) return { FA_FIRE,           "HEAT", lv_color_hex(0xFF4400) };
-    if (strcmp(mode, "cool")     == 0) return { FA_SNOWFLAKE,      "COOL", lv_color_hex(0x0088FF) };
-    if (strcmp(mode, "auto")     == 0) return { FA_ARROWS_ROTATE,  "AUTO", lv_color_hex(0x00BB44) };
-    if (strcmp(mode, "fan_only") == 0) return { FA_FAN,            "FAN",  lv_color_hex(0xBBBBBB) };
-    if (strcmp(mode, "dry")      == 0) return { FA_DROPLET,        "DRY",  lv_color_hex(0xFFAA00) };
-    return                               { FA_POWER_OFF,       "OFF",  lv_color_hex(0x333333) };
+    if (strcmp(mode, "heat")     == 0) return { FA_FIRE,           "HEAT", lv_color_hex(Theme::AC_MODE_HEAT) };
+    if (strcmp(mode, "cool")     == 0) return { FA_SNOWFLAKE,      "COOL", lv_color_hex(Theme::AC_MODE_COOL) };
+    if (strcmp(mode, "auto")     == 0) return { FA_ARROWS_ROTATE,  "AUTO", lv_color_hex(Theme::AC_MODE_AUTO) };
+    if (strcmp(mode, "fan_only") == 0) return { FA_FAN,            "FAN",  lv_color_hex(Theme::AC_MODE_FAN)  };
+    if (strcmp(mode, "dry")      == 0) return { FA_DROPLET,        "DRY",  lv_color_hex(Theme::AC_MODE_DRY)  };
+    return                               { FA_POWER_OFF,       "OFF",  lv_color_hex(Theme::AC_MODE_OFF)  };
 }
 
 // Current temp color follows temperature thresholds, not mode:
@@ -27,9 +28,9 @@ static ModeInfo modeInfo(const char* mode) {
 //   18–21°C → yellow (transitional)
 //   ≥ 21°C  → orange (warm)
 static lv_color_t tempColor(float temp) {
-    if (temp < 18.0f) return lv_color_hex(0x0088FF);
-    if (temp < 21.0f) return lv_color_hex(0xFFCC00);
-    return                   lv_color_hex(0xFF6600);
+    if (temp < 18.0f) return lv_color_hex(Theme::TEMP_COLD);
+    if (temp < 21.0f) return lv_color_hex(Theme::TEMP_MID);
+    return                   lv_color_hex(Theme::TEMP_WARM);
 }
 
 // --- Lifecycle ---
@@ -43,7 +44,7 @@ void ACControlScreen::init() {
     _initialized = true;
 
     _lvScreen = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(_lvScreen, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(_lvScreen, lv_color_hex(Theme::BG), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_lvScreen, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_clear_flag(_lvScreen, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -55,7 +56,7 @@ void ACControlScreen::init() {
     lv_arc_set_bg_end_angle(_arcInner, 355);
     lv_arc_set_range(_arcInner, 10, 30);
     lv_arc_set_value(_arcInner, 10);
-    lv_obj_set_style_arc_color(_arcInner, lv_color_hex(0x222222), LV_PART_MAIN);
+    lv_obj_set_style_arc_color(_arcInner, lv_color_hex(Theme::SURFACE_DARK), LV_PART_MAIN);
     lv_obj_set_style_arc_width(_arcInner, 5, LV_PART_MAIN);
     lv_obj_set_style_arc_width(_arcInner, 5, LV_PART_INDICATOR);
     lv_obj_set_style_arc_opa(_arcInner, 160, LV_PART_INDICATOR);
@@ -71,7 +72,7 @@ void ACControlScreen::init() {
     lv_arc_set_bg_end_angle(_arc, 355);
     lv_arc_set_range(_arc, 10, 30);
     lv_arc_set_value(_arc, 21);
-    lv_obj_set_style_arc_color(_arc, lv_color_hex(0x333333), LV_PART_MAIN);
+    lv_obj_set_style_arc_color(_arc, lv_color_hex(Theme::SURFACE), LV_PART_MAIN);
     lv_obj_set_style_arc_width(_arc, 10, LV_PART_MAIN);
     lv_obj_set_style_arc_width(_arc, 10, LV_PART_INDICATOR);
     lv_obj_set_style_bg_opa(_arc, LV_OPA_TRANSP, LV_PART_KNOB);
@@ -81,49 +82,49 @@ void ACControlScreen::init() {
     // Arc range labels
     _arcMinLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_arcMinLabel, &lv_font_montserrat_24, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_arcMinLabel, lv_color_hex(0x666666), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_arcMinLabel, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
     lv_label_set_text(_arcMinLabel, "10");
     lv_obj_align(_arcMinLabel, LV_ALIGN_CENTER, -100, 12);
 
     _arcMaxLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_arcMaxLabel, &lv_font_montserrat_24, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_arcMaxLabel, lv_color_hex(0x666666), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_arcMaxLabel, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
     lv_label_set_text(_arcMaxLabel, "30");
     lv_obj_align(_arcMaxLabel, LV_ALIGN_CENTER, 95, 12);
 
     // Current temp
     _currentTempLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_currentTempLabel, &lv_font_montserrat_24, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_currentTempLabel, lv_color_hex(0x888888), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_currentTempLabel, lv_color_hex(Theme::TEXT_FAINT), LV_PART_MAIN);
     lv_obj_align(_currentTempLabel, LV_ALIGN_CENTER, 0, -46);
 
     // Target temp — large, center
     _targetTempLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_targetTempLabel, &lv_font_montserrat_48, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_targetTempLabel, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_targetTempLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_targetTempLabel, LV_ALIGN_CENTER, 0, -2);
 
     // Mode icon (FA font) + text (Montserrat), positioned side by side
     _modeIconLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_modeIconLabel, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_modeIconLabel, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_modeIconLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_modeIconLabel, LV_ALIGN_CENTER, -20, 53);
 
     _modeTextLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_modeTextLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_modeTextLabel, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_modeTextLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_modeTextLabel, LV_ALIGN_CENTER, 8, 55); // will be overridden by align_to in updateDisplay
 
     // Go back
     _goBackLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_goBackLabel, &lv_font_montserrat_24, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_goBackLabel, lv_color_hex(0x666666), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_goBackLabel, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
     lv_label_set_text(_goBackLabel, LV_SYMBOL_LEFT);
     lv_obj_align(_goBackLabel, LV_ALIGN_CENTER, 0, 88);
 
     // Underline indicator — repositioned by updateUnderline()
     _underline = lv_obj_create(_lvScreen);
-    lv_obj_set_style_bg_color(_underline, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(_underline, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_underline, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_set_style_border_width(_underline, 0, LV_PART_MAIN);
     lv_obj_set_style_radius(_underline, 0, LV_PART_MAIN);
@@ -216,7 +217,7 @@ void ACControlScreen::onButton() {
             appState.dirty = true;
             haClient.sendACTemperature(ac.entity_id, _pendingTemp);
             _state = State::HERO;
-            lv_obj_set_style_bg_color(_underline, lv_color_white(), LV_PART_MAIN);
+            lv_obj_set_style_bg_color(_underline, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
             updateDisplay();
             break;
 
@@ -227,7 +228,7 @@ void ACControlScreen::onButton() {
             appState.dirty = true;
             haClient.sendACMode(ac.entity_id, newMode);
             _state = State::HERO;
-            lv_obj_set_style_bg_color(_underline, lv_color_white(), LV_PART_MAIN);
+            lv_obj_set_style_bg_color(_underline, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
             updateDisplay();
             break;
         }
@@ -297,8 +298,8 @@ void ACControlScreen::updateDisplay() {
         lv_label_set_text(_targetTempLabel, "--°");
         lv_label_set_text(_modeIconLabel, FA_POWER_OFF);
         lv_label_set_text(_modeTextLabel, "---");
-        lv_obj_set_style_arc_color(_arc,      lv_color_hex(0x444444), LV_PART_INDICATOR);
-        lv_obj_set_style_arc_color(_arcInner, lv_color_hex(0x444444), LV_PART_INDICATOR);
+        lv_obj_set_style_arc_color(_arc,      lv_color_hex(Theme::SURFACE_FAINT), LV_PART_INDICATOR);
+        lv_obj_set_style_arc_color(_arcInner, lv_color_hex(Theme::SURFACE_FAINT), LV_PART_INDICATOR);
     }
 
     // Re-align after text update (text size may change)

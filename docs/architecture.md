@@ -446,6 +446,19 @@ Each screen owns its own `lv_obj_t* _lvScreen` (LVGL screen object). `show()` ca
 
 ---
 
+### Theming
+
+All UI colors are defined as named constants in `src/ui/themes/ThemeDefault.h` and accessed via `src/ui/Theme.h`. UI code never contains raw hex values.
+
+Active theme is selected at compile time via `platformio.ini`:
+```ini
+-DACTIVE_THEME=1   ; 1 = ThemeDefault
+```
+
+See [`src/ui/themes/README.md`](../src/ui/themes/README.md) for the full token reference and instructions for adding a new theme.
+
+---
+
 ## Loop structure
 
 ```cpp

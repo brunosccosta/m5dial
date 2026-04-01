@@ -2,6 +2,7 @@
 #include "RestScreen.h"
 #include "../AppState.h"
 #include "fonts/fa_icons.h"
+#include "Theme.h"
 
 static const char* TAG = "REST";
 
@@ -27,7 +28,7 @@ void RestScreen::init() {
     _initialized = true;
 
     _lvScreen = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(_lvScreen, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(_lvScreen, lv_color_hex(Theme::BG), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_lvScreen, LV_OPA_COVER, LV_PART_MAIN);
     lv_obj_clear_flag(_lvScreen, LV_OBJ_FLAG_SCROLLABLE);
 
@@ -58,31 +59,31 @@ void RestScreen::init() {
     lv_obj_clear_flag(_ring, LV_OBJ_FLAG_CLICKABLE);
     lv_obj_set_style_arc_width(_ring, RING_WIDTH, LV_PART_MAIN);
     lv_obj_set_style_arc_width(_ring, RING_WIDTH, LV_PART_INDICATOR);
-    lv_obj_set_style_arc_color(_ring, lv_color_hex(RING_BG_COLOR), LV_PART_MAIN);
-    lv_obj_set_style_arc_color(_ring, lv_color_hex(RING_ACTIVE_COLOR), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(_ring, lv_color_hex(Theme::RING_BG),     LV_PART_MAIN);
+    lv_obj_set_style_arc_color(_ring, lv_color_hex(Theme::RING_ACTIVE), LV_PART_INDICATOR);
     lv_obj_set_style_arc_rounded(_ring, true, LV_PART_INDICATOR);
     lv_obj_set_style_arc_rounded(_ring, true, LV_PART_MAIN);
 
     // Device strip — AC (left)
     _acIconLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_acIconLabel, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_acIconLabel, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_acIconLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_acIconLabel, LV_ALIGN_CENTER, -45, +42);
 
     _acStateLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_acStateLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_acStateLabel, lv_color_hex(0xAAAAAA), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_acStateLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
     lv_obj_align(_acStateLabel, LV_ALIGN_CENTER, -45, +60);
 
     // Device strip — Heater (right)
     _heaterIconLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_heaterIconLabel, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_heaterIconLabel, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_heaterIconLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_heaterIconLabel, LV_ALIGN_CENTER, +45, +42);
 
     _heaterStateLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_heaterStateLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_heaterStateLabel, lv_color_hex(0xAAAAAA), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_heaterStateLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
     lv_obj_align(_heaterStateLabel, LV_ALIGN_CENTER, +45, +60);
 
     ESP_LOGI(TAG, "init complete, %d cards", _cardCount);

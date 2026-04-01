@@ -3,6 +3,7 @@
 #include <Arduino.h>
 #include "CarouselMenu.h"
 #include "ScreenManager.h"
+#include "Theme.h"
 #include "fonts/fa_icons.h"
 
 static const char* TAG = "MENU";
@@ -24,13 +25,13 @@ void CarouselMenu::init() {
     _initialized = true;
 
     _lvScreen = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(_lvScreen, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(_lvScreen, lv_color_hex(Theme::BG), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_lvScreen, LV_OPA_COVER, LV_PART_MAIN);
 
     for (int i = 0; i < _count; i++) {
         lv_obj_t* icon = lv_label_create(_lvScreen);
         lv_obj_set_style_text_font(icon, &font_awesome_solid_32, LV_PART_MAIN);
-        lv_obj_set_style_text_color(icon, lv_color_white(), LV_PART_MAIN);
+        lv_obj_set_style_text_color(icon, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
         lv_obj_set_style_text_opa(icon, LV_OPA_50, LV_PART_MAIN);
         lv_obj_set_style_bg_opa(icon, LV_OPA_TRANSP, LV_PART_MAIN);
         lv_obj_set_style_border_width(icon, 0, LV_PART_MAIN);
@@ -40,13 +41,13 @@ void CarouselMenu::init() {
 
     _centerIcon = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_centerIcon, &font_awesome_solid_32, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_centerIcon, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_centerIcon, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_centerIcon, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(_centerIcon, 0, LV_PART_MAIN);
 
     _centerLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_centerLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_centerLabel, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_centerLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_centerLabel, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(_centerLabel, 0, LV_PART_MAIN);
     lv_obj_set_style_text_align(_centerLabel, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);

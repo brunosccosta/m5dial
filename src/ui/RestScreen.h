@@ -26,10 +26,8 @@ public:
     static constexpr int DEV_CARD_PIN = -1;
 
     // Timer ring — thin arc around the dial edge showing time until next card.
-    static constexpr int      RING_WIDTH        = 3;
-    static constexpr uint32_t RING_ACTIVE_COLOR = 0x666666;
-    static constexpr uint32_t RING_BG_COLOR     = 0x1E1E1E;
-    static constexpr int      RING_START_ANGLE  = 270;  // 270 = 12 o'clock
+    static constexpr int RING_WIDTH       = 3;
+    static constexpr int RING_START_ANGLE = 270;  // 270 = 12 o'clock
 
 private:
     void updateDisplay();

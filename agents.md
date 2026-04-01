@@ -8,17 +8,26 @@ A Home Assistant controller built on the M5Stack Dial (ESP32-S3) using LVGL for 
 - **Display**: 1.28" round TFT, 240×240, GC9A01 driver
 - **Input**: Rotary encoder + center button
 - **Connectivity**: WiFi
-- **Extras**: Built-in haptic motor, RTC, microphone
+- **Extras**: Buzzer, RFID (WS1850S), RTC (BM8563), touch (FT3267)
 
 ## Target Entities
 - 2× Air conditioners (temperature, mode)
 - N× Lamps (on/off, brightness)
-- Temperature sensor display (optional)
+- 3× Temperature + humidity sensors (balcony, bedroom, bathroom)
 
 ## Docs
+
+### Project docs
 - [Architecture & design decisions](docs/architecture.md)
 - [Learnings & gotchas](docs/learnings.md)
 - [Open tasks & future work](TODO.md)
+
+### Source READMEs
+- [RestScreen cards](src/ui/cards/README.md) — how to add a new card
+- [Font icons](src/ui/fonts/README.md) — how to add a FontAwesome glyph
+- [Themes](src/ui/themes/README.md) — color token reference, how to add a theme
+
+---
 
 ## Common tasks
 
@@ -28,5 +37,8 @@ Cards are the rotating info panels on the idle screen. See [`src/ui/cards/README
 ### Adding a new icon
 Icons are FontAwesome glyphs compiled into LVGL bitmap fonts. See [`src/ui/fonts/README.md`](src/ui/fonts/README.md) — find the codepoint, regenerate all three font files (32px + 24px + 18px), add the `#define` macro to `fa_icons.h`.
 
+### Changing UI colors / adding a theme
+All colors are named constants. See [`src/ui/themes/README.md`](src/ui/themes/README.md) — copy `ThemeDefault.h`, edit the values, register in `Theme.h`, set the build flag.
+
 ---
-*Last updated: March 2026*
+*Last updated: April 2026*

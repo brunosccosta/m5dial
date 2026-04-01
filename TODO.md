@@ -54,6 +54,12 @@ Adding a glyph = add one decimal codepoint to `GLYPHS`, run the script, add the 
 
 ---
 
+## Room temperatures should not live on WeatherState
+
+`bedroomTemp`, `bedroomHumidity`, `bathroomTemp`, `bathroomHumidity` (and arguably `outdoorTemp`/`outdoorHumidity`) are sensor readings from ATC devices, not weather data. They ended up on `WeatherState` for convenience but that's the wrong abstraction. Should be a separate struct (e.g. `SensorTemps` or individual named fields at the `AppState` level).
+
+---
+
 ## Audit compiled Montserrat font sizes
 
 `platformio.ini` enables 14, 24, 28, 32, 48. Each adds flash cost. Grep the codebase and verify each size is actually referenced — remove any that aren't used.

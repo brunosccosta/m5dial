@@ -1,6 +1,7 @@
 #include "ForecastCard.h"
 #include "../../AppState.h"
 #include "../fonts/fa_icons.h"
+#include "../Theme.h"
 
 // Condition → icon mapping (same keys as WeatherNowCard; "clear" always → FA_SUN for forecasts)
 struct FcConditionInfo { const char* key; const char* icon; };
@@ -48,53 +49,53 @@ void ForecastCard::init(lv_obj_t* parent) {
     // --- Left column (today) ---
     _headerLeft = lv_label_create(_container);
     lv_obj_set_style_text_font(_headerLeft, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_headerLeft, lv_color_hex(0x666666), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_headerLeft, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
     lv_obj_align(_headerLeft, LV_ALIGN_CENTER, COL_X[0], -75);
 
     _iconLeft = lv_label_create(_container);
     lv_obj_set_style_text_font(_iconLeft, &font_awesome_solid_24, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_iconLeft, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_iconLeft, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_iconLeft, LV_ALIGN_CENTER, COL_X[0], -51);
 
     _tempLeft = lv_label_create(_container);
     lv_obj_set_style_text_font(_tempLeft, &lv_font_montserrat_28, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_tempLeft, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_tempLeft, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_tempLeft, LV_ALIGN_CENTER, COL_X[0] + 3, -24);
 
     _rainIconLeft = lv_label_create(_container);
     lv_obj_set_style_text_font(_rainIconLeft, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_rainIconLeft, lv_color_hex(0x5599CC), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_rainIconLeft, lv_color_hex(Theme::ACCENT_RAIN), LV_PART_MAIN);
     lv_obj_align(_rainIconLeft, LV_ALIGN_CENTER, COL_X[0] - 12, -5);
 
     _rainLeft = lv_label_create(_container);
     lv_obj_set_style_text_font(_rainLeft, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_rainLeft, lv_color_hex(0xAAAAAA), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_rainLeft, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
     lv_obj_align(_rainLeft, LV_ALIGN_CENTER, COL_X[0] + 12, -5);
 
     // --- Right column (tomorrow) ---
     _headerRight = lv_label_create(_container);
     lv_obj_set_style_text_font(_headerRight, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_headerRight, lv_color_hex(0x666666), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_headerRight, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
     lv_obj_align(_headerRight, LV_ALIGN_CENTER, COL_X[1], -75);
 
     _iconRight = lv_label_create(_container);
     lv_obj_set_style_text_font(_iconRight, &font_awesome_solid_24, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_iconRight, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_iconRight, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_iconRight, LV_ALIGN_CENTER, COL_X[1], -51);
 
     _tempRight = lv_label_create(_container);
     lv_obj_set_style_text_font(_tempRight, &lv_font_montserrat_28, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_tempRight, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_tempRight, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_tempRight, LV_ALIGN_CENTER, COL_X[1] + 3, -24);
 
     _rainIconRight = lv_label_create(_container);
     lv_obj_set_style_text_font(_rainIconRight, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_rainIconRight, lv_color_hex(0x5599CC), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_rainIconRight, lv_color_hex(Theme::ACCENT_RAIN), LV_PART_MAIN);
     lv_obj_align(_rainIconRight, LV_ALIGN_CENTER, COL_X[1] - 12, -5);
 
     _rainRight = lv_label_create(_container);
     lv_obj_set_style_text_font(_rainRight, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_rainRight, lv_color_hex(0xAAAAAA), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_rainRight, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
     lv_obj_align(_rainRight, LV_ALIGN_CENTER, COL_X[1] + 10, -5);
 
     // Static content never changes
