@@ -66,6 +66,24 @@ Adding a glyph = add one decimal codepoint to `GLYPHS`, run the script, add the 
 
 ---
 
+## Buzzer feedback
+
+M5Dial has an 80dB buzzer via `M5Dial.Speaker`. Potential uses: confirmation beep on button press, alert on sensor threshold (e.g. room too hot), error sound on WiFi/HA disconnect, encoder tick tone. Investigate what feels useful vs. annoying.
+
+---
+
+## Clock card (NTP-based)
+
+Add a RestScreen card showing current time (and optionally date). Sync via NTP on boot using `configTime()` — no HA entity needed, no RTC dependency. Read time in `update()` via `time()` / `localtime()`. Consider time zone config in `credentials.h` or `Config.h`.
+
+---
+
+## Investigate touch-based controls
+
+M5Dial has a capacitive touch screen (FT3267, confirmed working). Touch coordinates are available via `M5Dial.Touch.getDetail()`. Investigate usability patterns: tap to select, swipe to scroll cards, tap zones on the round display, or hybrid encoder+touch interactions.
+
+---
+
 ## Screen transition animations
 
 Smooth slide or fade between screens on push/pop. LVGL has `lv_scr_load_anim()` for this — replace the bare `lv_scr_load()` calls in each screen's `show()`. Decide on animation style (fade, slide left/right) and duration.

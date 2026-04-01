@@ -122,6 +122,12 @@ void loop() {
         screenManager.onButton();
     }
 
+    auto touch = M5Dial.Touch.getDetail();
+    if (touch.wasPressed()) {
+        ESP_LOGI("TOUCH", "x=%d y=%d", touch.x, touch.y);
+        M5Dial.Speaker.tone(300, 40);
+    }
+
     errorOverlay.update();
 
     screenManager.tick();
