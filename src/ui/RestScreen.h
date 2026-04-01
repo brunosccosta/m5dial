@@ -25,6 +25,12 @@ public:
     // 0 = WeatherNowCard, 1 = WeatherDetailsCard, etc.
     static constexpr int DEV_CARD_PIN = -1;
 
+    // Timer ring — thin arc around the dial edge showing time until next card.
+    static constexpr int      RING_WIDTH        = 3;
+    static constexpr uint32_t RING_ACTIVE_COLOR = 0x666666;
+    static constexpr uint32_t RING_BG_COLOR     = 0x1E1E1E;
+    static constexpr int      RING_START_ANGLE  = 270;  // 270 = 12 o'clock
+
 private:
     void updateDisplay();
     void updateDeviceStrip();
@@ -48,6 +54,10 @@ private:
     int       _cardCount        = 0;
     int       _activeCard       = 0;
     uint32_t  _lastAdvanceMs    = 0;
+
+    // Timer ring
+    lv_obj_t* _ring;
+    int       _lastRingValue = -1;
 
     // Device strip (always visible, not part of card rotation)
     lv_obj_t* _acIconLabel;

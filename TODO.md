@@ -35,3 +35,33 @@ CarouselMenu is populated by looping `MAIN_MENU`. `setOnSelect` becomes a single
 - Adding a new device = one row in `MAIN_MENU` + implement the screen
 
 ---
+
+## Font tooling — bash script for regeneration
+
+Currently adding a glyph requires manually editing the `--range` list and running three separate `lv_font_conv` commands (32px, 24px, 18px). Easy to get them out of sync.
+
+**Fix:** A single `tools/gen_fonts.sh` script that owns the canonical glyph list and regenerates all sizes in one shot:
+
+```bash
+#!/usr/bin/env bash
+GLYPHS="61675,62172,61549,..."   # single source of truth
+lv_font_conv --bpp 4 --size 32 --range $GLYPHS ... -o src/ui/fonts/font_awesome_solid_32.c
+lv_font_conv --bpp 4 --size 24 --range $GLYPHS ... -o src/ui/fonts/font_awesome_solid_24.c
+lv_font_conv --bpp 4 --size 18 --range $GLYPHS ... -o src/ui/fonts/font_awesome_solid_18.c
+```
+
+Adding a glyph = add one decimal codepoint to `GLYPHS`, run the script, add the `#define` to `fa_icons.h`. Update `fonts/README.md` to point to the script instead of the raw commands.
+
+---
+
+## Haptic feedback on encoder scroll and button press
+
+The M5Dial has a DRV2605L haptic motor but no library support in the current stack. Needs either an Adafruit DRV2605 library or direct I2C via `M5Dial.In_I2C`. Once wired up, fire a short pulse on every encoder tick and a distinct pattern on selection.
+
+---
+
+## Screen transition animations
+
+Smooth slide or fade between screens on push/pop. LVGL has `lv_scr_load_anim()` for this — replace the bare `lv_scr_load()` calls in each screen's `show()`. Decide on animation style (fade, slide left/right) and duration.
+
+---

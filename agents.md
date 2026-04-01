@@ -18,7 +18,7 @@ A Home Assistant controller built on the M5Stack Dial (ESP32-S3) using LVGL for 
 ## Docs
 - [Architecture & design decisions](docs/architecture.md)
 - [Learnings & gotchas](docs/learnings.md)
-- [Milestones & open questions](docs/milestones.md)
+- [Open tasks & future work](TODO.md)
 
 ## Common tasks
 
@@ -26,7 +26,7 @@ A Home Assistant controller built on the M5Stack Dial (ESP32-S3) using LVGL for 
 Cards are the rotating info panels on the idle screen. See [`src/ui/cards/README.md`](src/ui/cards/README.md) — 3 steps: new `.h`/`.cpp` file, add member to `RestScreen.h`, register in `RestScreen::init()`.
 
 ### Adding a new icon
-Icons are FontAwesome glyphs compiled into LVGL bitmap fonts. See [`src/ui/fonts/README.md`](src/ui/fonts/README.md) — find the codepoint, regenerate both font files (32px + 18px), add the `#define` macro to `fa_icons.h`.
+Icons are FontAwesome glyphs compiled into LVGL bitmap fonts. See [`src/ui/fonts/README.md`](src/ui/fonts/README.md) — find the codepoint, regenerate all three font files (32px + 24px + 18px), add the `#define` macro to `fa_icons.h`.
 
 ---
 *Last updated: March 2026*

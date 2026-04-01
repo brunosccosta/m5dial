@@ -275,6 +275,33 @@ public:
 
 `CARD_INTERVAL_MS` is a `static constexpr` in `RestScreen.h` — easy to tune.
 
+#### Timer ring
+
+A thin `lv_arc` sitting at the outer edge of the display, showing how much time remains until the next card. Starts full (360°) and depletes clockwise from 12 o'clock. Resets on every card advance.
+
+```
+ start / end
+      │
+   ───┼───          full circle at card start
+  /       \
+ │         │        ← arc depletes from the tail, sweeping CCW back to 12
+  \       /
+   ───────            empty at card end → advance fires
+```
+
+Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the card area. The knob is hidden. Both the indicator and background arcs have rounded ends.
+
+**Configurable constants in `RestScreen.h`:**
+
+| Constant | Default | Meaning |
+|---|---|---|
+| `RING_WIDTH` | `3` | Arc thickness in px |
+| `RING_ACTIVE_COLOR` | `0x666666` | Depleting arc color |
+| `RING_BG_COLOR` | `0x1E1E1E` | Background track color |
+| `RING_START_ANGLE` | `270` | Start position in degrees (270 = 12 o'clock) |
+
+`tick()` maps elapsed time to a 0–360 value and calls `lv_arc_set_value()` only when the integer value changes, avoiding unnecessary redraws. Paused (not updated) when `DEV_CARD_PIN` is set.
+
 #### Cards
 
 | # | Card | Data sources |

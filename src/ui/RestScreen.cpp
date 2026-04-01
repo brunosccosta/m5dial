@@ -46,6 +46,23 @@ void RestScreen::init() {
     }
     _cards[_activeCard]->show();
 
+    // Timer ring — thin arc at the outer edge, depletes clockwise from 12 o'clock
+    _ring = lv_arc_create(_lvScreen);
+    lv_obj_set_size(_ring, 240, 240);
+    lv_obj_center(_ring);
+    lv_arc_set_rotation(_ring, RING_START_ANGLE);
+    lv_arc_set_bg_angles(_ring, 0, 360);
+    lv_arc_set_range(_ring, 0, 360);
+    lv_arc_set_value(_ring, 360);
+    lv_obj_remove_style(_ring, NULL, LV_PART_KNOB);
+    lv_obj_clear_flag(_ring, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_arc_width(_ring, RING_WIDTH, LV_PART_MAIN);
+    lv_obj_set_style_arc_width(_ring, RING_WIDTH, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_color(_ring, lv_color_hex(RING_BG_COLOR), LV_PART_MAIN);
+    lv_obj_set_style_arc_color(_ring, lv_color_hex(RING_ACTIVE_COLOR), LV_PART_INDICATOR);
+    lv_obj_set_style_arc_rounded(_ring, true, LV_PART_INDICATOR);
+    lv_obj_set_style_arc_rounded(_ring, true, LV_PART_MAIN);
+
     // Device strip — AC (left)
     _acIconLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_acIconLabel, &font_awesome_solid_18, LV_PART_MAIN);
@@ -73,6 +90,8 @@ void RestScreen::init() {
 
 void RestScreen::show() {
     _lastAdvanceMs = millis();
+    lv_arc_set_value(_ring, 360);
+    _lastRingValue = 360;
     _cards[_activeCard]->update();
     updateDeviceStrip();
     lv_scr_load(_lvScreen);
@@ -81,8 +100,17 @@ void RestScreen::show() {
 
 void RestScreen::tick() {
     if (DEV_CARD_PIN >= 0) return;
-    if (millis() - _lastAdvanceMs >= CARD_INTERVAL_MS) {
+
+    uint32_t elapsed = millis() - _lastAdvanceMs;
+    if (elapsed >= CARD_INTERVAL_MS) {
         advanceCard();
+        return;
+    }
+
+    int value = 360 - (int)(elapsed * 360 / CARD_INTERVAL_MS);
+    if (value != _lastRingValue) {
+        lv_arc_set_value(_ring, value);
+        _lastRingValue = value;
     }
 }
 
@@ -92,6 +120,8 @@ void RestScreen::advanceCard() {
     _cards[_activeCard]->show();
     _cards[_activeCard]->update();
     _lastAdvanceMs = millis();
+    lv_arc_set_value(_ring, 360);
+    _lastRingValue = 360;
     lv_refr_now(NULL);
 }
 
