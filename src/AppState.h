@@ -20,12 +20,6 @@ enum class ConnectionState {
     HA_READY,
 };
 
-struct LampState {
-    const char* name;
-    bool        on;
-    uint8_t     brightness; // 0-255
-};
-
 struct ACState {
     const char* entity_id;
     const char* name;
@@ -60,9 +54,6 @@ struct ForecastDay {
 };
 
 struct AppState {
-    LampState lamps[4];
-    int       lampCount;
-
     ACState      ac;               // climate.forninho_room_temperature
     ACState      heater;           // climate.forninho_portatil
     WeatherState weather;

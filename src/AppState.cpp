@@ -30,13 +30,6 @@ void AppState::clearError(const char* key) {
 }
 
 AppState appState = {
-    .lamps = {
-        {"Living Room", false, 0},
-        {"Bedroom",     true,  200},
-        {"Kitchen",     false, 0},
-        {"Office",      true,  128},
-    },
-    .lampCount  = 4,
     .dirty      = false,
     .connection = ConnectionState::WIFI_CONNECTING,
 };

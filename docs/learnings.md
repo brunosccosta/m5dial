@@ -277,6 +277,21 @@ Cross-check against the sizes enabled in `platformio.ini` build flags.
 
 ---
 
+## LVGL click events require a registered indev
+
+`lv_obj_add_event_cb(obj, cb, LV_EVENT_CLICKED, data)` silently does nothing unless an `lv_indev_t` pointer device is registered. LVGL only dispatches click/press/release events to objects when it knows about touch input via an indev.
+
+**Fix**: register a pointer indev in `setup()` before any screens are pushed:
+```cpp
+lv_indev_t* indev = lv_indev_create();
+lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+lv_indev_set_read_cb(indev, my_touch_read_cb);
+```
+
+The read callback reports `isPressed()` + `x`/`y` from `M5Dial.Touch.getDetail()`.
+
+---
+
 ## HA WebSocket auth flow
 
 Fixed protocol on connect — no variation:

@@ -34,6 +34,14 @@ void ScreenManager::onButton() {
     if (_depth > 0) _stack[_depth - 1]->onButton();
 }
 
+void ScreenManager::onTouch() {
+    if (_depth > 0) _stack[_depth - 1]->onTouch();
+}
+
+void ScreenManager::onSwipe(int dir) {
+    if (_depth > 0) _stack[_depth - 1]->onSwipe(dir);
+}
+
 void ScreenManager::refresh() {
     if (_depth > 0) _stack[_depth - 1]->refresh();
 }

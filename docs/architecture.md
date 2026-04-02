@@ -16,18 +16,12 @@ Two independent lanes (backend, frontend) connected by a shared `AppState` singl
 Central shared state. A global singleton — typical and appropriate for single-core embedded.
 
 ```cpp
-struct LampState {
-    const char* name;
-    bool        on;
-    uint8_t     brightness; // 0–255
-};
-
 struct ACState {
     const char* entity_id;
     const char* name;
     float       current_temp;
     float       target_temp;
-    char        mode[12];              // "off", "cool", "heat", "auto", "fan_only", "dry"
+    char        mode[12];              // "off", "heat", "cool", "heat_cool", "auto", "fan_only", "dry"
     char        availableModes[6][12]; // populated from hvac_modes on first HA snapshot
     int         modeCount;             // 0 until first HA update; use as fallback guard
     bool        valid;                 // false until first HA update
@@ -52,8 +46,6 @@ struct ForecastDay {
 };
 
 struct AppState {
-    LampState    lamps[4];
-    int          lampCount;
     ACState      ac;               // climate.forninho_room_temperature
     ACState      heater;           // climate.forninho_portatil
     WeatherState weather;
@@ -211,29 +203,30 @@ ScreenManager::pop()        → show previous screen
 **Input contract:**
 - Dial (encoder delta) → active screen's `onEncoder(delta)`
 - Button press → active screen's `onButton()`
-- In menus: button = select highlighted item
-- In ACControlScreen: dial cycles selected property, button confirms/edits (see below)
-- Any input on RestScreen → push main CarouselMenu
-- Auto-return to RestScreen after 30s inactivity on main menu
-- Auto-return to previous screen after 30s inactivity on any control screen
+- Touch (tap, no swipe) → active screen's `onTouch()` for coarse "tap anywhere" screens; LVGL `LV_EVENT_CLICKED` events for precise element targeting
+- Swipe left/right → `onSwipe(±1)` via main.cpp gesture detection (press start x, release x, threshold 30px)
+- Any input on RestScreen → push MenuScreen
+- MenuScreen: encoder rotates cards, swipe left/right changes card, tap selects active card, button goes back to RestScreen
+- ACControlScreen: dial adjusts target temp; tap mode pill toggles off/heat; button confirms changes (push ConfirmScreen) or pops if unchanged
+- Auto-return to RestScreen after 30s inactivity on MenuScreen
+- Auto-return to previous screen after 30s inactivity on ACControlScreen
+
+**Touch architecture:**
+- A `lv_indev_t` pointer input device is registered in `setup()`, reading from `M5Dial.Touch`
+- LVGL uses this to dispatch `LV_EVENT_CLICKED` to objects with `LV_OBJ_FLAG_CLICKABLE` set — no manual hit testing needed
+- `onTouch()` (no-op by default) is called from main.cpp on any tap; used only for coarse whole-screen tap responses (RestScreen wake, MenuScreen select active card)
+- Precise touch targets (ConfirmScreen Yes/No, ACControlScreen mode pill) use `lv_obj_add_event_cb` + LVGL events
 
 ### Screen hierarchy
 
 ```
-RestScreen (root)                — idle/screensaver, boots here
-└── CarouselMenu (main)          — Lamps / AC / Heater
-    └── CarouselMenu (lamp list) — Living Room / Bedroom / … / ← Go Back
-        └── LampControlScreen   — brightness dial, button = back
-    └── ACControlScreen         — direct push, no list (single device skips list)
+RestScreen (root)   — idle/screensaver, boots here
+└── MenuScreen      — AC / Heater (card-based)
+    └── ACControlScreen  — pushed by MenuCardAC / MenuCardHeater onSelect()
+        └── ConfirmScreen — pushed on unsaved changes; Yes saves + pops ×2, No discards + pops ×2
 ```
 
-**RestScreen** is the root of the stack — it is never popped. Any dial or button input pushes the main CarouselMenu. After 30s inactivity on the main menu it pops back to RestScreen. ACControlScreen already has its own 30s timer that pops to the previous screen.
-
-**Go Back** is a selectable property in ACControlScreen (dial to it, button confirms) — no gestures.
-
-**Per-device modes:** Each AC device exposes its own `hvac_modes` attribute in the initial HA snapshot. HAClient parses this once into `ACState.availableModes[]` / `modeCount`. ACControlScreen uses the device's own mode list when cycling; falls back to static `MODES[]` if `modeCount == 0` (e.g. before first HA update). Devices like the portable heater that only support `["off","heat"]` are handled automatically — no hardcoded per-device config needed.
-
-**Initial selection when off:** If the device is off when the screen opens, the selector starts on Mode (not Target Temp) since temp editing is blocked while off.
+**RestScreen** is the root of the stack — it is never popped. Any dial, button, or touch input pushes MenuScreen. After 30s inactivity on MenuScreen it pops back to RestScreen.
 
 ### RestScreen
 
@@ -350,36 +343,31 @@ Displays live AC state and allows editing target temp and mode.
 
 **Layout** (240×240 circle):
 ```
-    ╭────────────╮    ← lv_arc, top 180°, orange=heat / blue=cool / grey=off
-         name         ← small grey label
-        23.0°         ← current temp, medium grey
+    ╭────────────╮    ← dual lv_arc (outer = target temp, inner = current temp)
+        23.0°         ← current temp, small grey
           21°         ← target temp, large white, center
-       ⚡  HEAT       ← mode icon + label
-           ←          ← go back
+       🔥  HEAT       ← mode pill (clickable container); tap to toggle off/heat
 ```
 
-Arc fill = target temp mapped to range 16–30°C. Color driven by mode.
+**Interaction:**
+- Dial → adjusts target temp live (±0.5°C per step, clamped 10–30°C)
+- Tap mode pill → toggles off ↔ heat (LVGL click event on `_modeContainer`)
+- Button → if changed: push `ConfirmScreen`; if unchanged: pop to MenuScreen
+- 30s inactivity → pop to MenuScreen
 
-**Interaction states:**
-
-| State | Dial | Button |
-|---|---|---|
-| `HERO` (idle) | cycles selected property: Target → Mode → Go Back | confirms selection, enters edit |
-| `EDIT_TEMP` | adjusts target temp (live preview, no HA send) | sends to HA → back to HERO |
-| `EDIT_MODE` | cycles modes with icons (live preview) | sends to HA → back to HERO |
-| `GO_BACK` selected | — | `screenManager.pop()` |
+**Change detection:** `_originalTemp` and `_originalMode` captured in `show()`. Compared on button press.
 
 **Dual arc:**
-- Outer arc (thicker, full opacity) = target temp — color follows mode
-- Inner arc (thinner, dimmed) = current temp — color follows temperature thresholds:
+- Outer arc (10px) = target temp — `Theme::AC_MODE_HEAT` when heating, `Theme::RING_BG` when off
+- Inner arc (5px, dimmed) = current temp — color follows temperature thresholds:
 
-| Range | Color | Meaning |
-|---|---|---|
-| < 18°C | blue `0x0088FF` | Cold |
-| 18–21°C | yellow `0xFFCC00` | Transitional |
-| ≥ 21°C | orange `0xFF6600` | Warm |
+| Range | Color |
+|---|---|
+| < 18°C | `Theme::TEMP_COLD` |
+| 18–21°C | `Theme::TEMP_MID` |
+| ≥ 21°C | `Theme::TEMP_WARM` |
 
-Arc range: 10–30°C. Midpoint 20°C = half fill.
+Arc range: 10–30°C.
 
 **Mode icons** (FontAwesome Solid via `fa_icons.h`):
 
@@ -387,31 +375,68 @@ Arc range: 10–30°C. Midpoint 20°C = half fill.
 |---|---|---|
 | heat | `FA_FIRE` | fa-fire |
 | cool | `FA_SNOWFLAKE` | fa-snowflake |
-| auto | `FA_ARROWS_ROTATE` | fa-arrows-rotate |
+| heat_cool / auto | `FA_ARROWS_ROTATE` | fa-arrows-rotate |
 | fan_only | `FA_FAN` | fa-fan |
 | dry | `FA_DROPLET` | fa-droplet |
 | off | `FA_POWER_OFF` | fa-power-off |
 
-**Main menu icons:**
+Mode is cycled by tapping the mode pill. Uses `_ac->availableModes[]` from HA when populated; falls back to a static 6-mode list.
+
+**Menu card icons:**
 
 | Item | Macro | FA name | Rationale |
 |---|---|---|---|
-| Lamps | `FA_LIGHTBULB` | fa-lightbulb | — |
-| Air Conditioner | `FA_WIND` | fa-wind | Unit heats in winter too — snowflake implies cooling only |
+| AC | `FA_WIND` | fa-wind | Unit heats in winter too — snowflake implies cooling only |
 | Heater | `FA_FIRE` | fa-fire | Infrared heater, heat-only |
-| Settings | `FA_GEAR` | fa-gear | — |
 
 Icon font: FontAwesome Solid, generated as `font_awesome_solid_32.c` (32px), `font_awesome_solid_24.c` (24px), and `font_awesome_solid_18.c` (18px). See [`src/ui/fonts/README.md`](../src/ui/fonts/README.md) for how to add glyphs and regenerate.
 
-Selection highlight: underline bar repositioned under the active property.
+### ConfirmScreen
 
-### CarouselMenu
+Generic confirmation screen. Push after calling `setup()` with question text and yes/no callbacks.
 
-Reusable circular navigation component. Implements `Screen`.
-- Selected item shown large in center (icon + label)
-- Other items as small dimmed icons around the ring at radius 85px
-- Ring rotates via `lv_anim` (250ms ease-out) on encoder turn
-- `setOnSelect(fn)` — caller wires navigation logic
+```cpp
+confirmScreen.setup("Save changes?",
+    []() { /* yes: apply + pop ×2 */ },
+    []() { /* no:  discard + pop ×2 */ }
+);
+screenManager.push(&confirmScreen);
+```
+
+**Layout:** Question centered, Yes (left) and No (right) below with icons (`LV_SYMBOL_OK` / `LV_SYMBOL_CLOSE`).
+
+**Interaction:**
+- Tap Yes or No → confirms immediately (LVGL click events on each container)
+- Dial → highlights an option (underline); no highlight by default — encourages touch
+- Button → confirms highlighted option; defaults to No if dial was never touched
+- No inactivity timer
+
+### MenuScreen
+
+Card-based main menu. Implements `Screen`. Each `MenuCard` is a preview panel that can push a control screen.
+
+**Card interface:**
+```cpp
+class MenuCard {
+    virtual void        init(lv_obj_t* container) = 0; // create LVGL objects in 240x240 container
+    virtual void        update()                  = 0; // refresh from AppState
+    virtual const char* label()                   = 0; // display name
+    virtual const char* icon()                    = 0; // FA glyph
+    virtual void        onSelect()                = 0; // called on touch/select — push control screen
+};
+```
+
+**Arc position indicator:** The ring arc (same width/style as the RestScreen timer ring) is split into N equal segments with 5° gaps. Active segment = `Theme::RING_ACTIVE`; others = `Theme::RING_BG`. Implemented as N separate `lv_arc` objects, each spanning its segment, with `RING_ACTIVE` as indicator (value=1 on active, 0 on others) and `RING_BG` as track (always visible).
+
+**Card transitions:** Horizontal slide via `lv_anim` on container x position (200ms). Outgoing card slides off, incoming slides in. Input is blocked during animation.
+
+**Input:**
+- Encoder → rotate between cards (wraps around)
+- Touch → `onSelect()` on active card → pushes control screen
+- Button → `screenManager.pop()` (back to rest)
+- 30s inactivity → `screenManager.pop()`
+
+Concrete cards: `MenuCardAC` (used for both AC and Heater, with constructor args).
 
 ### ErrorOverlay
 
@@ -431,6 +456,7 @@ class Screen {
     virtual void show();             // called on every push/pop
     virtual void onEncoder(int);
     virtual void onButton();
+    virtual void onTouch();          // called on any touch; default no-op
     virtual void refresh();          // called when AppState dirty
     virtual void tick();             // called every loop; default no-op
 };

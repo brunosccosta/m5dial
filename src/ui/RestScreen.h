@@ -15,6 +15,7 @@ public:
     void show()               override;
     void onEncoder(int delta) override;
     void onButton()           override;
+    void onTouch()             override;
     void refresh()            override;
     void tick()               override;
 

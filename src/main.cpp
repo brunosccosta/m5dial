@@ -5,39 +5,37 @@
 #include "AppState.h"
 #include "ha/HAClient.h"
 #include "ui/ScreenManager.h"
-#include "ui/CarouselMenu.h"
-#include "ui/LampControlScreen.h"
 #include "ui/ACControlScreen.h"
+#include "ui/ConfirmScreen.h"
 #include "ui/RestScreen.h"
 #include "ui/ErrorOverlay.h"
+#include "ui/menu/MenuScreen.h"
+#include "ui/menu/MenuCardAC.h"
 #include "credentials.h"
 #include "ui/fonts/fa_icons.h"
-
-// --- Main menu ---
-MenuItem mainItems[] = {
-    {"Lamps",           FA_LIGHTBULB},
-    {"Air Conditioner", FA_WIND},
-    {"Heater",          FA_FIRE},
-};
-CarouselMenu mainMenu(mainItems, 3);
-
-// --- Lamp list (mirrors AppState.lamps + Go Back) ---
-MenuItem lampItems[] = {
-    {"Living Room", LV_SYMBOL_EYE_OPEN},
-    {"Bedroom",     LV_SYMBOL_EYE_OPEN},
-    {"Kitchen",     LV_SYMBOL_EYE_OPEN},
-    {"Office",      LV_SYMBOL_EYE_OPEN},
-    {"Go Back",     LV_SYMBOL_LEFT},
-};
-CarouselMenu lampMenu(lampItems, 5);
-
-// --- Lamp control ---
-LampControlScreen lampControl;
 
 // --- AC control ---
 ACControlScreen acControl;
 
+// --- Main menu ---
+MenuCardAC    menuCardAC("AC",     FA_WIND, acControl, appState.ac);
+MenuCardAC    menuCardHeater("Heater", FA_FIRE, acControl, appState.heater);
+MenuScreen    menuScreen;
+
 Input input;
+
+void my_touch_read(lv_indev_t* /*indev*/, lv_indev_data_t* data) {
+    auto touch = M5Dial.Touch.getDetail();
+    if (touch.isPressed()) {
+        data->state   = LV_INDEV_STATE_PRESSED;
+        data->point.x = touch.x;
+        data->point.y = touch.y;
+    } else {
+        data->state   = LV_INDEV_STATE_RELEASED;
+        data->point.x = touch.x;
+        data->point.y = touch.y;
+    }
+}
 
 void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
     ESP_LOGV("DISPLAY", "flush (%d,%d)-(%d,%d)", area->x1, area->y1, area->x2, area->y2);
@@ -51,27 +49,11 @@ void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
 }
 
 void setupNavigation() {
+    menuScreen.addCard(&menuCardAC);
+    menuScreen.addCard(&menuCardHeater);
+
     restScreen.setOnWake([]() {
-        screenManager.push(&mainMenu);
-    });
-
-    mainMenu.enableInactivityTimer(30000);
-    mainMenu.setOnSelect([](int idx) {
-        switch (idx) {
-            case 0: screenManager.push(&lampMenu); break;
-            case 1: acControl.setAC(&appState.ac);     screenManager.push(&acControl); break;
-            case 2: acControl.setAC(&appState.heater); screenManager.push(&acControl); break;
-            default: ESP_LOGI("NAV", "no screen for index %d", idx); break;
-        }
-    });
-
-    lampMenu.setOnSelect([](int idx) {
-        if (idx == appState.lampCount) { // Go Back is last item
-            screenManager.pop();
-        } else {
-            lampControl.setLampIndex(idx);
-            screenManager.push(&lampControl);
-        }
+        screenManager.push(&menuScreen);
     });
 }
 
@@ -93,6 +75,10 @@ void setup() {
 
     static lv_color_t buf[240 * 24];
     lv_display_set_buffers(disp, buf, NULL, sizeof(buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
+
+    lv_indev_t* indev = lv_indev_create();
+    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(indev, my_touch_read);
 
     input.begin();
     haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
@@ -122,10 +108,23 @@ void loop() {
         screenManager.onButton();
     }
 
+    static int touchStartX = 0;
+    static constexpr int SWIPE_THRESHOLD = 30;
+
     auto touch = M5Dial.Touch.getDetail();
     if (touch.wasPressed()) {
-        ESP_LOGI("TOUCH", "x=%d y=%d", touch.x, touch.y);
+        touchStartX = touch.x;
+    } else if (touch.wasReleased()) {
+        int dx = touch.x - touchStartX;
+        ESP_LOGI("TOUCH", "start=%d end=%d dx=%d", touchStartX, touch.x, dx);
         M5Dial.Speaker.tone(300, 40);
+        if (dx < -SWIPE_THRESHOLD) {
+            screenManager.onSwipe(+1); // swipe left → next
+        } else if (dx > SWIPE_THRESHOLD) {
+            screenManager.onSwipe(-1); // swipe right → prev
+        } else {
+            screenManager.onTouch();  // tap
+        }
     }
 
     errorOverlay.update();

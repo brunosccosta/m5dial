@@ -15,33 +15,29 @@ public:
     void tick()               override;
 
 private:
-    enum class State { HERO, EDIT_TEMP, EDIT_MODE };
-
+    bool hasChanges() const;
     void updateDisplay();
-    void updateUnderline();
-    int  findModeIdx(const char* mode, const ACState& ac);
-    void resetActivityTimer();
+    void toggleMode();
 
-    ACState* _ac      = nullptr;
-    bool _initialized = false;
+    static void onModeClick(lv_event_t* e);
 
-    State _state          = State::HERO;
-    float _pendingTemp    = 0.0f;
-    int   _pendingModeIdx = 0;
+    ACState* _ac          = nullptr;
+    bool     _initialized = false;
+
+    float _pendingTemp = 0.0f;
+    char  _pendingMode[12] = {};
+    float _originalTemp = 0.0f;
+    char  _originalMode[12] = {};
+
+    uint32_t _lastActivityMs = 0;
+    static constexpr uint32_t INACTIVITY_MS = 30000;
 
     lv_obj_t* _lvScreen;
     lv_obj_t* _arc;
     lv_obj_t* _arcInner;
-    lv_obj_t* _arcMinLabel;
-    lv_obj_t* _arcMaxLabel;
     lv_obj_t* _currentTempLabel;
     lv_obj_t* _targetTempLabel;
+    lv_obj_t* _modeContainer;
     lv_obj_t* _modeIconLabel;
     lv_obj_t* _modeTextLabel;
-    lv_obj_t* _goBackLabel;
-    lv_obj_t* _underline;
-
-    int      _selected        = 0; // 0=target temp, 1=mode, 2=go back
-    uint32_t _lastActivityMs  = 0;
-    static constexpr uint32_t INACTIVITY_TIMEOUT_MS = 30000;
 };

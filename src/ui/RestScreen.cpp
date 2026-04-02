@@ -134,6 +134,10 @@ void RestScreen::onButton() {
     wake();
 }
 
+void RestScreen::onTouch() {
+    wake();
+}
+
 void RestScreen::refresh() {
     updateDisplay();
 }

@@ -7,6 +7,8 @@ public:
     void pop();
     void onEncoder(int delta);
     void onButton();
+    void onTouch();
+    void onSwipe(int dir);
     void refresh(); // forward to active screen when AppState dirty
     void tick();    // forward to active screen every loop
 
