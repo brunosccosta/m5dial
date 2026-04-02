@@ -79,11 +79,11 @@ void IndoorTempsCard::updateRow(lv_obj_t* tempLabel, lv_obj_t* humLabel, float t
 }
 
 void IndoorTempsCard::update() {
-    WeatherState& w = appState.weather;
+    SensorState& s = appState.sensors;
 
-    updateRow(_balconyTemp,  _balconyHumidity,  w.outdoorTemp,  w.outdoorHumidity);
-    updateRow(_bedroomTemp,  _bedroomHumidity,  w.bedroomTemp,  w.bedroomHumidity);
-    updateRow(_bathroomTemp, _bathroomHumidity, w.bathroomTemp, w.bathroomHumidity);
+    updateRow(_balconyTemp,  _balconyHumidity,  s.outdoorTemp,  s.outdoorHumidity);
+    updateRow(_bedroomTemp,  _bedroomHumidity,  s.bedroomTemp,  s.bedroomHumidity);
+    updateRow(_bathroomTemp, _bathroomHumidity, s.bathroomTemp, s.bathroomHumidity);
 
     lv_obj_align(_balconyIcon,     LV_ALIGN_CENTER, COL_ICON,     ROW_BALCONY);
     lv_obj_align(_balconyTemp,     LV_ALIGN_CENTER, COL_TEMP,     ROW_BALCONY);

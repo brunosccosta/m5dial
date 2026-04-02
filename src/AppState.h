@@ -36,14 +36,17 @@ struct WeatherState {
     char  detailedCondition[32]; // sensor.detailed_condition e.g. "partlycloudy-rain"
     float temperature;           // weather.buienradar a.temperature
     float feelsLike;             // weather.buienradar a.apparent_temperature
-    float outdoorTemp;           // sensor.atc_3294_temperature state
-    float outdoorHumidity;       // sensor.atc_3294_humidity state
-    float bedroomTemp;           // sensor.atc_03be_temperature state
-    float bedroomHumidity;       // sensor.atc_03be_humidity state
-    float bathroomTemp;          // sensor.atc_88dc_temperature state
-    float bathroomHumidity;      // sensor.atc_88dc_humidity state
     bool  isDaytime;             // sun.sun: true = above_horizon, false = below_horizon
     bool  valid;                 // false until first HA update arrives
+};
+
+struct SensorState {
+    float outdoorTemp;      // sensor.atc_3294_temperature
+    float outdoorHumidity;  // sensor.atc_3294_humidity
+    float bedroomTemp;      // sensor.atc_03be_temperature
+    float bedroomHumidity;  // sensor.atc_03be_humidity
+    float bathroomTemp;     // sensor.atc_88dc_temperature
+    float bathroomHumidity; // sensor.atc_88dc_humidity
 };
 
 struct ForecastDay {
@@ -57,6 +60,7 @@ struct AppState {
     ACState      ac;               // climate.forninho_room_temperature
     ACState      heater;           // climate.forninho_portatil
     WeatherState weather;
+    SensorState  sensors;
     ForecastDay  forecastToday;    // sensor.*_1d
     ForecastDay  forecastTomorrow; // sensor.*_2d
 

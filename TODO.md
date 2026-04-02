@@ -22,12 +22,6 @@ Adding a glyph = add one decimal codepoint to `GLYPHS`, run the script, add the 
 
 ---
 
-## Room temperatures should not live on WeatherState
-
-`bedroomTemp`, `bedroomHumidity`, `bathroomTemp`, `bathroomHumidity` (and arguably `outdoorTemp`/`outdoorHumidity`) are sensor readings from ATC devices, not weather data. They ended up on `WeatherState` for convenience but that's the wrong abstraction. Should be a separate struct (e.g. `SensorTemps` or individual named fields at the `AppState` level).
-
----
-
 ## Buzzer feedback
 
 M5Dial has an 80dB buzzer via `M5Dial.Speaker`. Potential uses: confirmation beep on button press, alert on sensor threshold (e.g. room too hot), error sound on WiFi/HA disconnect, encoder tick tone. Investigate what feels useful vs. annoying.
