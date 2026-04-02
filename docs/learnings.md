@@ -262,6 +262,21 @@ The M5Dial spec lists: encoder, buzzer, RFID, touch, display. No haptic/vibratio
 
 ---
 
+## Compiled LVGL fonts are expensive flash
+
+Each enabled Montserrat size adds ~45KB of flash. Only enable sizes you actually use.
+
+Dropping `montserrat_32` (one use, migrated to `montserrat_28`) saved **45,924 bytes** of flash with no RAM impact — fonts live in flash only.
+
+Audit with:
+```bash
+grep -rn "lv_font_montserrat_" src/ | sed 's/.*montserrat_\([0-9]*\).*/\1/' | sort | uniq -c
+```
+
+Cross-check against the sizes enabled in `platformio.ini` build flags.
+
+---
+
 ## HA WebSocket auth flow
 
 Fixed protocol on connect — no variation:

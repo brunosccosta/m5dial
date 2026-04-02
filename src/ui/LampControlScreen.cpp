@@ -24,7 +24,7 @@ void LampControlScreen::init() {
     lv_obj_align(_nameLabel, LV_ALIGN_CENTER, 0, -50);
 
     _stateLabel = lv_label_create(_lvScreen);
-    lv_obj_set_style_text_font(_stateLabel, &lv_font_montserrat_32, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_stateLabel, &lv_font_montserrat_28, LV_PART_MAIN);
     lv_obj_set_style_text_color(_stateLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_align(_stateLabel, LV_ALIGN_CENTER, 0, 0);
 

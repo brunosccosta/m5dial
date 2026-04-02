@@ -60,12 +60,6 @@ Adding a glyph = add one decimal codepoint to `GLYPHS`, run the script, add the 
 
 ---
 
-## Audit compiled Montserrat font sizes
-
-`platformio.ini` enables 14, 24, 28, 32, 48. Each adds flash cost. Grep the codebase and verify each size is actually referenced — remove any that aren't used.
-
----
-
 ## Buzzer feedback
 
 M5Dial has an 80dB buzzer via `M5Dial.Speaker`. Potential uses: confirmation beep on button press, alert on sensor threshold (e.g. room too hot), error sound on WiFi/HA disconnect, encoder tick tone. Investigate what feels useful vs. annoying.
