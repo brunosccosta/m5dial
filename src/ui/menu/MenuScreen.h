@@ -24,7 +24,7 @@ public:
     static constexpr uint32_t INACTIVITY_MS    = 30000;
 
 private:
-    void buildArcSegments();
+    void rebuildVisible();
     void updateArcIndicator(int activeIdx);
     void slideTo(int newIdx, int direction); // direction: +1 = next, -1 = prev
     void resetActivityTimer();
@@ -40,6 +40,9 @@ private:
 
     MenuCard* _cards[MAX_CARDS] = {};
     int       _cardCount        = 0;
-    int       _activeCard       = 0;
-    uint32_t  _lastActivityMs   = 0;
+
+    int       _visibleIndices[MAX_CARDS] = {};
+    int       _visibleCount              = 0;
+    int       _activeCard                = 0; // index into _visibleIndices
+    uint32_t  _lastActivityMs            = 0;
 };

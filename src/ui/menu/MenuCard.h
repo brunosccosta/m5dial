@@ -13,4 +13,5 @@ public:
     virtual const char* label()                    = 0;
     virtual const char* icon()                     = 0;
     virtual void        onSelect()                 = 0;
+    virtual bool        isVisible() const          { return true; }
 };

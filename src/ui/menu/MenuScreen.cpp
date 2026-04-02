@@ -12,13 +12,34 @@ void MenuScreen::addCard(MenuCard* card) {
     if (_cardCount < MAX_CARDS) _cards[_cardCount++] = card;
 }
 
-// --- Arc indicator ---
+// --- Visibility + Arc indicator ---
 
-void MenuScreen::buildArcSegments() {
-    int segSize = (360 - _cardCount * ARC_GAP_DEG) / _cardCount;
-    int segStep = 360 / _cardCount;
+void MenuScreen::rebuildVisible() {
+    // Delete existing arcs
+    for (int i = 0; i < MAX_CARDS; i++) {
+        if (_arcs[i]) {
+            lv_obj_delete(_arcs[i]);
+            _arcs[i] = nullptr;
+        }
+    }
 
+    // Recompute visible set
+    _visibleCount = 0;
     for (int i = 0; i < _cardCount; i++) {
+        if (_cards[i]->isVisible())
+            _visibleIndices[_visibleCount++] = i;
+    }
+
+    // Clamp active card in case it fell outside the new visible set
+    if (_activeCard >= _visibleCount) _activeCard = 0;
+
+    if (_visibleCount == 0) return;
+
+    // Rebuild arcs for visible count
+    int segSize = (360 - _visibleCount * ARC_GAP_DEG) / _visibleCount;
+    int segStep = 360 / _visibleCount;
+
+    for (int i = 0; i < _visibleCount; i++) {
         _arcs[i] = lv_arc_create(_lvScreen);
         lv_obj_set_size(_arcs[i], 240, 240);
         lv_obj_center(_arcs[i]);
@@ -38,7 +59,7 @@ void MenuScreen::buildArcSegments() {
 }
 
 void MenuScreen::updateArcIndicator(int activeIdx) {
-    for (int i = 0; i < _cardCount; i++) {
+    for (int i = 0; i < _visibleCount; i++) {
         lv_arc_set_value(_arcs[i], i == activeIdx ? 1 : 0);
     }
 }
@@ -69,22 +90,27 @@ void MenuScreen::init() {
     }
 
     // Arc segments — created after containers so they render on top
-    buildArcSegments();
+    rebuildVisible();
 
-    ESP_LOGI(TAG, "init complete, %d cards", _cardCount);
+    ESP_LOGI(TAG, "init complete, %d cards (%d visible)", _cardCount, _visibleCount);
 }
 
 void MenuScreen::show() {
     _animating = false;
 
-    // Preserve _activeCard so returning from a control screen lands on the same card.
-    // Reset positions: active card visible, rest off-screen right.
+    // Recompute visible set — state may have changed since last visit
+    rebuildVisible();
+
+    // Reset positions: active visible card at 0, all others off-screen right
+    int activeReal = _visibleCount > 0 ? _visibleIndices[_activeCard] : -1;
     for (int i = 0; i < _cardCount; i++) {
-        lv_obj_set_pos(_containers[i], i == _activeCard ? 0 : 240, 0);
+        lv_obj_set_pos(_containers[i], i == activeReal ? 0 : 240, 0);
     }
 
-    _cards[_activeCard]->update();
-    updateArcIndicator(_activeCard);
+    if (_visibleCount > 0) {
+        _cards[activeReal]->update();
+        updateArcIndicator(_activeCard);
+    }
     resetActivityTimer();
 
     lv_scr_load(_lvScreen);
@@ -94,11 +120,11 @@ void MenuScreen::show() {
 // --- Input ---
 
 void MenuScreen::onEncoder(int delta) {
-    if (_animating) return;
+    if (_animating || _visibleCount < 2) return;
     resetActivityTimer();
 
     int dir    = (delta > 0) ? -1 : 1;
-    int newIdx = (_activeCard + dir + _cardCount) % _cardCount;
+    int newIdx = (_activeCard + dir + _visibleCount) % _visibleCount;
     slideTo(newIdx, dir);
 }
 
@@ -107,9 +133,9 @@ void MenuScreen::onButton() {
 }
 
 void MenuScreen::onTouch() {
-    if (_animating) return;
+    if (_animating || _visibleCount == 0) return;
     resetActivityTimer();
-    _cards[_activeCard]->onSelect();
+    _cards[_visibleIndices[_activeCard]]->onSelect();
 }
 
 void MenuScreen::onSwipe(int dir) {
@@ -117,7 +143,8 @@ void MenuScreen::onSwipe(int dir) {
 }
 
 void MenuScreen::refresh() {
-    _cards[_activeCard]->update();
+    if (_visibleCount > 0)
+        _cards[_visibleIndices[_activeCard]]->update();
 }
 
 void MenuScreen::tick() {
@@ -142,13 +169,13 @@ void MenuScreen::onSlideComplete(lv_anim_t* a) {
 void MenuScreen::slideTo(int newIdx, int direction) {
     _animating = true;
 
-    lv_obj_t* outCont = _containers[_activeCard];
-    lv_obj_t* inCont  = _containers[newIdx];
+    lv_obj_t* outCont = _containers[_visibleIndices[_activeCard]];
+    lv_obj_t* inCont  = _containers[_visibleIndices[newIdx]];
 
     int inStart = direction > 0 ? 240 : -240;
     lv_obj_set_pos(inCont, inStart, 0);
 
-    _cards[newIdx]->update();
+    _cards[_visibleIndices[newIdx]]->update();
     updateArcIndicator(newIdx);
 
     // Outgoing container slides off
