@@ -292,6 +292,52 @@ The read callback reports `isPressed()` + `x`/`y` from `M5Dial.Touch.getDetail()
 
 ---
 
+## media_player.spotify — available fields
+
+Fields confirmed via `subscribe_entities` snapshot (state + attrs):
+
+| Field | Type | Example | Notes |
+|---|---|---|---|
+| state | string | `"playing"` | `"playing"` / `"paused"` / `"idle"` / `"off"` |
+| `media_title` | string | `"Too Sweet"` | — |
+| `media_artist` | string | `"Hozier"` | — |
+| `media_album_name` | string | `"Unreal Unearth: Unaired"` | — |
+| `media_duration` | int | `251` | seconds |
+| `media_position` | int | `149` | seconds; stale — interpolate using `media_position_updated_at` |
+| `media_position_updated_at` | string | `"2026-04-02T19:26:17.821560+00:00"` | UTC ISO8601 |
+| `source` | string | `"iPhone"` | playback device |
+| `shuffle` | bool | `false` | — |
+| `repeat` | string | `"off"` | `"off"` / `"one"` / `"all"` |
+| `volume_level` | float | `1.0` | 0.0–1.0 |
+| `entity_picture` | string | `/api/media_player_proxy/...` | HA-proxied album art URL — rendering requires HTTP fetch + JPEG decode |
+
+`entity_picture` is technically available but non-trivial: requires an HTTP GET to HA + JPEG decoding into an LVGL image buffer.
+
+---
+
+## Debugging new HA entities — subscribe + raw log
+
+To inspect what a new HA entity sends before writing a real parser:
+
+1. Add a temporary `parseXxxDebug` function that logs state + serialises attrs:
+```cpp
+static void parseXxxDebug(const char* entity_id, const char* state, JsonObject attrs) {
+    ESP_LOGI(TAG, "XXX state=%s", state ? state : "(null)");
+    if (!attrs.isNull()) {
+        char buf[512];
+        serializeJson(attrs, buf, sizeof(buf));
+        ESP_LOGI(TAG, "XXX attrs=%s", buf);
+    }
+}
+```
+2. Add a row to `SENSORS[]` pointing at it.
+3. Flash and read serial. Look for the log lines to see exactly what fields HA sends.
+4. Remove the debug parser once the real one is in place.
+
+If nothing appears, the entity ID probably doesn't match — check the exact ID in HA developer tools and update the SENSORS entry.
+
+---
+
 ## BM8563 RTC — getVoltLow() polarity and UTC storage
 
 `getVoltLow()` returns `true` = **no** power failure (RTC data is valid). Returns `false` = power failure occurred (data unreliable). The name is misleading — treat `true` as the "safe to use" case.

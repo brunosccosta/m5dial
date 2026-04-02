@@ -303,7 +303,17 @@ static void parseForecastRain(const char* entity_id, const char* state, JsonObje
     ESP_LOGI(TAG, "forecast rain [%s]: %d%%", entity_id, f.rainChance);
 }
 
+static void parseSpotifyDebug(const char* entity_id, const char* state, JsonObject attrs) {
+    ESP_LOGI(TAG, "SPOTIFY state=%s", state ? state : "(null)");
+    if (!attrs.isNull()) {
+        char buf[512];
+        serializeJson(attrs, buf, sizeof(buf));
+        ESP_LOGI(TAG, "SPOTIFY attrs=%s", buf);
+    }
+}
+
 static const SensorEntry SENSORS[] = {
+    { "media_player.spotify",              parseSpotifyDebug      },
     { "climate.forninho_room_temperature", parseAC                },
     { "climate.forninho_portatil",         parseAC                },
     { "weather.buienradar",                parseWeather           },
