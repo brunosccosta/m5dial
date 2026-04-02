@@ -52,6 +52,17 @@ struct ForecastDay {
     bool  valid;
 };
 
+struct SpotifyState {
+    char  state[12];  // "playing" / "paused" / "idle" / "off"
+    char  title[64];
+    char  artist[64];
+    char  source[32]; // "iPhone" / "Sala" / "Living Room"
+    float volume;     // 0.0–1.0
+    bool  shuffle;
+    char  repeat[8];  // "off" / "one" / "all"
+    bool  valid;
+};
+
 struct AppState {
     ACState      ac;               // climate.forninho_room_temperature
     ACState      heater;           // climate.forninho_portatil
@@ -59,6 +70,7 @@ struct AppState {
     SensorState  sensors;
     ForecastDay  forecastToday;    // sensor.*_1d
     ForecastDay  forecastTomorrow; // sensor.*_2d
+    SpotifyState spotify;          // media_player.spotify
     bool         dirty;         // set by HA layer; cleared by UI after refresh
     ConnectionState connection;
 };

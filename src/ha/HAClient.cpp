@@ -303,17 +303,31 @@ static void parseForecastRain(const char* entity_id, const char* state, JsonObje
     ESP_LOGI(TAG, "forecast rain [%s]: %d%%", entity_id, f.rainChance);
 }
 
-static void parseSpotifyDebug(const char* entity_id, const char* state, JsonObject attrs) {
-    ESP_LOGI(TAG, "SPOTIFY state=%s", state ? state : "(null)");
-    if (!attrs.isNull()) {
-        char buf[512];
-        serializeJson(attrs, buf, sizeof(buf));
-        ESP_LOGI(TAG, "SPOTIFY attrs=%s", buf);
+static void parseSpotify(const char* entity_id, const char* state, JsonObject attrs) {
+    SpotifyState& s = appState.spotify;
+    if (state) {
+        strncpy(s.state, state, sizeof(s.state) - 1);
+        s.state[sizeof(s.state) - 1] = '\0';
     }
+    if (!attrs.isNull()) {
+        const char* title = attrs["media_title"];
+        if (title)  { strncpy(s.title,  title,  sizeof(s.title)  - 1); s.title[sizeof(s.title)   - 1] = '\0'; }
+        const char* artist = attrs["media_artist"];
+        if (artist) { strncpy(s.artist, artist, sizeof(s.artist) - 1); s.artist[sizeof(s.artist) - 1] = '\0'; }
+        const char* source = attrs["source"];
+        if (source) { strncpy(s.source, source, sizeof(s.source) - 1); s.source[sizeof(s.source) - 1] = '\0'; }
+        const char* repeat = attrs["repeat"];
+        if (repeat) { strncpy(s.repeat, repeat, sizeof(s.repeat) - 1); s.repeat[sizeof(s.repeat) - 1] = '\0'; }
+        if (attrs["volume_level"].is<float>()) s.volume  = attrs["volume_level"];
+        if (attrs["shuffle"].is<bool>())       s.shuffle = attrs["shuffle"];
+    }
+    s.valid = true;
+    ESP_LOGI(TAG, "spotify [%s]: %s - %s src=%s vol=%.0f%%",
+             s.state, s.artist, s.title, s.source, s.volume * 100);
 }
 
 static const SensorEntry SENSORS[] = {
-    { "media_player.spotify",              parseSpotifyDebug      },
+    { "media_player.spotify",              parseSpotify           },
     { "climate.forninho_room_temperature", parseAC                },
     { "climate.forninho_portatil",         parseAC                },
     { "weather.buienradar",                parseWeather           },

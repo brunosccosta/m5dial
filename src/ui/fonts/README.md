@@ -41,19 +41,19 @@ Run from the repo root:
 # 32px — CarouselMenu / RestScreen
 lv_font_conv --bpp 4 --size 32 --no-compress \
   --font tools/fonts/fa-solid-900.ttf \
-  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671,62006,62156 \
+  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671,62006,62156,61480,61556,62307,61707,62745,62060 \
   --format lvgl -o src/ui/fonts/font_awesome_solid_32.c
 
 # 24px — ForecastCard
 lv_font_conv --bpp 4 --size 24 --no-compress \
   --font tools/fonts/fa-solid-900.ttf \
-  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671,62006,62156 \
+  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671,62006,62156,61480,61556,62307,61707,62745,62060 \
   --format lvgl -o src/ui/fonts/font_awesome_solid_24.c
 
-# 18px — ACControlScreen / ForecastCard rain icon
+# 18px — ACControlScreen / ForecastCard rain icon / SpotifyCard
 lv_font_conv --bpp 4 --size 18 --no-compress \
   --font tools/fonts/fa-solid-900.ttf \
-  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671,62006,62156 \
+  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671,62006,62156,61480,61556,62307,61707,62745,62060 \
   --format lvgl -o src/ui/fonts/font_awesome_solid_18.c
 ```
 
@@ -100,6 +100,12 @@ Update the codepoints table below.
 | 62006 | F236 | fa-bed | `FA_BED` |
 | 62156 | F2CC | fa-shower | `FA_SHOWER` |
 | 63587 | F863 | fa-fan | `FA_FAN` |
+| 61480 | F028 | fa-volume-high | `FA_VOLUME_HIGH` |
+| 61556 | F074 | fa-shuffle | `FA_SHUFFLE` |
+| 62307 | F363 | fa-repeat | `FA_REPEAT` |
+| 61707 | F10B | fa-mobile | `FA_MOBILE` |
+| 62745 | F519 | fa-tower-broadcast | `FA_TOWER_BROADCAST` |
+| 62060 | F26C | fa-tv | `FA_TV` |
 
 ---
 

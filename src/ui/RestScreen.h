@@ -7,6 +7,7 @@
 #include "cards/WeatherNowCard.h"
 #include "cards/IndoorTempsCard.h"
 #include "cards/ForecastCard.h"
+#include "cards/SpotifyCard.h"
 
 class RestScreen : public Screen {
 public:
@@ -24,7 +25,7 @@ public:
     static constexpr uint32_t CARD_INTERVAL_MS = 60000;
 
     // Pin to a specific card index during development (-1 = normal rotation).
-    // 0 = WeatherNowCard, 1 = WeatherDetailsCard, etc.
+    // 0 = ClockCard, 1 = WeatherNowCard, 2 = IndoorTempsCard, 3 = ForecastCard, 4 = SpotifyCard
     static constexpr int DEV_CARD_PIN = -1;
 
     // Timer ring — thin arc around the dial edge showing time until next card.
@@ -49,6 +50,7 @@ private:
     WeatherNowCard   _cardWeatherNow;
     IndoorTempsCard  _cardIndoorTemps;
     ForecastCard     _cardForecast;
+    SpotifyCard      _cardSpotify;
 
     // Card registry — populated in init()
     RestCard* _cards[MAX_CARDS] = {};

@@ -358,6 +358,19 @@ if (M5Dial.Rtc.isEnabled() && M5Dial.Rtc.getVoltLow()) {
 
 ---
 
+## LV_LABEL_LONG_SCROLL_CIRCULAR drops text alignment
+
+Switching a label from `LV_LABEL_LONG_DOT` to `LV_LABEL_LONG_SCROLL_CIRCULAR` does not carry over `lv_obj_set_style_text_align`. The style must be re-applied after setting the new long mode, otherwise short text (that doesn't scroll) defaults to left-aligned within the label's bounding box.
+
+```cpp
+lv_label_set_long_mode(label, LV_LABEL_LONG_SCROLL_CIRCULAR);
+lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN); // must re-set
+```
+
+Scroll speed is controlled by `lv_obj_set_style_anim_duration(label, ms, LV_PART_MAIN)`. The value is the full cycle duration — the text scrolls from start back to start in that time. ~15–19 seconds feels natural for a rest card.
+
+---
+
 ## HA WebSocket auth flow
 
 Fixed protocol on connect — no variation:

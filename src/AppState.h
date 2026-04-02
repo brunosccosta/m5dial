@@ -49,6 +49,17 @@ struct SensorState {
     float bathroomHumidity; // sensor.atc_88dc_humidity
 };
 
+struct SpotifyState {
+    char  state[12];  // "playing" / "paused" / "idle" / "off"
+    char  title[64];
+    char  artist[64];
+    char  source[32]; // "iPhone" / "Sala" / "Living Room"
+    float volume;     // 0.0–1.0
+    bool  shuffle;
+    char  repeat[8];  // "off" / "one" / "all"
+    bool  valid;      // false until first HA update
+};
+
 struct ForecastDay {
     char  detailedCondition[32]; // sensor.detailed_condition_1d / _2d
     float temperature;           // sensor.temperature_1d / _2d (max)
@@ -63,6 +74,7 @@ struct AppState {
     SensorState  sensors;
     ForecastDay  forecastToday;    // sensor.*_1d
     ForecastDay  forecastTomorrow; // sensor.*_2d
+    SpotifyState spotify;          // media_player.spotify
 
     bool            dirty;      // set by HA layer when state changes; cleared by UI after refresh
     ConnectionState connection; // written by HAClient; read by UI for status indicator

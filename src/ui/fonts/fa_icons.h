@@ -32,3 +32,11 @@ extern const lv_font_t font_awesome_solid_18;
 // Indoor room icons
 #define FA_BED               "\xEF\x88\xB6"  // U+F236 — fa-bed
 #define FA_SHOWER            "\xEF\x8B\x8C"  // U+F2CC — fa-shower
+
+// Music / media
+#define FA_VOLUME_HIGH       "\xEF\x80\xA8"  // U+F028 — fa-volume-high
+#define FA_SHUFFLE           "\xEF\x81\xB4"  // U+F074 — fa-shuffle
+#define FA_REPEAT            "\xEF\x8D\xA3"  // U+F363 — fa-repeat
+#define FA_MOBILE            "\xEF\x84\x8B"  // U+F10B — fa-mobile (iPhone)
+#define FA_TOWER_BROADCAST   "\xEF\x94\x99"  // U+F519 — fa-tower-broadcast (Sonos)
+#define FA_TV                "\xEF\x89\xAC"  // U+F26C — fa-tv (AV receiver)
