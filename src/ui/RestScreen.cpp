@@ -35,6 +35,7 @@ void RestScreen::init() {
     // Register cards — order defines display order. To add a card:
     //   1. Add a member instance above
     //   2. Add one line here
+    _cards[_cardCount++] = &_cardClock;
     _cards[_cardCount++] = &_cardWeatherNow;
     _cards[_cardCount++] = &_cardIndoorTemps;
     _cards[_cardCount++] = &_cardForecast;
@@ -100,18 +101,26 @@ void RestScreen::show() {
 }
 
 void RestScreen::tick() {
-    if (DEV_CARD_PIN >= 0) return;
+    uint32_t now = millis();
 
-    uint32_t elapsed = millis() - _lastAdvanceMs;
-    if (elapsed >= CARD_INTERVAL_MS) {
-        advanceCard();
-        return;
+    if (DEV_CARD_PIN < 0) {
+        uint32_t elapsed = now - _lastAdvanceMs;
+        if (elapsed >= CARD_INTERVAL_MS) {
+            advanceCard();
+            return;
+        }
+        int value = 360 - (int)(elapsed * 360 / CARD_INTERVAL_MS);
+        if (value != _lastRingValue) {
+            lv_arc_set_value(_ring, value);
+            _lastRingValue = value;
+        }
     }
 
-    int value = 360 - (int)(elapsed * 360 / CARD_INTERVAL_MS);
-    if (value != _lastRingValue) {
-        lv_arc_set_value(_ring, value);
-        _lastRingValue = value;
+    // Refresh active card every minute so the clock stays current
+    if (now - _lastCardUpdateMs >= 60000) {
+        _lastCardUpdateMs = now;
+        _cards[_activeCard]->update();
+        lv_refr_now(NULL);
     }
 }
 

@@ -307,11 +307,20 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 
 | # | Card | Data sources |
 |---|---|---|
-| 0 | `WeatherNowCard` | `weather.buienradar` + `sensor.detailed_condition` + `sun.sun` |
-| 1 | `IndoorTempsCard` | `sensor.atc_3294/03be/88dc` temp + humidity (balcony, bedroom, bathroom) |
-| 2 | `ForecastCard` | `sensor.*_1d` / `sensor.*_2d` Buienradar forecast sensors |
+| 0 | `ClockCard` | system time via `localtime()` (seeded from RTC on boot, synced from NTP) |
+| 1 | `WeatherNowCard` | `weather.buienradar` + `sensor.detailed_condition` + `sun.sun` |
+| 2 | `IndoorTempsCard` | `sensor.atc_3294/03be/88dc` temp + humidity (balcony, bedroom, bathroom) |
+| 3 | `ForecastCard` | `sensor.*_1d` / `sensor.*_2d` Buienradar forecast sensors |
 
 Adding a card = new `.h`/`.cpp` file + one line in `RestScreen`'s card array. Card content and layout are fully self-contained.
+
+#### NTP and RTC time sync
+
+`configTime()` + `setenv("TZ", ...)` are called in `setup()`. SNTP syncs in the background once WiFi connects.
+
+On boot, if the BM8563 RTC is enabled and has no power-failure flag (`getVoltLow() == true`) and year ≥ 2020, `setSystemTimeFromRtc()` seeds system time immediately — so the clock shows without waiting for WiFi.
+
+Once NTP syncs (`time() > Jan 2020`), the loop writes UTC back to the RTC via `setDateTime(gmtime(&t))` once. RTC always stores UTC; `localtime()` applies the TZ rule for display.
 
 #### Data sources
 

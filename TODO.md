@@ -28,12 +28,6 @@ M5Dial has an 80dB buzzer via `M5Dial.Speaker`. Potential uses: confirmation bee
 
 ---
 
-## Clock card (NTP-based)
-
-Add a RestScreen card showing current time (and optionally date). Sync via NTP on boot using `configTime()` — no HA entity needed, no RTC dependency. Read time in `update()` via `time()` / `localtime()`. Consider time zone config in `credentials.h` or `Config.h`.
-
----
-
 ## Screen transition animations
 
 Push/pop transitions (rest → menu, menu → control) are still bare `lv_scr_load()` calls. LVGL has `lv_scr_load_anim()` — could add a fade or slide. MenuScreen already has internal slide animation between cards; the same approach could extend to screen-level transitions.

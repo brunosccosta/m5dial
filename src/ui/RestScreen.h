@@ -3,6 +3,7 @@
 #include <lvgl.h>
 #include "Screen.h"
 #include "RestCard.h"
+#include "cards/ClockCard.h"
 #include "cards/WeatherNowCard.h"
 #include "cards/IndoorTempsCard.h"
 #include "cards/ForecastCard.h"
@@ -44,6 +45,7 @@ private:
     lv_obj_t* _lvScreen;
 
     // Card instances — add new cards here
+    ClockCard        _cardClock;
     WeatherNowCard   _cardWeatherNow;
     IndoorTempsCard  _cardIndoorTemps;
     ForecastCard     _cardForecast;
@@ -53,6 +55,7 @@ private:
     int       _cardCount        = 0;
     int       _activeCard       = 0;
     uint32_t  _lastAdvanceMs    = 0;
+    uint32_t  _lastCardUpdateMs = 0;
 
     // Timer ring
     lv_obj_t* _ring;

@@ -80,6 +80,20 @@ void setup() {
     lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_read_cb(indev, my_touch_read);
 
+    configTime(0, 0, "pool.ntp.org");
+    setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
+    tzset();
+
+    if (M5Dial.Rtc.isEnabled() && M5Dial.Rtc.getVoltLow()) {
+        auto dt = M5Dial.Rtc.getDateTime();
+        if (dt.date.year >= 2020) {
+            M5Dial.Rtc.setSystemTimeFromRtc();
+            ESP_LOGI("BOOT", "system time seeded from RTC: %04d-%02d-%02d %02d:%02d",
+                dt.date.year, dt.date.month, dt.date.date,
+                dt.time.hours, dt.time.minutes);
+        }
+    }
+
     input.begin();
     haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
     errorOverlay.init();
@@ -124,6 +138,16 @@ void loop() {
             screenManager.onSwipe(-1); // swipe right → prev
         } else {
             screenManager.onTouch();  // tap
+        }
+    }
+
+    static bool ntpSyncedToRtc = false;
+    if (!ntpSyncedToRtc && M5Dial.Rtc.isEnabled()) {
+        time_t t = time(nullptr);
+        if (t > 1577836800LL) {
+            M5Dial.Rtc.setDateTime(gmtime(&t));
+            ntpSyncedToRtc = true;
+            ESP_LOGI("NTP", "RTC synced from NTP");
         }
     }
 

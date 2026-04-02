@@ -292,6 +292,26 @@ The read callback reports `isPressed()` + `x`/`y` from `M5Dial.Touch.getDetail()
 
 ---
 
+## BM8563 RTC — getVoltLow() polarity and UTC storage
+
+`getVoltLow()` returns `true` = **no** power failure (RTC data is valid). Returns `false` = power failure occurred (data unreliable). The name is misleading — treat `true` as the "safe to use" case.
+
+Always store UTC in the RTC (`setDateTime(gmtime(&t))`), not local time. `setSystemTimeFromRtc()` sets system UTC, and `localtime()` applies the TZ rule. Storing local time breaks across DST transitions.
+
+```cpp
+// Write NTP time to RTC (UTC):
+M5Dial.Rtc.setDateTime(gmtime(&t));
+
+// On boot, seed system time from RTC:
+if (M5Dial.Rtc.isEnabled() && M5Dial.Rtc.getVoltLow()) {
+    auto dt = M5Dial.Rtc.getDateTime();
+    if (dt.date.year >= 2020)
+        M5Dial.Rtc.setSystemTimeFromRtc();
+}
+```
+
+---
+
 ## HA WebSocket auth flow
 
 Fixed protocol on connect — no variation:
