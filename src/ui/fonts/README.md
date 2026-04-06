@@ -31,31 +31,15 @@ python3
 >>> decompress('fa-solid-900.woff2', 'fa-solid-900.ttf')
 ```
 
-### Step 3 — regenerate both font files
+### Step 3 — regenerate all font files
 
-Add the new decimal codepoint to the `--range` list (comma-separated, no spaces). Regenerate **both** sizes:
-
-Run from the repo root:
+Add the new decimal codepoint to `GLYPHS` in `tools/gen_fonts.sh`, then run from the repo root:
 
 ```bash
-# 32px — CarouselMenu / RestScreen
-lv_font_conv --bpp 4 --size 32 --no-compress \
-  --font tools/fonts/fa-solid-900.ttf \
-  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671,62006,62156,61480,61556,62307,61707,62745,62060 \
-  --format lvgl -o src/ui/fonts/font_awesome_solid_32.c
-
-# 24px — ForecastCard
-lv_font_conv --bpp 4 --size 24 --no-compress \
-  --font tools/fonts/fa-solid-900.ttf \
-  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671,62006,62156,61480,61556,62307,61707,62745,62060 \
-  --format lvgl -o src/ui/fonts/font_awesome_solid_24.c
-
-# 18px — ACControlScreen / ForecastCard rain icon / SpotifyCard
-lv_font_conv --bpp 4 --size 18 --no-compress \
-  --font tools/fonts/fa-solid-900.ttf \
-  --range 61675,62172,61549,61459,61473,63587,61507,61457,63278,61829,61830,61634,63172,63293,63296,63299,63327,63340,61671,62006,62156,61480,61556,62307,61707,62745,62060 \
-  --format lvgl -o src/ui/fonts/font_awesome_solid_18.c
+bash tools/gen_fonts.sh
 ```
+
+This regenerates all three sizes (32px, 24px, 18px) in one shot from the single canonical glyph list.
 
 ### Step 4 — declare the macro
 
