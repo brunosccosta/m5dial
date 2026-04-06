@@ -29,6 +29,13 @@ extern const lv_font_t font_awesome_solid_18;
 #define FA_CLOUD_BOLT        "\xEF\x9D\xAC"  // U+F76C — fa-cloud-bolt
 #define FA_BOLT              "\xEF\x83\xA7"  // U+F0E7 — fa-bolt
 
+// Network / signal / status
+#define FA_SIGNAL        "\xEF\x80\x92"  // U+F012 — fa-signal
+#define FA_CLOCK         "\xEF\x80\x97"  // U+F017 — fa-clock
+#define FA_BATTERY_HALF  "\xEF\x89\x82"  // U+F242 — fa-battery-half
+#define FA_CARET_DOWN    "\xEF\x83\x97"  // U+F0D7 — fa-caret-down
+#define FA_CARET_UP      "\xEF\x83\x98"  // U+F0D8 — fa-caret-up
+
 // Indoor room icons
 #define FA_BED               "\xEF\x88\xB6"  // U+F236 — fa-bed
 #define FA_SHOWER            "\xEF\x8B\x8C"  // U+F2CC — fa-shower

@@ -60,6 +60,16 @@ struct SpotifyState {
     bool  valid;      // false until first HA update
 };
 
+struct MeshCoreState {
+    time_t   lastUpdatedAt;   // epoch from battery sensor attrs.last_updated (local time)
+    int      batteryPct;      // sensor.meshcore_82b3166b70_battery_percentage_gigitower
+    uint32_t uptimeSeconds;   // sensor.meshcore_82b3166b70_uptime_gigitower (days → seconds)
+    float    airtimeUtil;     // sensor.meshcore_82b3166b70_airtime_utilization_gigitower (%)
+    float    batteryDiff;     // batteryPct minus value 24h ago (from HA history)
+    bool     batteryDiffValid;
+    bool     valid;
+};
+
 struct ForecastDay {
     char  detailedCondition[32]; // sensor.detailed_condition_1d / _2d
     float temperature;           // sensor.temperature_1d / _2d (max)
@@ -74,7 +84,8 @@ struct AppState {
     SensorState  sensors;
     ForecastDay  forecastToday;    // sensor.*_1d
     ForecastDay  forecastTomorrow; // sensor.*_2d
-    SpotifyState spotify;          // media_player.spotify
+    SpotifyState  spotify;         // media_player.spotify
+    MeshCoreState meshcore;        // meshcore repeater GigiTower
 
     bool            dirty;      // set by HA layer when state changes; cleared by UI after refresh
     ConnectionState connection; // written by HAClient; read by UI for status indicator

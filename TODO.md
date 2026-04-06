@@ -4,6 +4,14 @@ Small improvements and known issues parked for later.
 
 ---
 
+## Feature: Dial rotates RestScreen cards; button/tap opens menu
+
+Currently any input on RestScreen pushes MenuScreen. Change so that:
+- Dial rotation manually advances/retreats through rest cards (overrides auto-rotation timer)
+- Button press or screen tap pushes MenuScreen as before
+
+---
+
 ## Buzzer feedback
 
 M5Dial has an 80dB buzzer via `M5Dial.Speaker`. Potential uses: confirmation beep on button press, alert on sensor threshold (e.g. room too hot), error sound on WiFi/HA disconnect, encoder tick tone. Investigate what feels useful vs. annoying.

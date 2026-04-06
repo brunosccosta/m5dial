@@ -156,6 +156,21 @@ void HAClient::handleMessage(uint8_t* payload, size_t length) {
             if (_subscribeIds[i] == id)
                 ESP_LOGI(TAG, "subscribe_entities batch id=%d %s", id, ok ? "confirmed" : "failed");
         }
+        if (id == _batteryHistoryMsgId) {
+            if (!ok) { ESP_LOGW(TAG, "battery history request failed"); return; }
+            JsonArray history = doc["result"]["sensor.meshcore_82b3166b70_battery_percentage_gigitower"];
+            if (history.isNull() || history.size() == 0) {
+                ESP_LOGW(TAG, "battery history: no data");
+            } else {
+                float past    = atof(history[0]["s"] | "0");
+                float current = appState.meshcore.batteryPct;
+                appState.meshcore.batteryDiff      = current - past;
+                appState.meshcore.batteryDiffValid = true;
+                appState.dirty = true;
+                ESP_LOGI(TAG, "battery 24h: was=%.1f%% now=%.0f%% diff=%+.1f%%",
+                         past, current, current - past);
+            }
+        }
     } else if (strcmp(type, "event") == 0) {
         int id = doc["id"] | 0;
         bool known = false;
@@ -326,6 +341,40 @@ static void parseSpotify(const char* entity_id, const char* state, JsonObject at
              s.state, s.artist, s.title, s.source, s.volume * 100);
 }
 
+// HA last_updated has no timezone suffix — it's in device-local time.
+// mktime() also interprets as local, so no compensation needed.
+static time_t parseLocalTimestamp(const char* ts) {
+    int y, mo, d, h, mn, s;
+    if (sscanf(ts, "%d-%d-%dT%d:%d:%d", &y, &mo, &d, &h, &mn, &s) != 6) return 0;
+    struct tm t = {};
+    t.tm_year = y - 1900; t.tm_mon = mo - 1; t.tm_mday = d;
+    t.tm_hour = h; t.tm_min = mn; t.tm_sec = s; t.tm_isdst = -1;
+    return mktime(&t);
+}
+
+static void parseMeshCoreBattery(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.meshcore.batteryPct = (int)atof(state);
+    if (!attrs.isNull()) {
+        const char* ts = attrs["last_updated"];
+        if (ts) appState.meshcore.lastUpdatedAt = parseLocalTimestamp(ts);
+    }
+    appState.meshcore.valid = true;
+    ESP_LOGI(TAG, "meshcore battery: %d%% diff=%lds",
+             appState.meshcore.batteryPct, (long)(time(nullptr) - appState.meshcore.lastUpdatedAt));
+}
+
+static void parseMeshCoreUptime(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.meshcore.uptimeSeconds = (uint32_t)(atof(state) * 86400.0f);
+    appState.meshcore.valid = true;
+    ESP_LOGI(TAG, "meshcore uptime: %us", appState.meshcore.uptimeSeconds);
+}
+
+static void parseMeshCoreAirtime(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.meshcore.airtimeUtil = atof(state);
+    appState.meshcore.valid = true;
+    ESP_LOGI(TAG, "meshcore airtime: %.1f%%", appState.meshcore.airtimeUtil);
+}
+
 static const SensorEntry SENSORS[] = {
     { "media_player.spotify",              parseSpotify           },
     { "climate.forninho_room_temperature", parseAC                },
@@ -341,10 +390,13 @@ static const SensorEntry SENSORS[] = {
     { "sensor.temperature_2d",             parseForecastTemp      },
     { "sensor.rainchance_1d",              parseForecastRain      },
     { "sensor.rainchance_2d",              parseForecastRain      },
-    { "sensor.quarto_temperature",         parseBedroomTemp       },
-    { "sensor.quarto_humidity",            parseBedroomHumidity   },
-    { "sensor.atc_88dc_temperature",       parseBathroomTemp      },
-    { "sensor.atc_88dc_humidity",          parseBathroomHumidity  },
+    { "sensor.quarto_temperature",                                 parseBedroomTemp      },
+    { "sensor.quarto_humidity",                                    parseBedroomHumidity  },
+    { "sensor.atc_88dc_temperature",                               parseBathroomTemp     },
+    { "sensor.atc_88dc_humidity",                                  parseBathroomHumidity },
+    { "sensor.meshcore_82b3166b70_battery_percentage_gigitower",   parseMeshCoreBattery  },
+    { "sensor.meshcore_82b3166b70_uptime_gigitower",               parseMeshCoreUptime   },
+    { "sensor.meshcore_82b3166b70_airtime_utilization_gigitower",  parseMeshCoreAirtime  },
 };
 static constexpr int SENSOR_COUNT = sizeof(SENSORS) / sizeof(SENSORS[0]);
 
@@ -373,6 +425,31 @@ void HAClient::subscribeEntities() {
         _ws.sendTXT(buf);
         ESP_LOGI(TAG, "sent subscribe_entities batch (id=%d, sensors %d-%d)", id, start, end - 1);
     }
+
+    requestBatteryHistory();
+}
+
+void HAClient::requestBatteryHistory() {
+    time_t now = time(nullptr);
+    if (now < 1577836800LL) {
+        ESP_LOGW(TAG, "clock not synced, skipping battery history request");
+        return;
+    }
+    time_t start = now - 86400;
+    struct tm t; gmtime_r(&start, &t);
+    char startBuf[32];
+    strftime(startBuf, sizeof(startBuf), "%Y-%m-%dT%H:%M:%S+00:00", &t);
+
+    _batteryHistoryMsgId = ++_msgId;
+    char buf[320];
+    snprintf(buf, sizeof(buf),
+        "{\"id\":%d,\"type\":\"history/history_during_period\","
+        "\"start_time\":\"%s\","
+        "\"entity_ids\":[\"sensor.meshcore_82b3166b70_battery_percentage_gigitower\"],"
+        "\"minimal_response\":true,\"no_attributes\":true}",
+        _batteryHistoryMsgId, startBuf);
+    _ws.sendTXT(buf);
+    ESP_LOGI(TAG, "sent battery history request (id=%d, start=%s)", _batteryHistoryMsgId, startBuf);
 }
 
 void HAClient::dispatchSensor(const char* entity_id, const char* state, JsonObject attrs) {

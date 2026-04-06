@@ -51,6 +51,7 @@ void RestScreen::init() {
     _cards[_cardCount++] = &_cardIndoorTemps;
     _cards[_cardCount++] = &_cardForecast;
     _cards[_cardCount++] = &_cardSpotify;
+    _cards[_cardCount++] = &_cardMeshCore;
 
     // Init all cards; show first (or pinned), hide the rest
     _activeCard = (DEV_CARD_PIN >= 0 && DEV_CARD_PIN < _cardCount) ? DEV_CARD_PIN : 0;

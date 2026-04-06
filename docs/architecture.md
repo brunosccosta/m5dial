@@ -70,7 +70,8 @@ struct AppState {
     SensorState  sensors;
     ForecastDay  forecastToday;    // sensor.*_1d
     ForecastDay  forecastTomorrow; // sensor.*_2d
-    SpotifyState spotify;          // media_player.spotify
+    SpotifyState  spotify;         // media_player.spotify
+    MeshCoreState meshcore;        // meshcore repeater GigiTower (binary_sensor + sensors)
     bool         dirty;         // set by HA layer; cleared by UI after refresh
     ConnectionState connection;
 };
@@ -326,10 +327,97 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 | 2 | `IndoorTempsCard` | `sensor.atc_3294/03be/88dc` temp + humidity (balcony, bedroom, bathroom) | always |
 | 3 | `ForecastCard` | `sensor.*_1d` / `sensor.*_2d` Buienradar forecast sensors | always |
 | 4 | `SpotifyCard` | `media_player.spotify` — title, artist, source, volume, shuffle, repeat | only when state is `"playing"` or `"paused"` |
+| 5 | `MeshCoreCard` | MeshCore repeater GigiTower — battery %, 24h trend, uptime, last-updated | always |
 
-#### WeatherNowCard layout notes
+#### MeshCoreCard layout
 
-The condition icon + label row is dynamically centered as a group on every `update()`. After setting text, `lv_obj_update_layout()` is called to measure natural widths; both objects are then repositioned so the group center aligns with the screen center. If the total group width exceeds 200px, `conditionLabel` is capped and switches to `LV_LABEL_LONG_SCROLL_CIRCULAR` (14s).
+```
+┌──────────────────────────────┐
+│         [tower icon]         │  ← FA_TOWER_BROADCAST (18px), y=-80, centered
+│         GigiTower            │  ← montserrat_28, y=-50, centered
+│                              │
+│ 🔋 65% ▲ +2.1%  ⏱ 21d 10h  │  ← stats row, y=-16
+│  ● Last updated 3h ago       │  ← dot + montserrat_14 (TEXT_DIM), y=+12
+└──────────────────────────────┘
+```
+
+**Y offsets (from screen center):** icon −80, name −50, stats row −16, status +12.
+
+**Stats columns:** bat icon `x=−85`, bat% `x=−57`, trend caret `x=−33`, diff `x=−7`, uptime icon `x=+30`, uptime value `x=+70`.
+
+**Battery trend:** queried once on connect via `history/history_during_period` (last 24h). Caret + diff colored green (`0x00CC44`) for positive, red (`0xFF3333`) for negative. Hidden until history result arrives.
+
+**Status dot:** 8px `lv_obj` circle positioned dynamically to the left of the "Last updated" label (`lv_obj_update_layout` + `lv_obj_get_width`). Green ≤6h, yellow 6–12h, red >12h, grey when no data.
+
+**Status row:** "Last updated Xh ago" from battery sensor's `last_updated` attribute (local time, no Z suffix — parsed with `mktime`, same TZ as device clock). Falls back to `"Last updated --"` when clock not synced.
+
+**Uptime formatting:** HA state is fractional days. Parser converts to `uptimeSeconds`. Card formats as `"Xd Yh"` / `"Xh Ym"` / `"Xm"`.
+
+**Fonts:** `font_awesome_solid_18` for all icons; `lv_font_montserrat_28` for name; `lv_font_montserrat_14` for stat values and status.
+
+#### ClockCard layout
+
+```
+┌──────────────────────────────┐
+│                              │
+│          14:32               │  ← montserrat_48, y=−45, centered
+│        Wed 5 Mar             │  ← montserrat_24 (TEXT_DIM), y=−3, centered
+│                              │
+└──────────────────────────────┘
+```
+
+#### WeatherNowCard layout
+
+```
+┌──────────────────────────────┐
+│                              │
+│    8°  / 5°                  │  ← temp montserrat_48 at x=−9, y=−45;
+│                              │    feels-like montserrat_14 anchored to temp right-bottom
+│    ☁  Partly Cloudy          │  ← icon (FA 18px) + label (montserrat_24, TEXT_FAINT), y=−8
+│                              │    group dynamically centered; scrolls circular if >200px
+└──────────────────────────────┘
+```
+
+Icon + condition label are measured on every `update()` via `lv_obj_update_layout()` and repositioned so the combined group center aligns with screen center. If total width > 200px, label is capped and switches to `LV_LABEL_LONG_SCROLL_CIRCULAR` (14s).
+
+#### IndoorTempsCard layout
+
+```
+┌──────────────────────────────┐
+│  ☀  21.3°   💧  55%          │  ← balcony row, y=−61
+│  🛏  19.1°   💧  48%         │  ← bedroom row, y=−28
+│  🚿  22.0°   💧  62%         │  ← bathroom row, y=+5
+└──────────────────────────────┘
+```
+
+Columns: icon `x=−61`, temp `x=−15` (montserrat_24), droplet `x=+30` (FA 18px, ACCENT_RAIN), humidity `x=+56` (montserrat_14, TEXT_DIM).
+
+#### ForecastCard layout
+
+```
+┌──────────────────────────────┐
+│   TODAY        TMR           │  ← montserrat_14 (TEXT_MUTED), y=−73
+│     ☁            ☀           │  ← FA icon 24px, y=−45
+│    12°          15°          │  ← montserrat_28, y=−16
+│  🌧  40%      🌧  10%        │  ← rain icon (FA 18px) + montserrat_14, y=+13
+└──────────────────────────────┘
+```
+
+Two columns at `x=−37` (today) and `x=+41` (tomorrow). All positions static.
+
+#### SpotifyCard layout
+
+```
+┌──────────────────────────────┐
+│           playing            │  ← state, montserrat_14 (TEXT_MUTED), y=−77, centered
+│        Song Title            │  ← montserrat_24, y=−40, w=180, scroll circular (19s)
+│         Artist               │  ← montserrat_14 (TEXT_DIM), y=−12, w=180, scroll (14s)
+│  📱 iPhone   🔊 75%          │  ← source icon+label left (x=−82/−29), vol icon+label right (x=+40/+76), y=+14
+│       🔀        🔁           │  ← shuffle (x=−12) + repeat (x=+12), y=+36; hidden when inactive
+└──────────────────────────────┘
+```
+
+`isVisible()` returns true only when state is `"playing"` or `"paused"`. Source icon maps: iPhone→`FA_MOBILE`, Sala→`FA_TOWER_BROADCAST`, Living Room→`FA_TV`.
 
 Adding a card = new `.h`/`.cpp` file + one line in `RestScreen`'s card array. Card content and layout are fully self-contained.
 
