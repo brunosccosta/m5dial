@@ -70,23 +70,23 @@ void RestScreen::init() {
     _acIconLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_acIconLabel, &font_awesome_solid_18, LV_PART_MAIN);
     lv_obj_set_style_text_color(_acIconLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(_acIconLabel, LV_ALIGN_CENTER, -45, +42);
+    lv_obj_align(_acIconLabel, LV_ALIGN_CENTER, -45, +49);
 
     _acStateLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_acStateLabel, &lv_font_montserrat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_acStateLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
-    lv_obj_align(_acStateLabel, LV_ALIGN_CENTER, -45, +60);
+    lv_obj_align(_acStateLabel, LV_ALIGN_CENTER, -45, +67);
 
     // Device strip — Heater (right)
     _heaterIconLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_heaterIconLabel, &font_awesome_solid_18, LV_PART_MAIN);
     lv_obj_set_style_text_color(_heaterIconLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(_heaterIconLabel, LV_ALIGN_CENTER, +45, +42);
+    lv_obj_align(_heaterIconLabel, LV_ALIGN_CENTER, +45, +49);
 
     _heaterStateLabel = lv_label_create(_lvScreen);
     lv_obj_set_style_text_font(_heaterStateLabel, &lv_font_montserrat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_heaterStateLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
-    lv_obj_align(_heaterStateLabel, LV_ALIGN_CENTER, +45, +60);
+    lv_obj_align(_heaterStateLabel, LV_ALIGN_CENTER, +45, +67);
 
     ESP_LOGI(TAG, "init complete, %d cards", _cardCount);
 }
@@ -127,7 +127,11 @@ void RestScreen::tick() {
 
 void RestScreen::advanceCard() {
     _cards[_activeCard]->hide();
-    _activeCard = (_activeCard + 1) % _cardCount;
+    // Skip invisible cards (e.g. Spotify when nothing is playing)
+    for (int i = 0; i < _cardCount; i++) {
+        _activeCard = (_activeCard + 1) % _cardCount;
+        if (_cards[_activeCard]->isVisible()) break;
+    }
     _cards[_activeCard]->show();
     _cards[_activeCard]->update();
     _lastAdvanceMs = millis();
@@ -191,8 +195,8 @@ void RestScreen::updateDeviceStrip() {
         lv_label_set_text(_heaterStateLabel, "---");
     }
 
-    lv_obj_align(_acIconLabel,      LV_ALIGN_CENTER, -45, +42);
-    lv_obj_align(_acStateLabel,     LV_ALIGN_CENTER, -45, +60);
-    lv_obj_align(_heaterIconLabel,  LV_ALIGN_CENTER, +45, +42);
-    lv_obj_align(_heaterStateLabel, LV_ALIGN_CENTER, +45, +60);
+    lv_obj_align(_acIconLabel,      LV_ALIGN_CENTER, -45, +49);
+    lv_obj_align(_acStateLabel,     LV_ALIGN_CENTER, -45, +67);
+    lv_obj_align(_heaterIconLabel,  LV_ALIGN_CENTER, +45, +49);
+    lv_obj_align(_heaterStateLabel, LV_ALIGN_CENTER, +45, +67);
 }

@@ -7,6 +7,7 @@ public:
     void update()               override;
     void show()                 override;
     void hide()                 override;
+    bool isVisible() const      override;
 
 private:
     lv_obj_t* _container;

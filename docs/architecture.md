@@ -279,12 +279,13 @@ public:
     virtual void update()               = 0;  // refresh labels from AppState
     virtual void show()                 = 0;  // make objects visible
     virtual void hide()                 = 0;  // hide objects
+    virtual bool isVisible() const      { return true; }  // override to conditionally skip
 };
 ```
 
 `RestScreen` owns a `RestCard* _cards[]` array and a `_cardCount`. To add a new card: implement `RestCard`, instantiate it, add it to the array. No other changes needed.
 
-`tick()` checks `millis() - _lastAdvanceMs >= CARD_INTERVAL_MS`. When it fires: hide current card, advance index, call `show()` + `update()` on next card, reset timer.
+`tick()` checks `millis() - _lastAdvanceMs >= CARD_INTERVAL_MS`. When it fires: hide current card, advance index skipping any cards where `isVisible()` returns false, call `show()` + `update()` on the next visible card, reset timer.
 
 `CARD_INTERVAL_MS` is a `static constexpr` in `RestScreen.h` — easy to tune.
 
@@ -317,12 +318,13 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 
 #### Cards
 
-| # | Card | Data sources |
-|---|---|---|
-| 0 | `ClockCard` | system time via `localtime()` (seeded from RTC on boot, synced from NTP) |
-| 1 | `WeatherNowCard` | `weather.buienradar` + `sensor.detailed_condition` + `sun.sun` |
-| 2 | `IndoorTempsCard` | `sensor.atc_3294/03be/88dc` temp + humidity (balcony, bedroom, bathroom) |
-| 3 | `ForecastCard` | `sensor.*_1d` / `sensor.*_2d` Buienradar forecast sensors |
+| # | Card | Data sources | `isVisible()` |
+|---|---|---|---|
+| 0 | `ClockCard` | system time via `localtime()` (seeded from RTC on boot, synced from NTP) | always |
+| 1 | `WeatherNowCard` | `weather.buienradar` + `sensor.detailed_condition` + `sun.sun` | always |
+| 2 | `IndoorTempsCard` | `sensor.atc_3294/03be/88dc` temp + humidity (balcony, bedroom, bathroom) | always |
+| 3 | `ForecastCard` | `sensor.*_1d` / `sensor.*_2d` Buienradar forecast sensors | always |
+| 4 | `SpotifyCard` | `media_player.spotify` — title, artist, source, volume, shuffle, repeat | only when state is `"playing"` or `"paused"` |
 
 Adding a card = new `.h`/`.cpp` file + one line in `RestScreen`'s card array. Card content and layout are fully self-contained.
 

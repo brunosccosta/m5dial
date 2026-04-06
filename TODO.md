@@ -33,3 +33,22 @@ M5Dial has an 80dB buzzer via `M5Dial.Speaker`. Potential uses: confirmation bee
 Push/pop transitions (rest → menu, menu → control) are still bare `lv_scr_load()` calls. LVGL has `lv_scr_load_anim()` — could add a fade or slide. MenuScreen already has internal slide animation between cards; the same approach could extend to screen-level transitions.
 
 ---
+
+## Bug: WeatherNowCard condition label overflows on long strings
+
+`conditionLabel` is anchored to the right of `iconLabel` with no width constraint. Long strings like "Cloudy & Drizzle" at `montserrat_24` overflow the right edge of the display.
+
+**Fix:** Set a max width (e.g. 140px) on `conditionLabel` and use `LV_LABEL_LONG_DOTS` to truncate gracefully. Alternatively reduce font size to `montserrat_14` for the condition label.
+
+---
+
+## Feature: Easter egg screen — love messages controlled via HA
+
+Add an `input_boolean.dial_love_mode` entity in HA. When enabled, show a rotating set of cute hardcoded messages on the RestScreen.
+
+**Plan:**
+- Subscribe to `input_boolean.dial_love_mode` in `HAClient`; store as `bool loveMode` in `AppState`
+- Add a `LoveCard` rest card; `isVisible()` returns `appState.loveMode`
+- Messages hardcoded as a small array in `LoveCard.cpp`, cycling on each `update()`
+
+---

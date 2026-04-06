@@ -135,5 +135,11 @@ void SpotifyCard::update() {
     lv_label_set_text(_srcLabel,     s.source[0] ? s.source : "");
 }
 
+bool SpotifyCard::isVisible() const {
+    const SpotifyState& s = appState.spotify;
+    return s.valid
+        && (strcmp(s.state, "playing") == 0 || strcmp(s.state, "paused") == 0);
+}
+
 void SpotifyCard::show() { lv_obj_clear_flag(_container, LV_OBJ_FLAG_HIDDEN); }
 void SpotifyCard::hide() { lv_obj_add_flag(_container,   LV_OBJ_FLAG_HIDDEN); }
