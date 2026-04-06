@@ -47,6 +47,7 @@ public:
 private:
     void updateDisplay();
     void updateDeviceStrip();
+    void navigateCard(int dir);  // +1 = forward, -1 = backward
     void advanceCard();
     void wake();
 

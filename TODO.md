@@ -4,14 +4,6 @@ Small improvements and known issues parked for later.
 
 ---
 
-## Feature: Dial rotates RestScreen cards; button/tap opens menu
-
-Currently any input on RestScreen pushes MenuScreen. Change so that:
-- Dial rotation manually advances/retreats through rest cards (overrides auto-rotation timer)
-- Button press or screen tap pushes MenuScreen as before
-
----
-
 ## Buzzer feedback
 
 M5Dial has an 80dB buzzer via `M5Dial.Speaker`. Potential uses: confirmation beep on button press, alert on sensor threshold (e.g. room too hot), error sound on WiFi/HA disconnect, encoder tick tone. Investigate what feels useful vs. annoying.
@@ -21,18 +13,6 @@ M5Dial has an 80dB buzzer via `M5Dial.Speaker`. Potential uses: confirmation bee
 ## Screen transition animations
 
 Push/pop transitions (rest → menu, menu → control) are still bare `lv_scr_load()` calls. LVGL has `lv_scr_load_anim()` — could add a fade or slide. MenuScreen already has internal slide animation between cards; the same approach could extend to screen-level transitions.
-
----
-
-## ~~Feature: Find My iPhone~~ (done)
-
-Trigger `icloud.play_sound` via HA — rings the phone even through mute/DND. Requires HA iCloud integration with account email + device name parameters.
-
-**Plan:**
-- Add `haClient.sendFindMyIPhone()` → `call_service: icloud.play_sound` with account + device_name from `credentials.h`
-- Add `MenuCardFindMy` — label "Find iPhone", FA icon `FA_LOCATION_DOT` or similar; `onSelect()` calls the above then pops back
-- No confirm screen needed (action is harmless and reversible by the user picking up the phone)
-- If quick-action cards accumulate, give them a dedicated menu sub-section
 
 ---
 

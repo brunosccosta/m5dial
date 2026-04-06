@@ -142,23 +142,28 @@ void RestScreen::tick() {
     }
 }
 
-void RestScreen::advanceCard() {
+void RestScreen::navigateCard(int dir) {
     _cards[_activeCard]->hide();
     // Skip invisible cards (e.g. Spotify when nothing is playing)
     for (int i = 0; i < _cardCount; i++) {
-        _activeCard = (_activeCard + 1) % _cardCount;
+        _activeCard = (_activeCard + dir + _cardCount) % _cardCount;
         if (_cards[_activeCard]->isVisible()) break;
     }
     _cards[_activeCard]->show();
     _cards[_activeCard]->update();
-    _lastAdvanceMs = millis();
+    _lastAdvanceMs    = millis();
+    _lastCardUpdateMs = millis();
     lv_arc_set_value(_ring, 360);
     _lastRingValue = 360;
     lv_refr_now(NULL);
 }
 
+void RestScreen::advanceCard() {
+    navigateCard(+1);
+}
+
 void RestScreen::onEncoder(int delta) {
-    wake();
+    navigateCard(delta > 0 ? -1 : +1);
 }
 
 void RestScreen::onButton() {

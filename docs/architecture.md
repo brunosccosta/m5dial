@@ -227,7 +227,8 @@ ScreenManager::pop()        → show previous screen
 - Button press → active screen's `onButton()`
 - Touch (tap, no swipe) → active screen's `onTouch()` for coarse "tap anywhere" screens; LVGL `LV_EVENT_CLICKED` events for precise element targeting
 - Swipe left/right → `onSwipe(±1)` via main.cpp gesture detection (press start x, release x, threshold 30px)
-- Any input on RestScreen → push MenuScreen
+- RestScreen encoder → navigate cards (CCW = forward, CW = backward); resets auto-rotation timer
+- RestScreen button or tap → push MenuScreen
 - MenuScreen: encoder rotates cards, swipe left/right changes card, tap selects active card, button goes back to RestScreen
 - ACControlScreen: dial adjusts target temp; tap mode pill toggles off/heat; button confirms changes (push ConfirmScreen) or pops if unchanged
 - Auto-return to RestScreen after 30s inactivity on MenuScreen
@@ -248,11 +249,11 @@ RestScreen (root)   — idle/screensaver, boots here
         └── ConfirmScreen — pushed on unsaved changes; Yes saves + pops ×2, No discards + pops ×2
 ```
 
-**RestScreen** is the root of the stack — it is never popped. Any dial, button, or touch input pushes MenuScreen. After 30s inactivity on MenuScreen it pops back to RestScreen.
+**RestScreen** is the root of the stack — it is never popped. Encoder navigates cards; button or tap pushes MenuScreen. After 30s inactivity on MenuScreen it pops back to RestScreen.
 
 ### RestScreen
 
-Idle/screensaver shown at boot and after 30s inactivity on the main menu. Displays at-a-glance home status — no interaction beyond "wake up" (any input pushes the main menu).
+Idle/screensaver shown at boot and after 30s inactivity on the main menu. Displays at-a-glance home status. Encoder navigates between cards manually; button or tap pushes the main menu.
 
 **Layout** (240×240 circle):
 
@@ -287,7 +288,7 @@ public:
 
 `RestScreen` owns a `RestCard* _cards[]` array and a `_cardCount`. To add a new card: implement `RestCard`, instantiate it, add it to the array. No other changes needed.
 
-`tick()` checks `millis() - _lastAdvanceMs >= CARD_INTERVAL_MS`. When it fires: hide current card, advance index skipping any cards where `isVisible()` returns false, call `show()` + `update()` on the next visible card, reset timer.
+`navigateCard(int dir)` hides the current card, walks the array by `dir` (+1 or −1) skipping cards where `isVisible()` returns false, calls `show()` + `update()` on the target card, and resets both `_lastAdvanceMs` and `_lastCardUpdateMs`. `advanceCard()` (auto-timer) calls `navigateCard(+1)`. `onEncoder(delta)` calls `navigateCard(delta > 0 ? -1 : +1)`.
 
 `CARD_INTERVAL_MS` is a `static constexpr` in `RestScreen.h` — easy to tune.
 
