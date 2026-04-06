@@ -9,8 +9,10 @@
 #include "ui/ConfirmScreen.h"
 #include "ui/RestScreen.h"
 #include "ui/ErrorOverlay.h"
+#include "ui/ToastOverlay.h"
 #include "ui/menu/MenuScreen.h"
 #include "ui/menu/MenuCardAC.h"
+#include "ui/menu/MenuCardFindMy.h"
 #include "credentials.h"
 #include "ui/fonts/fa_icons.h"
 
@@ -18,9 +20,10 @@
 ACControlScreen acControl;
 
 // --- Main menu ---
-MenuCardAC    menuCardAC("AC",     FA_WIND, acControl, appState.ac);
-MenuCardAC    menuCardHeater("Heater", FA_FIRE, acControl, appState.heater);
-MenuScreen    menuScreen;
+MenuCardAC      menuCardAC("AC",     FA_WIND, acControl, appState.ac);
+MenuCardAC      menuCardHeater("Heater", FA_FIRE, acControl, appState.heater);
+MenuCardFindMy  menuCardFindMy(ICLOUD_ACCOUNT, ICLOUD_DEVICE_NAME);
+MenuScreen      menuScreen;
 
 Input input;
 
@@ -51,6 +54,7 @@ void my_disp_flush(lv_display_t *disp, const lv_area_t *area, uint8_t *px_map) {
 void setupNavigation() {
     menuScreen.addCard(&menuCardAC);
     menuScreen.addCard(&menuCardHeater);
+    menuScreen.addCard(&menuCardFindMy);
 
     restScreen.setOnWake([]() {
         screenManager.push(&menuScreen);
@@ -107,6 +111,7 @@ void setup() {
     input.begin();
     haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
     errorOverlay.init();
+    toast.init();
 
     setupNavigation();
     screenManager.push(&restScreen);
@@ -162,6 +167,7 @@ void loop() {
     }
 
     errorOverlay.update();
+    toast.update();
 
     screenManager.tick();
 

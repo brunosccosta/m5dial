@@ -154,11 +154,12 @@ HA responds with:
 
 ### Sending commands
 
-`HAClient` exposes two methods for AC control:
+`HAClient` exposes methods for service calls:
 
 ```cpp
-haClient.sendACTemperature(entity_id, temp);  // climate.set_temperature
-haClient.sendACMode(entity_id, mode);         // climate.set_hvac_mode
+haClient.sendACTemperature(entity_id, temp);          // climate.set_temperature
+haClient.sendACMode(entity_id, mode);                 // climate.set_hvac_mode
+haClient.sendFindMyIPhone(account, deviceName);       // icloud.play_sound
 ```
 
 Payload format:
@@ -471,7 +472,21 @@ class MenuCard {
 - Button → `screenManager.pop()` (back to rest)
 - 30s inactivity → `screenManager.pop()`
 
-Concrete cards: `MenuCardAC` (used for both AC and Heater, with constructor args).
+Concrete cards: `MenuCardAC` (used for both AC and Heater, with constructor args), `MenuCardFindMy` (fires `icloud.play_sound` then pops).
+
+### ToastOverlay
+
+Transient feedback pill shown on `lv_layer_top()` — always above all screens. Auto-dismisses after a configurable duration.
+
+```cpp
+toast.show(FA_MOBILE, "Ringing...", 2000); // icon, message, duration ms
+```
+
+**Layout:** 200×64 rounded pill (`Theme::SURFACE`), flex row centered — FA icon (24px) + message text (montserrat_24). Fades in over 200ms, fades out over 300ms when duration expires.
+
+`init()` is called once in `setup()`. `update()` is called every loop to trigger the fade-out when the timer expires.
+
+---
 
 ### ErrorOverlay
 

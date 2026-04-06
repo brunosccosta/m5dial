@@ -403,6 +403,22 @@ void HAClient::sendACTemperature(const char* entity_id, float temp) {
     _ws.sendTXT(buf);
 }
 
+void HAClient::sendFindMyIPhone(const char* account, const char* deviceName) {
+    char buf[256];
+    snprintf(buf, sizeof(buf),
+             "{\"id\":%d,\"type\":\"call_service\",\"domain\":\"icloud\","
+             "\"service\":\"play_sound\","
+             "\"service_data\":{\"account\":\"%s\",\"device_name\":\"%s\"}}",
+             _msgId + 1, account, deviceName);
+    if (_dryRun) {
+        ESP_LOGI(TAG, "sendFindMyIPhone (dry run): %s", buf);
+        return;
+    }
+    ++_msgId;
+    ESP_LOGD(TAG, "<< %s", buf);
+    _ws.sendTXT(buf);
+}
+
 void HAClient::sendACMode(const char* entity_id, const char* mode) {
     char buf[256];
     snprintf(buf, sizeof(buf),

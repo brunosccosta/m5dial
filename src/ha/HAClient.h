@@ -11,6 +11,7 @@ public:
 
     void sendACTemperature(const char* entity_id, float temp);
     void sendACMode(const char* entity_id, const char* mode);
+    void sendFindMyIPhone(const char* account, const char* deviceName);
 
     void onWsEvent(WStype_t type, uint8_t* payload, size_t length);
 
