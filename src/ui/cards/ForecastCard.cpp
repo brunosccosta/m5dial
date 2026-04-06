@@ -32,7 +32,7 @@ static const char* fcIcon(const char* key) {
 }
 
 // Column x positions (left / right of center)
-static constexpr int COL_X[2] = { -48, +52 };
+static constexpr int COL_X[2] = { -37, +41 };
 
 // --- Lifecycle ---
 
@@ -108,17 +108,17 @@ void ForecastCard::init(lv_obj_t* parent) {
 void ForecastCard::update() {
     for (int col = 0; col < 2; col++) updateColumn(col);
 
-    lv_obj_align(_headerLeft,   LV_ALIGN_CENTER, COL_X[0], -71);
-    lv_obj_align(_iconLeft,     LV_ALIGN_CENTER, COL_X[0], -47);
-    lv_obj_align(_tempLeft,     LV_ALIGN_CENTER, COL_X[0] + 3, -20);
-    lv_obj_align(_rainIconLeft, LV_ALIGN_CENTER, COL_X[0] - 13, +7);
-    lv_obj_align(_rainLeft,     LV_ALIGN_CENTER, COL_X[0] + 11, +7);
+    lv_obj_align(_headerLeft,   LV_ALIGN_CENTER, COL_X[0], -73);
+    lv_obj_align(_iconLeft,     LV_ALIGN_CENTER, COL_X[0], -45);
+    lv_obj_align(_tempLeft,     LV_ALIGN_CENTER, COL_X[0] + 3, -16);
+    lv_obj_align(_rainIconLeft, LV_ALIGN_CENTER, COL_X[0] - 13, +13);
+    lv_obj_align(_rainLeft,     LV_ALIGN_CENTER, COL_X[0] + 11, +13);
 
-    lv_obj_align(_headerRight,   LV_ALIGN_CENTER, COL_X[1], -71);
-    lv_obj_align(_iconRight,     LV_ALIGN_CENTER, COL_X[1], -47);
-    lv_obj_align(_tempRight,     LV_ALIGN_CENTER, COL_X[1] + 3, -20);
-    lv_obj_align(_rainIconRight, LV_ALIGN_CENTER, COL_X[1] - 13, +7);
-    lv_obj_align(_rainRight,     LV_ALIGN_CENTER, COL_X[1] + 11, +7);
+    lv_obj_align(_headerRight,   LV_ALIGN_CENTER, COL_X[1], -73);
+    lv_obj_align(_iconRight,     LV_ALIGN_CENTER, COL_X[1], -45);
+    lv_obj_align(_tempRight,     LV_ALIGN_CENTER, COL_X[1] + 3, -16);
+    lv_obj_align(_rainIconRight, LV_ALIGN_CENTER, COL_X[1] - 13, +13);
+    lv_obj_align(_rainRight,     LV_ALIGN_CENTER, COL_X[1] + 11, +13);
 }
 
 void ForecastCard::updateColumn(int col) {
