@@ -32,7 +32,7 @@ static const char* fcIcon(const char* key) {
 }
 
 // Column x positions (left / right of center)
-static constexpr int COL_X[2] = { -50, +50 };
+static constexpr int COL_X[2] = { -48, +52 };
 
 // --- Lifecycle ---
 
@@ -101,24 +101,24 @@ void ForecastCard::init(lv_obj_t* parent) {
     // Static content never changes
     lv_label_set_text(_headerLeft,    "TODAY");
     lv_label_set_text(_headerRight,   "TMR");
-    lv_label_set_text(_rainIconLeft,  FA_DROPLET);
-    lv_label_set_text(_rainIconRight, FA_DROPLET);
+    lv_label_set_text(_rainIconLeft,  FA_CLOUD_RAIN);
+    lv_label_set_text(_rainIconRight, FA_CLOUD_RAIN);
 }
 
 void ForecastCard::update() {
     for (int col = 0; col < 2; col++) updateColumn(col);
 
-    lv_obj_align(_headerLeft,   LV_ALIGN_CENTER, COL_X[0], -75);
-    lv_obj_align(_iconLeft,     LV_ALIGN_CENTER, COL_X[0], -51);
-    lv_obj_align(_tempLeft,     LV_ALIGN_CENTER, COL_X[0] + 3, -24);
-    lv_obj_align(_rainIconLeft, LV_ALIGN_CENTER, COL_X[0] - 13, +3);
-    lv_obj_align(_rainLeft,     LV_ALIGN_CENTER, COL_X[0] + 11, +3);
+    lv_obj_align(_headerLeft,   LV_ALIGN_CENTER, COL_X[0], -71);
+    lv_obj_align(_iconLeft,     LV_ALIGN_CENTER, COL_X[0], -47);
+    lv_obj_align(_tempLeft,     LV_ALIGN_CENTER, COL_X[0] + 3, -20);
+    lv_obj_align(_rainIconLeft, LV_ALIGN_CENTER, COL_X[0] - 13, +7);
+    lv_obj_align(_rainLeft,     LV_ALIGN_CENTER, COL_X[0] + 11, +7);
 
-    lv_obj_align(_headerRight,   LV_ALIGN_CENTER, COL_X[1], -75);
-    lv_obj_align(_iconRight,     LV_ALIGN_CENTER, COL_X[1], -51);
-    lv_obj_align(_tempRight,     LV_ALIGN_CENTER, COL_X[1] + 3, -24);
-    lv_obj_align(_rainIconRight, LV_ALIGN_CENTER, COL_X[1] - 13, +3);
-    lv_obj_align(_rainRight,     LV_ALIGN_CENTER, COL_X[1] + 11, +3);
+    lv_obj_align(_headerRight,   LV_ALIGN_CENTER, COL_X[1], -71);
+    lv_obj_align(_iconRight,     LV_ALIGN_CENTER, COL_X[1], -47);
+    lv_obj_align(_tempRight,     LV_ALIGN_CENTER, COL_X[1] + 3, -20);
+    lv_obj_align(_rainIconRight, LV_ALIGN_CENTER, COL_X[1] - 13, +7);
+    lv_obj_align(_rainRight,     LV_ALIGN_CENTER, COL_X[1] + 11, +7);
 }
 
 void ForecastCard::updateColumn(int col) {

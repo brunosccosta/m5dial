@@ -100,9 +100,39 @@ void WeatherNowCard::update() {
     lv_obj_align(_tempLabel, LV_ALIGN_CENTER, -9, -45);
     lv_obj_update_layout(_container);
     lv_obj_align_to(_feelsLikeLabel, _tempLabel, LV_ALIGN_OUT_RIGHT_BOTTOM, 6, -2);
-    lv_obj_align(_iconLabel, LV_ALIGN_CENTER, -40, -8);
+
+    // Measure natural sizes so we can center the icon+label group.
+    // Reset to auto-size first in case a previous update set a fixed width.
+    lv_label_set_long_mode(_conditionLabel, LV_LABEL_LONG_WRAP);
+    lv_obj_set_width(_conditionLabel, LV_SIZE_CONTENT);
     lv_obj_update_layout(_container);
-    lv_obj_align_to(_conditionLabel, _iconLabel, LV_ALIGN_OUT_RIGHT_MID, 6, 0);
+
+    static constexpr int GAP       = 6;
+    static constexpr int MAX_TOTAL = 200; // max group width before scrolling kicks in
+
+    bool   hasIcon = lv_label_get_text(_iconLabel)[0] != '\0';
+    int    icon_w  = hasIcon ? lv_obj_get_width(_iconLabel) : 0;
+    int    text_w  = lv_obj_get_width(_conditionLabel);
+    int    total_w = icon_w + (hasIcon ? GAP : 0) + text_w;
+
+    if (total_w > MAX_TOTAL) {
+        int max_text_w = MAX_TOTAL - icon_w - (hasIcon ? GAP : 0);
+        lv_obj_set_width(_conditionLabel, max_text_w);
+        lv_label_set_long_mode(_conditionLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
+        lv_obj_set_style_anim_duration(_conditionLabel, 14000, LV_PART_MAIN);
+        lv_obj_update_layout(_container);
+        text_w  = max_text_w;
+        total_w = MAX_TOTAL;
+    }
+
+    // Place icon center then text center so the group is centered on screen
+    int group_left = -(total_w / 2);
+    int icon_x     = group_left + icon_w / 2;
+    int text_x     = group_left + icon_w + (hasIcon ? GAP : 0) + text_w / 2;
+
+    if (hasIcon) lv_obj_align(_iconLabel, LV_ALIGN_CENTER, icon_x, -8);
+    else         lv_obj_align(_iconLabel, LV_ALIGN_CENTER, 0, -8);
+    lv_obj_align(_conditionLabel, LV_ALIGN_CENTER, text_x, -8);
 }
 
 void WeatherNowCard::show() { lv_obj_clear_flag(_container, LV_OBJ_FLAG_HIDDEN); }

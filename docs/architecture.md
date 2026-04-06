@@ -326,6 +326,10 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 | 3 | `ForecastCard` | `sensor.*_1d` / `sensor.*_2d` Buienradar forecast sensors | always |
 | 4 | `SpotifyCard` | `media_player.spotify` — title, artist, source, volume, shuffle, repeat | only when state is `"playing"` or `"paused"` |
 
+#### WeatherNowCard layout notes
+
+The condition icon + label row is dynamically centered as a group on every `update()`. After setting text, `lv_obj_update_layout()` is called to measure natural widths; both objects are then repositioned so the group center aligns with the screen center. If the total group width exceeds 200px, `conditionLabel` is capped and switches to `LV_LABEL_LONG_SCROLL_CIRCULAR` (14s).
+
 Adding a card = new `.h`/`.cpp` file + one line in `RestScreen`'s card array. Card content and layout are fully self-contained.
 
 #### NTP and RTC time sync
