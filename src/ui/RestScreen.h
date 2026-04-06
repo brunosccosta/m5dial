@@ -9,15 +9,26 @@
 #include "cards/ForecastCard.h"
 #include "cards/SpotifyCard.h"
 
+class RestScreen;  // forward declaration for FooterSlot
+
+struct FooterSlot {
+    lv_obj_t*             iconLabel  = nullptr;
+    lv_obj_t*             stateLabel = nullptr;
+    lv_obj_t*             touchArea  = nullptr;
+    std::function<void()> onTap;
+    RestScreen*           owner      = nullptr;
+};
+
 class RestScreen : public Screen {
 public:
     void setOnWake(std::function<void()> cb);
+    void setFooterTap(int side, std::function<void()> cb);
 
     void init()               override;
     void show()               override;
     void onEncoder(int delta) override;
     void onButton()           override;
-    void onTouch()             override;
+    void onTouch()            override;
     void refresh()            override;
     void tick()               override;
 
@@ -38,9 +49,12 @@ private:
     void advanceCard();
     void wake();
 
+    static void onFooterTap(lv_event_t* e);
+
     static constexpr int MAX_CARDS = 8;
 
-    bool _initialized = false;
+    bool _initialized        = false;
+    bool _footerTapConsumed  = false;
     std::function<void()> _onWake;
 
     lv_obj_t* _lvScreen;
@@ -64,10 +78,7 @@ private:
     int       _lastRingValue = -1;
 
     // Device strip (always visible, not part of card rotation)
-    lv_obj_t* _acIconLabel;
-    lv_obj_t* _acStateLabel;
-    lv_obj_t* _heaterIconLabel;
-    lv_obj_t* _heaterStateLabel;
+    FooterSlot _slots[2];
 };
 
 extern RestScreen restScreen;

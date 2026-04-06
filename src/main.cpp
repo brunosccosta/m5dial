@@ -55,6 +55,16 @@ void setupNavigation() {
     restScreen.setOnWake([]() {
         screenManager.push(&menuScreen);
     });
+
+    // Footer tap shortcuts — go directly to the control screen
+    restScreen.setFooterTap(0, []() {
+        acControl.setAC(&appState.ac);
+        screenManager.push(&acControl);
+    });
+    restScreen.setFooterTap(1, []() {
+        acControl.setAC(&appState.heater);
+        screenManager.push(&acControl);
+    });
 }
 
 void setup() {

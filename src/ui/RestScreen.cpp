@@ -23,6 +23,17 @@ void RestScreen::setOnWake(std::function<void()> cb) {
     _onWake = cb;
 }
 
+void RestScreen::setFooterTap(int side, std::function<void()> cb) {
+    if (side < 0 || side > 1) return;
+    _slots[side].onTap = cb;
+}
+
+void RestScreen::onFooterTap(lv_event_t* e) {
+    FooterSlot* slot = static_cast<FooterSlot*>(lv_obj_get_user_data(static_cast<lv_obj_t*>(lv_event_get_target(e))));
+    slot->owner->_footerTapConsumed = true;
+    slot->onTap();
+}
+
 void RestScreen::init() {
     if (_initialized) return;
     _initialized = true;
@@ -66,27 +77,32 @@ void RestScreen::init() {
     lv_obj_set_style_arc_rounded(_ring, true, LV_PART_INDICATOR);
     lv_obj_set_style_arc_rounded(_ring, true, LV_PART_MAIN);
 
-    // Device strip — AC (left)
-    _acIconLabel = lv_label_create(_lvScreen);
-    lv_obj_set_style_text_font(_acIconLabel, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_acIconLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(_acIconLabel, LV_ALIGN_CENTER, -45, +49);
+    // Device strip — two slots: 0=AC (left), 1=Heater (right)
+    static constexpr int SLOT_X[2] = { -45, +45 };
+    for (int s = 0; s < 2; s++) {
+        _slots[s].owner = this;
 
-    _acStateLabel = lv_label_create(_lvScreen);
-    lv_obj_set_style_text_font(_acStateLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_acStateLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
-    lv_obj_align(_acStateLabel, LV_ALIGN_CENTER, -45, +67);
+        _slots[s].iconLabel = lv_label_create(_lvScreen);
+        lv_obj_set_style_text_font(_slots[s].iconLabel, &font_awesome_solid_18, LV_PART_MAIN);
+        lv_obj_set_style_text_color(_slots[s].iconLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
+        lv_obj_align(_slots[s].iconLabel, LV_ALIGN_CENTER, SLOT_X[s], +52);
 
-    // Device strip — Heater (right)
-    _heaterIconLabel = lv_label_create(_lvScreen);
-    lv_obj_set_style_text_font(_heaterIconLabel, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_heaterIconLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(_heaterIconLabel, LV_ALIGN_CENTER, +45, +49);
+        _slots[s].stateLabel = lv_label_create(_lvScreen);
+        lv_obj_set_style_text_font(_slots[s].stateLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+        lv_obj_set_style_text_color(_slots[s].stateLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
+        lv_obj_align(_slots[s].stateLabel, LV_ALIGN_CENTER, SLOT_X[s], +74);
 
-    _heaterStateLabel = lv_label_create(_lvScreen);
-    lv_obj_set_style_text_font(_heaterStateLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_heaterStateLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
-    lv_obj_align(_heaterStateLabel, LV_ALIGN_CENTER, +45, +67);
+        if (_slots[s].onTap) {
+            _slots[s].touchArea = lv_obj_create(_lvScreen);
+            lv_obj_set_size(_slots[s].touchArea, 120, 80);
+            lv_obj_set_pos(_slots[s].touchArea, s == 0 ? 0 : 120, 160);
+            lv_obj_set_style_bg_opa(_slots[s].touchArea, LV_OPA_TRANSP, LV_PART_MAIN);
+            lv_obj_set_style_border_width(_slots[s].touchArea, 0, LV_PART_MAIN);
+            lv_obj_add_flag(_slots[s].touchArea, LV_OBJ_FLAG_CLICKABLE);
+            lv_obj_set_user_data(_slots[s].touchArea, &_slots[s]);
+            lv_obj_add_event_cb(_slots[s].touchArea, onFooterTap, LV_EVENT_CLICKED, nullptr);
+        }
+    }
 
     ESP_LOGI(TAG, "init complete, %d cards", _cardCount);
 }
@@ -149,6 +165,10 @@ void RestScreen::onButton() {
 }
 
 void RestScreen::onTouch() {
+    if (_footerTapConsumed) {
+        _footerTapConsumed = false;
+        return;
+    }
     wake();
 }
 
@@ -170,33 +190,24 @@ void RestScreen::updateDisplay() {
 
 void RestScreen::updateDeviceStrip() {
     char buf[24];
+    static constexpr int SLOT_X[2] = { -45, +45 };
 
-    ACState& ac = appState.ac;
-    if (ac.valid) {
-        lv_label_set_text(_acIconLabel, modeIcon(ac.mode));
-        snprintf(buf, sizeof(buf), "%s %.0f°", ac.mode, ac.target_temp);
-        lv_label_set_text(_acStateLabel, buf);
-    } else {
-        lv_label_set_text(_acIconLabel,  FA_POWER_OFF);
-        lv_label_set_text(_acStateLabel, "---");
-    }
-
-    ACState& heater = appState.heater;
-    if (heater.valid) {
-        lv_label_set_text(_heaterIconLabel, modeIcon(heater.mode));
-        if (strcmp(heater.mode, "off") == 0) {
-            lv_label_set_text(_heaterStateLabel, "off");
+    ACState* states[2] = { &appState.ac, &appState.heater };
+    for (int s = 0; s < 2; s++) {
+        ACState& state = *states[s];
+        if (state.valid) {
+            lv_label_set_text(_slots[s].iconLabel, modeIcon(state.mode));
+            if (s == 1 && strcmp(state.mode, "off") == 0) {
+                lv_label_set_text(_slots[s].stateLabel, "off");
+            } else {
+                snprintf(buf, sizeof(buf), "%s %.0f°", state.mode, state.target_temp);
+                lv_label_set_text(_slots[s].stateLabel, buf);
+            }
         } else {
-            snprintf(buf, sizeof(buf), "%s %.0f°", heater.mode, heater.target_temp);
-            lv_label_set_text(_heaterStateLabel, buf);
+            lv_label_set_text(_slots[s].iconLabel,  FA_POWER_OFF);
+            lv_label_set_text(_slots[s].stateLabel, "---");
         }
-    } else {
-        lv_label_set_text(_heaterIconLabel,  FA_POWER_OFF);
-        lv_label_set_text(_heaterStateLabel, "---");
+        lv_obj_align(_slots[s].iconLabel,  LV_ALIGN_CENTER, SLOT_X[s], +52);
+        lv_obj_align(_slots[s].stateLabel, LV_ALIGN_CENTER, SLOT_X[s], +74);
     }
-
-    lv_obj_align(_acIconLabel,      LV_ALIGN_CENTER, -45, +49);
-    lv_obj_align(_acStateLabel,     LV_ALIGN_CENTER, -45, +67);
-    lv_obj_align(_heaterIconLabel,  LV_ALIGN_CENTER, +45, +49);
-    lv_obj_align(_heaterStateLabel, LV_ALIGN_CENTER, +45, +67);
 }
