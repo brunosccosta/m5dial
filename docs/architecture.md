@@ -226,8 +226,13 @@ ScreenManager::pop()        → show previous screen
 - Dial (encoder delta) → active screen's `onEncoder(delta)`
 - Button press → active screen's `onButton()`
 - Touch (tap, no swipe) → active screen's `onTouch()` for coarse "tap anywhere" screens; LVGL `LV_EVENT_CLICKED` events for precise element targeting
-- Swipe left/right → `onSwipe(±1)` via main.cpp gesture detection (press start x, release x, threshold 30px)
+- Swipe classification (main.cpp): dominant axis wins; both axes use `SWIPE_THRESHOLD = 30px`
+  - Swipe down (any screen) → `QuickPanel.show()`
+  - Swipe up → `QuickPanel.dismiss()` if visible, else no-op
+  - Swipe left/right → `onSwipe(±1)` routed to QuickPanel or ScreenManager depending on visibility
+- While `QuickPanel.isVisible()`, all input (encoder, button, touch, swipe) is routed to QuickPanel instead of ScreenManager
 - RestScreen encoder → navigate cards (CCW = forward, CW = backward); resets auto-rotation timer
+- RestScreen swipe left/right → navigate cards (same as encoder)
 - RestScreen button or tap → push MenuScreen
 - MenuScreen: encoder rotates cards, swipe left/right changes card, tap selects active card, button goes back to RestScreen
 - ACControlScreen: dial adjusts target temp; tap mode pill toggles off/heat; button confirms changes (push ConfirmScreen) or pops if unchanged
@@ -577,6 +582,29 @@ toast.show(FA_MOBILE, "Ringing...", 2000); // icon, message, duration ms
 
 ---
 
+### QuickPanel
+
+System-level overlay — iPhone Control Center style. Lives on `lv_layer_top()` above all screens. Triggered by swipe-down from any screen; dismissed by swipe-up or button press.
+
+**Animation:** slides y from −240→0 on show (200ms ease-out), 0→−240 on dismiss (150ms ease-in), then hidden.
+
+**Input gating:** while `isVisible()`, main.cpp routes all input (encoder, button, touch, swipe) to `QuickPanel` instead of `ScreenManager`.
+
+**MVP layout:**
+```
+┌──────────────────────────────┐
+│   ● WiFi  ● HA    HA Ready   │  connection row (y≈55)
+│  ☀ 21°   🛏 19°   🚿 22°     │  indoor temps  (y≈110)
+│      [ 📱  Find iPhone ]     │  action pill   (y≈160)
+└──────────────────────────────┘
+```
+
+Connection dots: green = connected, yellow = partial, red = disconnected.
+
+**`FindMyAction`** — shared coordinator (`src/ha/FindMyAction.h`) used by both `QuickPanel` and `MenuCardFindMy`. Holds account/deviceName; `trigger()` calls `haClient.sendFindMyIPhone()` + `toast.show()`. Keeps the two callers DRY.
+
+---
+
 ### ErrorOverlay
 
 Lives on `lv_layer_top()` — always above all screens. Three states:
@@ -630,12 +658,34 @@ See [`src/ui/themes/README.md`](../src/ui/themes/README.md) for the full token r
 void loop() {
     M5Dial.update();
     haClient.update();   // non-blocking HA/WiFi processing
-    lv_timer_handler();  // LVGL rendering
+
+    // Input handled BEFORE lv_timer_handler so swipe cancellation
+    // (suppressNextRelease + lv_indev_reset) takes effect before LVGL
+    // processes touch events and fires LV_EVENT_CLICKED.
+    input.update();
+    // ... encoder / button / touch / swipe classification
+
+    lv_timer_handler();  // LVGL rendering + event dispatch
     delay(5);
 
-    // input handling → AppState / HAClient / UI
+    // overlays, tick, dirty check
 }
 ```
+
+### Swipe cancellation
+
+When a gesture is classified as a swipe, `cancelTouch()` is called before `lv_timer_handler()`:
+
+```cpp
+static void cancelTouch() {
+    suppressNextRelease = true;          // belt-and-suspenders: report release at (0,0)
+    lv_indev_reset(touchIndev, nullptr); // clears last_pressed so LV_EVENT_CLICKED never fires
+}
+```
+
+`lv_indev_reset` is the real fix — LVGL dispatches `LV_EVENT_CLICKED` to `last_pressed` regardless of where the finger lifts, so suppressing coordinates alone is not sufficient.
+
+For QuickPanel dismiss specifically, an early-dismiss path fires on `isPressed()` (mid-gesture) rather than `wasReleased()`, so the panel slides away before the finger lifts. `gestureHandled` prevents double-classification of the same touch.
 
 ---
 

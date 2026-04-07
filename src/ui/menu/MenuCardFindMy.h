@@ -1,6 +1,7 @@
 #pragma once
 #include <lvgl.h>
 #include "MenuCard.h"
+#include "../../ha/FindMyAction.h"
 
 class MenuCardFindMy : public MenuCard {
 public:
@@ -13,8 +14,7 @@ public:
     void        onSelect()                override;
 
 private:
-    const char* _account;
-    const char* _deviceName;
+    FindMyAction _action;
 
     lv_obj_t* _iconLabel;
     lv_obj_t* _nameLabel;

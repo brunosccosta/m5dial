@@ -31,6 +31,8 @@ extern const lv_font_t font_awesome_solid_18;
 
 // Network / signal / status
 #define FA_SIGNAL        "\xEF\x80\x92"  // U+F012 — fa-signal
+#define FA_WIFI          "\xEF\x87\xAB"  // U+F1EB — fa-wifi
+#define FA_HOUSE         "\xEF\x80\x95"  // U+F015 — fa-house
 #define FA_CLOCK         "\xEF\x80\x97"  // U+F017 — fa-clock
 #define FA_BATTERY_HALF  "\xEF\x89\x82"  // U+F242 — fa-battery-half
 #define FA_CARET_DOWN    "\xEF\x83\x97"  // U+F0D7 — fa-caret-down

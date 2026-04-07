@@ -170,6 +170,10 @@ void RestScreen::onButton() {
     wake();
 }
 
+void RestScreen::onSwipe(int dir) {
+    navigateCard(dir);
+}
+
 void RestScreen::onTouch() {
     if (_footerTapConsumed) {
         _footerTapConsumed = false;

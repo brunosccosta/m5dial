@@ -16,12 +16,6 @@ Push/pop transitions (rest → menu, menu → control) are still bare `lv_scr_lo
 
 ---
 
-## Feature: MeshCore repeater rest card
-
-I have a MeshCore repeater integrated in HA. Add a `RestCard` showing basic stats from it — exact fields TBD (candidates: node count, last seen, SNR/RSSI, uptime). Pull via existing HA entity subscription. Card is always visible.
-
----
-
 ## Feature: Notification system
 
 Use HA persistent notifications as the backend. Any HA automation pushes `persistent_notification.create` (title + message + notification_id); the dial subscribes to those entities, shows a badge on RestScreen, and can dismiss via `persistent_notification.dismiss`.

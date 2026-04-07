@@ -30,6 +30,7 @@ public:
     void onEncoder(int delta) override;
     void onButton()           override;
     void onTouch()            override;
+    void onSwipe(int dir)     override;
     void refresh()            override;
     void tick()               override;
 

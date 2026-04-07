@@ -2,12 +2,9 @@
 #include "../ScreenManager.h"
 #include "../Theme.h"
 #include "../fonts/fa_icons.h"
-#include "../ToastOverlay.h"
-#include "../../ha/HAClient.h"
-#include "../../credentials.h"
 
 MenuCardFindMy::MenuCardFindMy(const char* account, const char* deviceName)
-    : _account(account), _deviceName(deviceName) {}
+    : _action(account, deviceName) {}
 
 void MenuCardFindMy::init(lv_obj_t* container) {
     _iconLabel = lv_label_create(container);
@@ -28,7 +25,6 @@ const char* MenuCardFindMy::icon() {
 }
 
 void MenuCardFindMy::onSelect() {
-    haClient.sendFindMyIPhone(_account, _deviceName);
-    toast.show(FA_MOBILE, "Ringing...", 2000);
+    _action.trigger();
     screenManager.pop();
 }

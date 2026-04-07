@@ -64,6 +64,7 @@ Update the codepoints table below.
 | Decimal | Hex | FA name | Macro |
 |---|---|---|---|
 | 61457 | F011 | fa-power-off | `FA_POWER_OFF` |
+| 61461 | F015 | fa-house | `FA_HOUSE` |
 | 61459 | F013 | fa-gear | `FA_GEAR` |
 | 61473 | F021 | fa-arrows-rotate | `FA_ARROWS_ROTATE` |
 | 61507 | F043 | fa-droplet | `FA_DROPLET` |
@@ -72,6 +73,7 @@ Update the codepoints table below.
 | 61675 | F0EB | fa-lightbulb | `FA_LIGHTBULB` |
 | 61634 | F0C2 | fa-cloud | `FA_CLOUD` |
 | 61829 | F185 | fa-sun | `FA_SUN` |
+| 61931 | F1EB | fa-wifi | `FA_WIFI` |
 | 61830 | F186 | fa-moon | `FA_MOON` |
 | 62172 | F2DC | fa-snowflake | `FA_SNOWFLAKE` |
 | 63172 | F6C4 | fa-cloud-sun | `FA_CLOUD_SUN` |

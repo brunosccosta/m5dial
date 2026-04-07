@@ -371,6 +371,26 @@ Scroll speed is controlled by `lv_obj_set_style_anim_duration(label, ms, LV_PART
 
 ---
 
+## LVGL click fires on last-pressed object regardless of release coordinates
+
+`LV_EVENT_CLICKED` is dispatched to `last_pressed` — the object that received the initial `LV_EVENT_PRESSED` — not to whatever object is under the finger at release. Reporting the release at a neutral point (e.g. 0,0) via the indev read callback does **not** suppress the click; LVGL still sends `LV_EVENT_RELEASED` / `LV_EVENT_CLICKED` to the previously-pressed object.
+
+**Fix**: call `lv_indev_reset(indev, nullptr)` when a gesture is classified as a swipe. This clears `last_pressed` and `act_obj` so LVGL has no object to deliver events to.
+
+```cpp
+// Store the indev pointer globally at setup time:
+touchIndev = lv_indev_create();
+lv_indev_set_type(touchIndev, LV_INDEV_TYPE_POINTER);
+lv_indev_set_read_cb(touchIndev, my_touch_read);
+
+// On swipe detection (before lv_timer_handler runs):
+lv_indev_reset(touchIndev, nullptr);
+```
+
+Suppressing the release coordinates is still useful as a belt-and-suspenders fallback but is not sufficient on its own.
+
+---
+
 ## HA WebSocket auth flow
 
 Fixed protocol on connect — no variation:

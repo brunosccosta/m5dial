@@ -10,6 +10,7 @@
 #include "ui/RestScreen.h"
 #include "ui/ErrorOverlay.h"
 #include "ui/ToastOverlay.h"
+#include "ui/QuickPanel.h"
 #include "ui/menu/MenuScreen.h"
 #include "ui/menu/MenuCardAC.h"
 #include "ui/menu/MenuCardFindMy.h"
@@ -26,6 +27,16 @@ MenuCardFindMy  menuCardFindMy(ICLOUD_ACCOUNT, ICLOUD_DEVICE_NAME);
 MenuScreen      menuScreen;
 
 Input input;
+lv_indev_t* touchIndev = nullptr; // stored for lv_indev_reset() on swipe cancel
+
+// Called when a gesture is classified as a swipe. Resets LVGL's "last pressed
+// object" tracking so LV_EVENT_CLICKED never fires on whatever was under the
+// finger. suppressNextRelease is a belt-and-suspenders fallback.
+static bool suppressNextRelease = false;
+static void cancelTouch() {
+    suppressNextRelease = true;
+    if (touchIndev) lv_indev_reset(touchIndev, nullptr);
+}
 
 void my_touch_read(lv_indev_t* /*indev*/, lv_indev_data_t* data) {
     auto touch = M5Dial.Touch.getDetail();
@@ -35,8 +46,14 @@ void my_touch_read(lv_indev_t* /*indev*/, lv_indev_data_t* data) {
         data->point.y = touch.y;
     } else {
         data->state   = LV_INDEV_STATE_RELEASED;
-        data->point.x = touch.x;
-        data->point.y = touch.y;
+        if (suppressNextRelease) {
+            suppressNextRelease = false;
+            data->point.x = 0;
+            data->point.y = 0;
+        } else {
+            data->point.x = touch.x;
+            data->point.y = touch.y;
+        }
     }
 }
 
@@ -90,9 +107,9 @@ void setup() {
     static lv_color_t buf[240 * 24];
     lv_display_set_buffers(disp, buf, NULL, sizeof(buf), LV_DISPLAY_RENDER_MODE_PARTIAL);
 
-    lv_indev_t* indev = lv_indev_create();
-    lv_indev_set_type(indev, LV_INDEV_TYPE_POINTER);
-    lv_indev_set_read_cb(indev, my_touch_read);
+    touchIndev = lv_indev_create();
+    lv_indev_set_type(touchIndev, LV_INDEV_TYPE_POINTER);
+    lv_indev_set_read_cb(touchIndev, my_touch_read);
 
     configTime(0, 0, "pool.ntp.org");
     setenv("TZ", "CET-1CEST,M3.5.0,M10.5.0/3", 1);
@@ -112,6 +129,7 @@ void setup() {
     haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
     errorOverlay.init();
     toast.init();
+    quickPanel.init();
 
     setupNavigation();
     screenManager.push(&restScreen);
@@ -122,39 +140,83 @@ void setup() {
 void loop() {
     M5Dial.update();
     haClient.update();
-    lv_timer_handler();
-    delay(5);
 
+    // --- Input (before lv_timer_handler so swipe suppression takes effect) ---
     input.update();
+
+    static constexpr int SWIPE_THRESHOLD         = 30; // px to classify any swipe
+    static constexpr int PANEL_DISMISS_THRESHOLD = 15; // px upward movement to dismiss QuickPanel
 
     int delta = input.getEncoderDelta();
     if (delta != 0) {
         ESP_LOGD("INPUT", "encoder delta=%d", delta);
-        screenManager.onEncoder(-delta);
+        if (quickPanel.isVisible()) quickPanel.onEncoder(-delta);
+        else                        screenManager.onEncoder(-delta);
     }
     if (input.wasButtonPressed()) {
         ESP_LOGD("INPUT", "button pressed");
-        screenManager.onButton();
+        if (quickPanel.isVisible()) quickPanel.onButton();
+        else                        screenManager.onButton();
     }
 
-    static int touchStartX = 0;
-    static constexpr int SWIPE_THRESHOLD = 30;
+    static int  touchStartX    = 0;
+    static int  touchStartY    = 0;
+    static bool gestureHandled = false; // prevents double-firing within one touch
 
     auto touch = M5Dial.Touch.getDetail();
     if (touch.wasPressed()) {
-        touchStartX = touch.x;
-    } else if (touch.wasReleased()) {
+        touchStartX    = touch.x;
+        touchStartY    = touch.y;
+        gestureHandled = false;
+    } else if (touch.isPressed() && !gestureHandled && quickPanel.isVisible()) {
+        // Early dismiss: fire as soon as the finger moves up past the threshold,
+        // without waiting for release — panel is gone before the finger lifts.
+        int dy = touch.y - touchStartY;
+        if (dy < -PANEL_DISMISS_THRESHOLD) {
+            gestureHandled = true;
+            cancelTouch();
+            quickPanel.onSwipe(-1);
+        }
+    } else if (touch.wasReleased() && !gestureHandled) {
         int dx = touch.x - touchStartX;
-        ESP_LOGI("TOUCH", "start=%d end=%d dx=%d", touchStartX, touch.x, dx);
-        M5Dial.Speaker.tone(300, 40);
-        if (dx < -SWIPE_THRESHOLD) {
-            screenManager.onSwipe(+1); // swipe left → next
-        } else if (dx > SWIPE_THRESHOLD) {
-            screenManager.onSwipe(-1); // swipe right → prev
+        int dy = touch.y - touchStartY;
+        ESP_LOGI("TOUCH", "start=(%d,%d) end=(%d,%d) dx=%d dy=%d",
+                 touchStartX, touchStartY, touch.x, touch.y, dx, dy);
+
+        if (abs(dy) > abs(dx)) {
+            // Vertical swipe
+            if (dy > SWIPE_THRESHOLD) {
+                cancelTouch();
+                quickPanel.show();
+            } else if (dy < -SWIPE_THRESHOLD) {
+                cancelTouch();
+                if (quickPanel.isVisible()) quickPanel.onSwipe(-1);
+            } else {
+                M5Dial.Speaker.tone(300, 40);
+                if (quickPanel.isVisible()) quickPanel.onTouch();
+                else                        screenManager.onTouch();
+            }
         } else {
-            screenManager.onTouch();  // tap
+            // Horizontal swipe
+            if (dx < -SWIPE_THRESHOLD) {
+                cancelTouch();
+                if (quickPanel.isVisible()) quickPanel.onSwipe(+1);
+                else                        screenManager.onSwipe(+1); // swipe left → next
+            } else if (dx > SWIPE_THRESHOLD) {
+                cancelTouch();
+                if (quickPanel.isVisible()) quickPanel.onSwipe(-1);
+                else                        screenManager.onSwipe(-1); // swipe right → prev
+            } else {
+                M5Dial.Speaker.tone(300, 40);
+                if (quickPanel.isVisible()) quickPanel.onTouch();
+                else                        screenManager.onTouch();   // tap
+            }
         }
     }
+
+    // --- Render (touch suppression flag already set if needed) ---
+    lv_timer_handler();
+    delay(5);
 
     static bool ntpSyncedToRtc = false;
     if (!ntpSyncedToRtc && M5Dial.Rtc.isEnabled()) {
@@ -168,6 +230,7 @@ void loop() {
 
     errorOverlay.update();
     toast.update();
+    quickPanel.update();
 
     screenManager.tick();
 
