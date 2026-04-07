@@ -20,7 +20,7 @@ A Home Assistant controller built on the M5Stack Dial (ESP32-S3) using LVGL for 
 ### Project docs
 - [Architecture & design decisions](docs/architecture.md)
 - [Learnings & gotchas](docs/learnings.md)
-- [Open tasks & future work](TODO.md)
+- [Open tasks & future work](docs/TODO.md)
 
 ### Source READMEs
 - [RestScreen cards](src/ui/cards/README.md) — how to add a new card

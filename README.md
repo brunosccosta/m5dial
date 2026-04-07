@@ -66,6 +66,7 @@ bash tools/gen_images.sh
 
 | Doc | What's in it |
 |---|---|
+| [`docs/TODO.md`](docs/TODO.md) | Planned features and open questions |
 | [`docs/architecture.md`](docs/architecture.md) | System overview — AppState, HAClient, screens, cards, input contract, loop structure |
 | [`docs/learnings.md`](docs/learnings.md) | LVGL/ESP32 gotchas and non-obvious fixes |
 | [`docs/theme-system.md`](docs/theme-system.md) | Color tokens and how to add a new theme |

@@ -5,7 +5,7 @@
 1. Read `MEMORY.md` (auto-memory index) and any relevant memory files under `.claude/` — check for feedback, project context, and workflow rules.
 2. Read `docs/architecture.md` — understand the system before touching it.
 3. Read `docs/learnings.md` — avoid repeating past mistakes.
-4. Read `TODO.md` — know what's planned and how features are expected to behave.
+4. Read `docs/TODO.md` — know what's planned and how features are expected to behave.
 5. For significant features, check for a working doc at `docs/<feature>.md`.
 
 ## Workflow rules
