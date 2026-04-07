@@ -51,3 +51,4 @@ tools/venv/
 # src/secrets.h
 src/credentials.h
 src/devices.h
+src/flights.h

@@ -46,6 +46,9 @@ extern const lv_font_t font_montserrat_cyr_24;
 #define FA_BED               "\xEF\x88\xB6"  // U+F236 — fa-bed
 #define FA_SHOWER            "\xEF\x8B\x8C"  // U+F2CC — fa-shower
 
+// Travel
+#define FA_PLANE_DEPARTURE   "\xEF\x96\xB0"  // U+F5B0 — fa-plane-departure
+
 // Music / media
 #define FA_VOLUME_HIGH       "\xEF\x80\xA8"  // U+F028 — fa-volume-high
 #define FA_SHUFFLE           "\xEF\x81\xB4"  // U+F074 — fa-shuffle

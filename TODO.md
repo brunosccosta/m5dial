@@ -41,20 +41,9 @@ Allow activating HA scenes from the device. Rest card could show the current/las
 
 ---
 
-## Feature: Flag emoji for flight countdown card
+## Feature: Hook FlightCard to HA calendar
 
-Image pipeline is in place (`tools/gen_images.sh`, `src/ui/images/`). Next use: country flag emoji from Twemoji for the flight countdown card. Download flag PNGs, resize to target size, run the pipeline, declare in `lvgl_images.h`.
-
----
-
-## Feature: Flight/vacation countdown card
-
-A rest card showing a countdown to the next upcoming flight or vacation. Could show: destination name, flag emoji, days remaining, maybe departure city → destination city. Data hardcoded initially (or driven by a HA `input_datetime` / `calendar` entity later).
-
-**Open questions:**
-- Single next event or a short list (next 2–3)?
-- Flag emoji → requires color emoji image rendering (see peach emoji task)
-- Data source: hardcoded array vs. HA calendar entity subscription
+`FlightCard` is built with flights hardcoded in `src/flights.h` (gitignored). Eventually drive it from a HA `calendar` entity or `input_datetime` helpers so flights can be added/removed from HA without reflashing.
 
 ---
 

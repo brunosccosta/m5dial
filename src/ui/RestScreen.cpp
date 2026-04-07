@@ -53,6 +53,7 @@ void RestScreen::init() {
     _cards[_cardCount++] = &_cardSpotify;
     _cards[_cardCount++] = &_cardMeshCore;
     _cards[_cardCount++] = &_cardLove;
+    _cards[_cardCount++] = &_cardFlight;
 
     // Init all cards; show first (or pinned), hide the rest
     _activeCard = (DEV_CARD_PIN >= 0 && DEV_CARD_PIN < _cardCount) ? DEV_CARD_PIN : 0;

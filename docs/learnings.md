@@ -407,6 +407,26 @@ The generated C files from `LVGLImage.py --ofmt C` use `lv_image_dsc_t` — this
 
 ---
 
+## Bottom-aligning two labels of different font sizes
+
+LVGL's `LV_ALIGN_CENTER` aligns the center of an object. When placing a small label beside a large one (e.g. "22nd May" in montserrat_14 next to "45 days" in montserrat_24), centering both at the same y produces top-alignment visually — the small label hangs above the baseline of the large one.
+
+To bottom-align: measure both heights after `lv_obj_update_layout`, then offset the smaller label's y so its bottom matches the larger one's bottom:
+
+```cpp
+lv_obj_update_layout(_container);
+int bigH   = lv_obj_get_height(_bigLabel);    // e.g. 28px
+int smallH = lv_obj_get_height(_smallLabel);  // e.g. 18px
+int bigY   = -5;                              // center of big label
+int smallY = bigY + bigH / 2 - smallH / 2;   // bottom-align small to big
+lv_obj_align(_bigLabel,   LV_ALIGN_CENTER, bigX,   bigY);
+lv_obj_align(_smallLabel, LV_ALIGN_CENTER, smallX, smallY);
+```
+
+`lv_obj_update_layout` must be called **after** setting label text — heights are only valid once layout is resolved.
+
+---
+
 ## HA WebSocket auth flow
 
 Fixed protocol on connect — no variation:

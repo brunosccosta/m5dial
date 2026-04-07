@@ -1,0 +1,18 @@
+#pragma once
+#include "ui/images/lvgl_images.h"
+
+// Upcoming flights — copy to src/flights.h (gitignored) and fill in your data.
+// Add entries in chronological order. Past flights are skipped automatically.
+// Flag images must be declared in src/ui/images/lvgl_images.h and generated
+// via tools/gen_images.sh. See src/ui/images/README.md for the full workflow.
+
+struct FlightEntry {
+    const char*           destination;
+    int                   year, month, day;
+    const lv_image_dsc_t* flag;
+};
+
+static const FlightEntry FLIGHTS[] = {
+    { "Italy",  2024, 6, 10, &flag_it },
+};
+static const int FLIGHT_COUNT = sizeof(FLIGHTS) / sizeof(FLIGHTS[0]);

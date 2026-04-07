@@ -336,6 +336,7 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 | 4 | `SpotifyCard` | `media_player.spotify` — title, artist, source, volume, shuffle, repeat | only when state is `"playing"` or `"paused"` |
 | 5 | `MeshCoreCard` | MeshCore repeater GigiTower — battery %, 24h trend, uptime, last-updated | always |
 | 6 | `LoveCard` | Easter egg — beating heart + cycling messages (Russian/English/Portuguese); peach emoji swaps in for "Gostosa!" | `appState.loveMode` |
+| 7 | `FlightCard` | Countdown to next flight — flag emoji, destination, days + date, hint line for next-next flight; urgency coloring ≤14d/≤6d | at least one flight with `daysUntil >= 0` in `src/flights.h` |
 
 #### MeshCoreCard layout
 
