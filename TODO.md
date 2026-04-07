@@ -41,15 +41,9 @@ Allow activating HA scenes from the device. Rest card could show the current/las
 
 ---
 
-## Tooling: LVGL image pipeline
+## Feature: Flag emoji for flight countdown card
 
-Color images (emoji, icons) can't be embedded in fonts — they need to be compiled C arrays (`lv_img_dsc_t`) and displayed via `lv_img_create()`. Set up a pipeline similar to the font tooling:
-
-- `tools/images/` — source PNGs (e.g. Twemoji peach `1F351.png`, flag PNGs)
-- `tools/gen_images.sh` — converts each PNG to an LVGL C array using `lv_img_converter` (or the Python equivalent from LVGL's repo)
-- `src/ui/images/` — generated `.c` files + a `lvgl_images.h` header declaring all `lv_img_dsc_t` externs
-
-First use case: peach emoji for `LoveCard` ("Gostosa!"), flag emojis for the flight countdown card.
+Image pipeline is in place (`tools/gen_images.sh`, `src/ui/images/`). Next use: country flag emoji from Twemoji for the flight countdown card. Download flag PNGs, resize to target size, run the pipeline, declare in `lvgl_images.h`.
 
 ---
 

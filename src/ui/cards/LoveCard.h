@@ -19,9 +19,11 @@ private:
     void startHeartAnim();
     void stopHeartAnim();
     void startMsgFadeOut();
+    void updateIcon();  // shows heart or peach depending on active message
 
     lv_obj_t*  _container = nullptr;
     lv_obj_t*  _heart     = nullptr;
+    lv_obj_t*  _peach     = nullptr;
     lv_obj_t*  _msgLabel  = nullptr;
     lv_timer_t* _msgTimer = nullptr;
 

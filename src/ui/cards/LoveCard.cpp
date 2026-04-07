@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "LoveCard.h"
 #include "../fonts/fa_icons.h"
+#include "../images/lvgl_images.h"
 #include "../Theme.h"
 #include "../../AppState.h"
 
@@ -34,6 +35,7 @@ void LoveCard::fadeOutDoneCb(lv_anim_t* a) {
 
     self->_msgIndex = (self->_msgIndex + 1) % MSG_COUNT;
     lv_label_set_text(self->_msgLabel, MESSAGES[self->_msgIndex]);
+    self->updateIcon();
 
     // Fade in
     lv_anim_t fa;
@@ -74,6 +76,12 @@ void LoveCard::init(lv_obj_t* parent) {
     lv_obj_set_style_transform_pivot_x(_heart, LV_PCT(50), LV_PART_MAIN);
     lv_obj_set_style_transform_pivot_y(_heart, LV_PCT(50), LV_PART_MAIN);
 
+    // Peach image (shown instead of heart on "Gostosa!")
+    _peach = lv_image_create(_container);
+    lv_image_set_src(_peach, &emoji_peach);
+    lv_obj_align(_peach, LV_ALIGN_CENTER, 0, -55);
+    lv_obj_add_flag(_peach, LV_OBJ_FLAG_HIDDEN);
+
     // Message label
     _msgLabel = lv_label_create(_container);
     lv_obj_set_style_text_font(_msgLabel, &font_montserrat_cyr_24, LV_PART_MAIN);
@@ -94,7 +102,7 @@ void LoveCard::init(lv_obj_t* parent) {
 // ---------------------------------------------------------------------------
 void LoveCard::show() {
     lv_obj_remove_flag(_container, LV_OBJ_FLAG_HIDDEN);
-    startHeartAnim();
+    updateIcon();
     lv_timer_reset(_msgTimer);
     lv_timer_resume(_msgTimer);
 }
@@ -117,6 +125,19 @@ bool LoveCard::isVisible() const {
 // ---------------------------------------------------------------------------
 // Private helpers
 // ---------------------------------------------------------------------------
+void LoveCard::updateIcon() {
+    bool isGostosa = strcmp(MESSAGES[_msgIndex], "Gostosa!") == 0;
+    if (isGostosa) {
+        stopHeartAnim();
+        lv_obj_add_flag(_heart, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(_peach, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(_peach, LV_OBJ_FLAG_HIDDEN);
+        lv_obj_remove_flag(_heart, LV_OBJ_FLAG_HIDDEN);
+        startHeartAnim();
+    }
+}
+
 void LoveCard::startHeartAnim() {
     lv_anim_t a;
     lv_anim_init(&a);

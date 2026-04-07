@@ -391,6 +391,22 @@ Suppressing the release coordinates is still useful as a belt-and-suspenders fal
 
 ---
 
+## LVGL v9 image API — different from v8
+
+In v9, the image widget and descriptor types were renamed:
+
+| v8 | v9 |
+|---|---|
+| `lv_img_dsc_t` | `lv_image_dsc_t` |
+| `lv_img_create(parent)` | `lv_image_create(parent)` |
+| `lv_img_set_src(obj, &dsc)` | `lv_image_set_src(obj, &dsc)` |
+
+The generated C files from `LVGLImage.py --ofmt C` use `lv_image_dsc_t` — this is the correct v9 type. Using the old `lv_img_*` names compiles but may link to deprecated stubs or fail entirely.
+
+**`--premultiply` is required for correct emoji rendering.** Emoji PNGs have semi-transparent edges. Without premultiplied alpha, LVGL blends the raw alpha incorrectly — edges appear frayed or with a dark halo. Always pass `--premultiply` when converting RGBA images.
+
+---
+
 ## HA WebSocket auth flow
 
 Fixed protocol on connect — no variation:

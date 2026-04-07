@@ -335,7 +335,7 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 | 3 | `ForecastCard` | `sensor.*_1d` / `sensor.*_2d` Buienradar forecast sensors | always |
 | 4 | `SpotifyCard` | `media_player.spotify` — title, artist, source, volume, shuffle, repeat | only when state is `"playing"` or `"paused"` |
 | 5 | `MeshCoreCard` | MeshCore repeater GigiTower — battery %, 24h trend, uptime, last-updated | always |
-| 6 | `LoveCard` | Easter egg — beating heart + cycling messages (Russian/English/Portuguese) | `appState.loveMode` |
+| 6 | `LoveCard` | Easter egg — beating heart + cycling messages (Russian/English/Portuguese); peach emoji swaps in for "Gostosa!" | `appState.loveMode` |
 
 #### MeshCoreCard layout
 
@@ -522,6 +522,22 @@ Mode is cycled by tapping the mode pill. Uses `_ac->availableModes[]` from HA wh
 | Heater | `FA_FIRE` | fa-fire | Infrared heater, heat-only |
 
 Icon font: FontAwesome Solid, generated as `font_awesome_solid_32.c` (32px), `font_awesome_solid_24.c` (24px), and `font_awesome_solid_18.c` (18px). See [`src/ui/fonts/README.md`](../src/ui/fonts/README.md) for how to add glyphs and regenerate.
+
+### LVGL image pipeline
+
+Color images (emoji, flags) can't live in fonts. They compile to `lv_image_dsc_t` C arrays and are displayed via `lv_image_create()` / `lv_image_set_src()`.
+
+```
+tools/images/*.png   →   tools/gen_images.sh   →   src/ui/images/*.c
+                                                     src/ui/images/lvgl_images.h
+```
+
+- **Source PNGs**: pre-resized to the intended display size (use `sips -z h w src.png --out dst.png`)
+- **Converter**: `LVGLImage.py` from LVGL's scripts (`--ofmt C --cf ARGB8888 --premultiply`)
+- **Python venv**: `tools/venv/` (gitignored) — create once with `bash tools/setup_venv.sh`
+- **Declaring**: one `extern const lv_image_dsc_t name;` line in `lvgl_images.h`
+
+See [`src/ui/images/README.md`](../src/ui/images/README.md) for the full step-by-step workflow.
 
 ### ConfirmScreen
 
