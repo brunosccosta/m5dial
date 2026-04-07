@@ -87,6 +87,7 @@ struct AppState {
     SpotifyState  spotify;         // media_player.spotify
     MeshCoreState meshcore;        // meshcore repeater GigiTower
 
+    bool            loveMode;    // easter egg; will be driven by input_boolean.dial_love_mode later
     bool            dirty;      // set by HA layer when state changes; cleared by UI after refresh
     ConnectionState connection; // written by HAClient; read by UI for status indicator
 

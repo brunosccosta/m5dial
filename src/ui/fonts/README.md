@@ -63,6 +63,7 @@ Update the codepoints table below.
 
 | Decimal | Hex | FA name | Macro |
 |---|---|---|---|
+| 61444 | F004 | fa-heart | `FA_HEART` |
 | 61457 | F011 | fa-power-off | `FA_POWER_OFF` |
 | 61461 | F015 | fa-house | `FA_HOUSE` |
 | 61459 | F013 | fa-gear | `FA_GEAR` |

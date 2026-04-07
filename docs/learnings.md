@@ -399,3 +399,37 @@ Fixed protocol on connect — no variation:
 3. Server → `{"type":"auth_ok"}` or `{"type":"auth_invalid"}`
 
 `auth_invalid` means the token in `credentials.h` is wrong or expired. HA long-lived tokens don't expire unless manually revoked.
+
+---
+
+## In-class member initializers break aggregate initialization
+
+`AppState` is initialized as an aggregate in `AppState.cpp`:
+```cpp
+AppState appState = { .loveMode = true, .dirty = false, ... };
+```
+
+Adding a default-initializer to any `AppState` field (e.g. `bool loveMode = false;` in the header) converts the struct from an aggregate to a non-aggregate in C++14/17 — the designated initializer list then fails with "could not convert from brace-enclosed initializer list".
+
+**Fix**: never add in-class initializers to `AppState` (or any struct initialized as an aggregate). Keep all defaults in the aggregate initializer in `AppState.cpp`.
+
+---
+
+## Use `lv_timer_create` for sub-60s card animation cycles
+
+`RestCard::update()` is only called when `AppState` is dirty or every 60s from `RestScreen::tick()`. For animations that need to cycle faster (e.g. message rotation every 8s), use `lv_timer_create` inside `init()` — it fires via `lv_timer_handler()` independently of AppState.
+
+```cpp
+_msgTimer = lv_timer_create(msgTimerCb, MSG_INTERVAL_MS, this);
+lv_timer_pause(_msgTimer);  // pause until show()
+
+// In show():
+lv_timer_reset(_msgTimer);
+lv_timer_resume(_msgTimer);
+
+// In hide():
+lv_timer_pause(_msgTimer);
+```
+
+The timer callback gets `this` via `lv_timer_get_user_data(timer)`. For `lv_anim_t` callbacks (which are static), store `this` in the animated object's user_data with `lv_obj_set_user_data(obj, this)`.
+

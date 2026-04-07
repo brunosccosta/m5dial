@@ -9,6 +9,7 @@
 #include "cards/ForecastCard.h"
 #include "cards/SpotifyCard.h"
 #include "cards/MeshCoreCard.h"
+#include "cards/LoveCard.h"
 
 class RestScreen;  // forward declaration for FooterSlot
 
@@ -38,7 +39,7 @@ public:
     static constexpr uint32_t CARD_INTERVAL_MS = 60000;
 
     // Pin to a specific card index during development (-1 = normal rotation).
-    // 0 = ClockCard, 1 = WeatherNowCard, 2 = IndoorTempsCard, 3 = ForecastCard, 4 = SpotifyCard, 5 = MeshCoreCard
+    // 0 = ClockCard, 1 = WeatherNowCard, 2 = IndoorTempsCard, 3 = ForecastCard, 4 = SpotifyCard, 5 = MeshCoreCard, 6 = LoveCard
     static constexpr int DEV_CARD_PIN = -1;
 
     // Timer ring — thin arc around the dial edge showing time until next card.
@@ -54,7 +55,7 @@ private:
 
     static void onFooterTap(lv_event_t* e);
 
-    static constexpr int MAX_CARDS = 8;
+    static constexpr int MAX_CARDS = 9;
 
     bool _initialized        = false;
     bool _footerTapConsumed  = false;
@@ -69,6 +70,7 @@ private:
     ForecastCard     _cardForecast;
     SpotifyCard      _cardSpotify;
     MeshCoreCard     _cardMeshCore;
+    LoveCard         _cardLove;
 
     // Card registry — populated in init()
     RestCard* _cards[MAX_CARDS] = {};

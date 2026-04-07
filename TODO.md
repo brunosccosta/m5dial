@@ -41,13 +41,34 @@ Allow activating HA scenes from the device. Rest card could show the current/las
 
 ---
 
-## Feature: Easter egg screen — love messages controlled via HA
+## Tooling: LVGL image pipeline
 
-Add an `input_boolean.dial_love_mode` entity in HA. When enabled, show a rotating set of cute hardcoded messages on the RestScreen.
+Color images (emoji, icons) can't be embedded in fonts — they need to be compiled C arrays (`lv_img_dsc_t`) and displayed via `lv_img_create()`. Set up a pipeline similar to the font tooling:
 
-**Plan:**
-- Subscribe to `input_boolean.dial_love_mode` in `HAClient`; store as `bool loveMode` in `AppState`
-- Add a `LoveCard` rest card; `isVisible()` returns `appState.loveMode`
-- Messages hardcoded as a small array in `LoveCard.cpp`, cycling on each `update()`
+- `tools/images/` — source PNGs (e.g. Twemoji peach `1F351.png`, flag PNGs)
+- `tools/gen_images.sh` — converts each PNG to an LVGL C array using `lv_img_converter` (or the Python equivalent from LVGL's repo)
+- `src/ui/images/` — generated `.c` files + a `lvgl_images.h` header declaring all `lv_img_dsc_t` externs
+
+First use case: peach emoji for `LoveCard` ("Gostosa!"), flag emojis for the flight countdown card.
+
+---
+
+## Feature: Flight/vacation countdown card
+
+A rest card showing a countdown to the next upcoming flight or vacation. Could show: destination name, flag emoji, days remaining, maybe departure city → destination city. Data hardcoded initially (or driven by a HA `input_datetime` / `calendar` entity later).
+
+**Open questions:**
+- Single next event or a short list (next 2–3)?
+- Flag emoji → requires color emoji image rendering (see peach emoji task)
+- Data source: hardcoded array vs. HA calendar entity subscription
+
+---
+
+## Feature: Hook LoveCard to HA input_boolean
+
+`LoveCard` is built and `appState.loveMode` is hardcoded `true`. Wire it up to HA:
+- Add `input_boolean.dial_love_mode` entity in HA
+- Subscribe in `HAClient`; write to `appState.loveMode` on state change
+- `LoveCard::isVisible()` already returns `appState.loveMode` — no card changes needed
 
 ---

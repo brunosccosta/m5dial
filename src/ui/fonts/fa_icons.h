@@ -6,7 +6,11 @@ extern const lv_font_t font_awesome_solid_32;
 extern const lv_font_t font_awesome_solid_24;
 extern const lv_font_t font_awesome_solid_18;
 
+// Montserrat with Cyrillic — declared in font_montserrat_cyr_24.c
+extern const lv_font_t font_montserrat_cyr_24;
+
 // UTF-8 encoded glyph strings (U+F000 range → 3-byte sequences)
+#define FA_HEART          "\xEF\x80\x84"  // U+F004 — fa-heart
 #define FA_LIGHTBULB      "\xEF\x83\xAB"  // U+F0EB — fa-lightbulb
 #define FA_SNOWFLAKE      "\xEF\x8B\x9C"  // U+F2DC — fa-snowflake
 #define FA_FIRE           "\xEF\x81\xAD"  // U+F06D — fa-fire
