@@ -47,9 +47,26 @@ Connect lamps to HA first, then revisit both together.
 
 ---
 
-## Feature: RFID
+## Feature: RFID — Spotify tag collection
 
-M5Dial has a built-in RFID reader (currently unused). Tap a card/fob → trigger HA action (arrive home, leave, arm alarm, profile switch). Requires: finding/buying compatible tags, investigating the M5Dial RFID API, designing the HA automation side. Not trivial — park until hardware is in hand.
+M5Dial has a built-in RFID reader (WS1850S, ISO 14443A). Primary use case: physical Spotify tokens — tap a tag to play a playlist/album on HA media player.
+
+**How it works:**
+- Each tag stores a Spotify URI as a plain NDEF text record (e.g. `spotify:playlist:37i9dQZF1DX...`) written from phone via NFC Tools app
+- M5Dial reads the URI, calls `media_player.play_media` via HAClient — no hardcoded UIDs, tag is self-describing
+- Adding a new playlist = new tag + NFC Tools on phone, zero reflashing
+
+**Hardware:**
+- Tags: **NTAG213, 20–25mm** — 144 bytes user memory, more than enough for a Spotify URI (~50 bytes with NDEF overhead). Ordered/in hand.
+- Form factor: **3D-printed pucks** (30–35mm diameter, 5–6mm thick), tag embedded in body with thin top layer (≤2mm) for reliable reads. Displayed in a small tray/rack near the dial — a physical collection, one per playlist.
+- Puck design: dark filament body + translucent top layer + printed album art paper insert between them. Debossed artist/album name optional.
+
+**Implementation notes:**
+- Investigate WS1850S API (likely via M5Dial library)
+- Keep top layer ≤3mm above tag for reliable read range; test single-wall print first
+- Tag must be flat/parallel to dial face — reads face-to-face, not edge-on
+- Add `haClient.sendPlayMedia(entity_id, uri)` method
+- Show brief toast on successful tap (what's playing)
 
 ---
 
