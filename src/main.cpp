@@ -17,6 +17,7 @@
 #include "credentials.h"
 #include "ui/fonts/fa_icons.h"
 #include "SleepManager.h"
+#include "Buzzer.h"
 
 // --- AC control ---
 ACControlScreen acControl;
@@ -154,6 +155,7 @@ void loop() {
         ESP_LOGD("INPUT", "encoder delta=%d", delta);
         sleepManager.onActivity();
         if (!sleepManager.isSleeping()) {
+            buzzer.tick();
             if (quickPanel.isVisible()) quickPanel.onEncoder(-delta);
             else                        screenManager.onEncoder(-delta);
         }
@@ -201,7 +203,7 @@ void loop() {
                 cancelTouch();
                 if (quickPanel.isVisible()) quickPanel.onSwipe(-1);
             } else {
-                M5Dial.Speaker.tone(300, 40);
+                buzzer.tap();
                 if (quickPanel.isVisible()) quickPanel.onTouch();
                 else                        screenManager.onTouch();
             }
@@ -216,7 +218,7 @@ void loop() {
                 if (quickPanel.isVisible()) quickPanel.onSwipe(-1);
                 else                        screenManager.onSwipe(-1); // swipe right → prev
             } else {
-                M5Dial.Speaker.tone(300, 40);
+                buzzer.tap();
                 if (quickPanel.isVisible()) quickPanel.onTouch();
                 else                        screenManager.onTouch();   // tap
             }

@@ -216,6 +216,28 @@ haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN, true);
 
 ---
 
+## Buzzer
+
+`src/Buzzer.h/.cpp` — semantic sound API over `M5Dial.Speaker`. Instantiated as `buzzer` (global singleton).
+
+**Methods:**
+
+| Method | Trigger | Default tone |
+|---|---|---|
+| `tick()` | Encoder step | 220 Hz, 8ms |
+| `tap()` | Touch tap / screen confirm | 300 Hz, 40ms |
+| `confirm()` | Button confirm action | 520 Hz, 60ms |
+| `wake()` | Display wake from sleep | 440 Hz, 30ms |
+
+`mute(bool)` silences all output. All frequencies and durations are named constants in `Buzzer.h` — one place to tune.
+
+**Wiring:**
+- `tick()` — called in `main.cpp` on encoder delta (when not sleeping)
+- `tap()` — replaces the two raw `M5Dial.Speaker.tone(300, 40)` calls in `main.cpp`
+- `wake()` — called in `SleepManager::onActivity()` on wake
+
+---
+
 ## Sensor registry
 
 All subscribed entities and their parse handlers live in `SENSORS[]` in `src/ha/HAClient.cpp`. Adding a new sensor = one row in the table + a handler function + a field in `AppState`.
@@ -371,8 +393,8 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 |---|---|---|---|
 | 0 | `ClockCard` | system time via `localtime()` (seeded from RTC on boot, synced from NTP) | always |
 | 1 | `WeatherNowCard` | `weather.buienradar` + `sensor.detailed_condition` + `sun.sun` | always |
-| 2 | `IndoorTempsCard` | `sensor.atc_3294/03be/88dc` temp + humidity (balcony, bedroom, bathroom) | always |
-| 3 | `ForecastCard` | `sensor.*_1d` / `sensor.*_2d` Buienradar forecast sensors | always |
+| 2 | `ForecastCard` | `sensor.*_1d` / `sensor.*_2d` Buienradar forecast sensors | always |
+| 3 | `IndoorTempsCard` | `sensor.atc_3294/03be/88dc` temp + humidity (balcony, bedroom, bathroom) | always |
 | 4 | `SpotifyCard` | `media_player.spotify` — title, artist, source, volume, shuffle, repeat | only when state is `"playing"` or `"paused"` |
 | 5 | `MeshCoreCard` | MeshCore repeater GigiTower — battery %, 24h trend, uptime, last-updated | always |
 | 6 | `LoveCard` | Easter egg — beating heart + cycling messages (Russian/English/Portuguese); peach emoji swaps in for "Gostosa!" | `appState.loveMode` (driven by `input_boolean.nastya_at_home`) |

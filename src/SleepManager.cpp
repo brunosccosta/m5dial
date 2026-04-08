@@ -1,4 +1,5 @@
 #include "SleepManager.h"
+#include "Buzzer.h"
 #include <M5Dial.h>
 #include <esp_log.h>
 #include <time.h>
@@ -18,6 +19,7 @@ void SleepManager::onActivity() {
     if (_sleeping) {
         _sleeping = false;
         M5Dial.Display.setBrightness(_normalBrightness);
+        buzzer.wake();
         ESP_LOGI(TAG, "woke up");
     }
 }

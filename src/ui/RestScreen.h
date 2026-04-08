@@ -41,7 +41,7 @@ public:
     static constexpr uint32_t CARD_INTERVAL_MS = 60000;
 
     // Pin to a specific card index during development (-1 = normal rotation).
-    // 0 = ClockCard, 1 = WeatherNowCard, 2 = IndoorTempsCard, 3 = ForecastCard, 4 = SpotifyCard, 5 = MeshCoreCard, 6 = LoveCard, 7 = FlightCard
+    // 0 = ClockCard, 1 = WeatherNowCard, 2 = ForecastCard, 3 = IndoorTempsCard, 4 = SpotifyCard, 5 = MeshCoreCard, 6 = LoveCard, 7 = FlightCard
     static constexpr int DEV_CARD_PIN = -1;
 
     // Timer ring — thin arc around the dial edge showing time until next card.

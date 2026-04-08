@@ -58,8 +58,8 @@ void RestScreen::init() {
     //   2. Add one line here
     _cards[_cardCount++] = &_cardClock;
     _cards[_cardCount++] = &_cardWeatherNow;
-    _cards[_cardCount++] = &_cardIndoorTemps;
     _cards[_cardCount++] = &_cardForecast;
+    _cards[_cardCount++] = &_cardIndoorTemps;
     _cards[_cardCount++] = &_cardSpotify;
     _cards[_cardCount++] = &_cardMeshCore;
     _cards[_cardCount++] = &_cardLove;
