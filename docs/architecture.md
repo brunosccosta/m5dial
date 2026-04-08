@@ -188,6 +188,34 @@ haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN, true);
 
 ---
 
+## SleepManager
+
+`src/SleepManager.h/.cpp` — display-off idle manager. Instantiated as `sleepManager` (global, defined in `SleepManager.cpp`).
+
+**Sleep window:** 00:00–07:00 local time. Outside this window the display is always on.
+
+**Behaviour:**
+- `begin(normalBrightness)` — stores brightness, resets activity timestamp.
+- `onActivity()` — resets idle timer. If currently sleeping, restores brightness and clears `_sleeping`.
+- `tick()` — called at end of `loop()`. Guards: clock not synced (`time < 2020`) → skip. Not in sleep window → skip. Idle > `SLEEP_TIMEOUT_MS` (60s) → set brightness to 0, set `_sleeping`.
+- `isSleeping()` — checked in `loop()` after every `onActivity()` call to swallow the wake input.
+
+**Integration in `main.cpp`:**
+- Encoder delta and button press: call `onActivity()`, then check `isSleeping()` before routing.
+- `touch.wasPressed()`: call `onActivity()` at the top of the touch block; gate the `isPressed()` and `wasReleased()` branches with `!isSleeping()`.
+- `tick()` called after `screenManager.tick()`.
+
+**Constants (in `SleepManager.h`):**
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `SLEEP_BRIGHTNESS` | `0` | Display brightness when asleep (fully off) |
+| `SLEEP_TIMEOUT_MS` | `60000` | Idle time before sleep (60s) |
+| `SLEEP_HOUR_START` | `0` | Sleep window start (midnight) |
+| `SLEEP_HOUR_END` | `7` | Sleep window end (exclusive) |
+
+---
+
 ## Sensor registry
 
 All subscribed entities and their parse handlers live in `SENSORS[]` in `src/ha/HAClient.cpp`. Adding a new sensor = one row in the table + a handler function + a field in `AppState`.

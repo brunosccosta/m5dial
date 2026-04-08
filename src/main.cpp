@@ -16,6 +16,7 @@
 #include "ui/menu/MenuCardFindMy.h"
 #include "credentials.h"
 #include "ui/fonts/fa_icons.h"
+#include "SleepManager.h"
 
 // --- AC control ---
 ACControlScreen acControl;
@@ -96,6 +97,7 @@ void setup() {
     ESP_LOGI("BOOT", "M5Dial SmartHome starting");
 
     M5Dial.Display.setBrightness(128);
+    sleepManager.begin(128);
 
     lv_init();
     lv_tick_set_cb([]() -> uint32_t { return (uint32_t)millis(); });
@@ -150,13 +152,19 @@ void loop() {
     int delta = input.getEncoderDelta();
     if (delta != 0) {
         ESP_LOGD("INPUT", "encoder delta=%d", delta);
-        if (quickPanel.isVisible()) quickPanel.onEncoder(-delta);
-        else                        screenManager.onEncoder(-delta);
+        sleepManager.onActivity();
+        if (!sleepManager.isSleeping()) {
+            if (quickPanel.isVisible()) quickPanel.onEncoder(-delta);
+            else                        screenManager.onEncoder(-delta);
+        }
     }
     if (input.wasButtonPressed()) {
         ESP_LOGD("INPUT", "button pressed");
-        if (quickPanel.isVisible()) quickPanel.onButton();
-        else                        screenManager.onButton();
+        sleepManager.onActivity();
+        if (!sleepManager.isSleeping()) {
+            if (quickPanel.isVisible()) quickPanel.onButton();
+            else                        screenManager.onButton();
+        }
     }
 
     static int  touchStartX    = 0;
@@ -165,10 +173,11 @@ void loop() {
 
     auto touch = M5Dial.Touch.getDetail();
     if (touch.wasPressed()) {
+        sleepManager.onActivity();
         touchStartX    = touch.x;
         touchStartY    = touch.y;
         gestureHandled = false;
-    } else if (touch.isPressed() && !gestureHandled && quickPanel.isVisible()) {
+    } else if (!sleepManager.isSleeping() && touch.isPressed() && !gestureHandled && quickPanel.isVisible()) {
         // Early dismiss: fire as soon as the finger moves up past the threshold,
         // without waiting for release — panel is gone before the finger lifts.
         int dy = touch.y - touchStartY;
@@ -177,7 +186,7 @@ void loop() {
             cancelTouch();
             quickPanel.onSwipe(-1);
         }
-    } else if (touch.wasReleased() && !gestureHandled) {
+    } else if (!sleepManager.isSleeping() && touch.wasReleased() && !gestureHandled) {
         int dx = touch.x - touchStartX;
         int dy = touch.y - touchStartY;
         ESP_LOGI("TOUCH", "start=(%d,%d) end=(%d,%d) dx=%d dy=%d",
@@ -233,6 +242,7 @@ void loop() {
     quickPanel.update();
 
     screenManager.tick();
+    sleepManager.tick();
 
     if (appState.dirty) {
         screenManager.refresh();
