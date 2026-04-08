@@ -315,7 +315,7 @@ Idle/screensaver shown at boot and after 30s inactivity on the main menu. Displa
 
 The screen is split into two zones:
 - **Card area** (upper ~70%): auto-advances through a set of `RestCard` objects every 60s. Easy to add new cards.
-- **Device strip** (lower ~30%): always visible — AC + heater icon, mode, target temp.
+- **Device strip** (lower ~30%): always visible — AC + heater icon, mode, target temp. Icon color matches the AC mode (`Theme::AC_MODE_*`): orange-red for heat, blue for cool, green for auto, grey for off, etc.
 
 #### Card system
 

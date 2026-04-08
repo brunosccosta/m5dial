@@ -8,6 +8,16 @@ static const char* TAG = "REST";
 
 RestScreen restScreen;
 
+static lv_color_t modeColor(const char* mode) {
+    if (strcmp(mode, "heat")     == 0) return lv_color_hex(Theme::AC_MODE_HEAT);
+    if (strcmp(mode, "cool")     == 0) return lv_color_hex(Theme::AC_MODE_COOL);
+    if (strcmp(mode, "auto")     == 0) return lv_color_hex(Theme::AC_MODE_AUTO);
+    if (strcmp(mode, "heat_cool")== 0) return lv_color_hex(Theme::AC_MODE_AUTO);
+    if (strcmp(mode, "fan_only") == 0) return lv_color_hex(Theme::AC_MODE_FAN);
+    if (strcmp(mode, "dry")      == 0) return lv_color_hex(Theme::AC_MODE_DRY);
+    return lv_color_hex(Theme::AC_MODE_OFF);
+}
+
 static const char* modeIcon(const char* mode) {
     if (strcmp(mode, "heat")     == 0) return FA_FIRE;
     if (strcmp(mode, "cool")     == 0) return FA_SNOWFLAKE;
@@ -232,6 +242,7 @@ void RestScreen::updateDeviceStrip() {
         ACState& state = *states[s];
         if (state.valid) {
             lv_label_set_text(_slots[s].iconLabel, modeIcon(state.mode));
+            lv_obj_set_style_text_color(_slots[s].iconLabel, modeColor(state.mode), LV_PART_MAIN);
             if (s == 1 && strcmp(state.mode, "off") == 0) {
                 lv_label_set_text(_slots[s].stateLabel, "off");
             } else {
@@ -240,6 +251,7 @@ void RestScreen::updateDeviceStrip() {
             }
         } else {
             lv_label_set_text(_slots[s].iconLabel,  FA_POWER_OFF);
+            lv_obj_set_style_text_color(_slots[s].iconLabel, lv_color_hex(Theme::AC_MODE_OFF), LV_PART_MAIN);
             lv_label_set_text(_slots[s].stateLabel, "---");
         }
         lv_obj_align(_slots[s].iconLabel,  LV_ALIGN_CENTER, SLOT_X[s], +52);
