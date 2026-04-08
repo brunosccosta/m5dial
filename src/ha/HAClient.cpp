@@ -375,7 +375,15 @@ static void parseMeshCoreAirtime(const char* entity_id, const char* state, JsonO
     ESP_LOGI(TAG, "meshcore airtime: %.1f%%", appState.meshcore.airtimeUtil);
 }
 
+static void parseLoveMode(const char* entity_id, const char* state, JsonObject attrs) {
+    if (!state) return;
+    appState.loveMode = strcmp(state, "on") == 0;
+    appState.dirty    = true;
+    ESP_LOGI(TAG, "loveMode: %s", appState.loveMode ? "on" : "off");
+}
+
 static const SensorEntry SENSORS[] = {
+    { "input_boolean.nastya_at_home",      parseLoveMode          },
     { "media_player.spotify",              parseSpotify           },
     { "climate.forninho_room_temperature", parseAC                },
     { "climate.forninho_portatil",         parseAC                },

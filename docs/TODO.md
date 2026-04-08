@@ -47,11 +47,3 @@ Allow activating HA scenes from the device. Rest card could show the current/las
 
 ---
 
-## Feature: Hook LoveCard to HA input_boolean
-
-`LoveCard` is built and `appState.loveMode` is hardcoded `true`. Wire it up to HA:
-- Add `input_boolean.dial_love_mode` entity in HA
-- Subscribe in `HAClient`; write to `appState.loveMode` on state change
-- `LoveCard::isVisible()` already returns `appState.loveMode` — no card changes needed
-
----

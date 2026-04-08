@@ -30,7 +30,7 @@ void AppState::clearError(const char* key) {
 }
 
 AppState appState = {
-    .loveMode   = true,
+    .loveMode   = false,
     .dirty      = false,
     .connection = ConnectionState::WIFI_CONNECTING,
 };
