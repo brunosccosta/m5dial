@@ -61,12 +61,22 @@ M5Dial has a built-in RFID reader (WS1850S, ISO 14443A). Primary use case: physi
 - Form factor: **3D-printed pucks** (30–35mm diameter, 5–6mm thick), tag embedded in body with thin top layer (≤2mm) for reliable reads. Displayed in a small tray/rack near the dial — a physical collection, one per playlist.
 - Puck design: dark filament body + translucent top layer + printed album art paper insert between them. Debossed artist/album name optional.
 
+**Two puck types, same tag format — distinguished by URI prefix:**
+
+| Puck | Tag content | Action |
+|---|---|---|
+| Playlist puck | `spotify:playlist:...` / `spotify:album:...` | `media_player.play_media` on current speaker |
+| Speaker puck | `ha:media_player.sala` / `ha:media_player.quarto` | `media_player.transfer` — moves current playback to that speaker |
+
+Speaker pucks are shaped/labeled to represent the room (e.g. speaker silhouette). Sit in the same tray as playlist pucks. Tap a speaker puck to move music to that room without touching a phone.
+
 **Implementation notes:**
 - Investigate WS1850S API (likely via M5Dial library)
 - Keep top layer ≤3mm above tag for reliable read range; test single-wall print first
 - Tag must be flat/parallel to dial face — reads face-to-face, not edge-on
-- Add `haClient.sendPlayMedia(entity_id, uri)` method
-- Show brief toast on successful tap (what's playing)
+- URI prefix routing: `spotify:` → play_media, `ha:media_player.*` → transfer
+- Add `haClient.sendPlayMedia(entity_id, uri)` and `haClient.sendTransferMedia(target_entity)` methods
+- Show brief toast on successful tap (what's playing / where it moved)
 
 ---
 
