@@ -7,9 +7,10 @@ class MenuScreen : public Screen {
 public:
     void addCard(MenuCard* card);
 
-    void init()               override;
-    void show()               override;
-    void onEncoder(int delta) override;
+    void init()                override;
+    void show()                override;
+    lv_obj_t* lvScreen() const override { return _lvScreen; }
+    void onEncoder(int delta)  override;
     void onButton()           override;
     void onTouch()             override;
     void onSwipe(int dir)     override;

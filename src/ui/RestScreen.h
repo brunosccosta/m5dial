@@ -27,9 +27,10 @@ public:
     void setOnWake(std::function<void()> cb);
     void setFooterTap(int side, std::function<void()> cb);
 
-    void init()               override;
-    void show()               override;
-    void onEncoder(int delta) override;
+    void init()                override;
+    void show()                override;
+    lv_obj_t* lvScreen() const override { return _lvScreen; }
+    void onEncoder(int delta)  override;
     void onButton()           override;
     void onTouch()            override;
     void onSwipe(int dir)     override;
@@ -84,6 +85,10 @@ private:
     // Timer ring
     lv_obj_t* _ring;
     int       _lastRingValue = -1;
+
+    // Card transition overlay
+    lv_obj_t* _fadeOverlay = nullptr;
+    static void fadeOverlayCb(void* var, int32_t v);
 
     // Device strip (always visible, not part of card rotation)
     FooterSlot _slots[2];

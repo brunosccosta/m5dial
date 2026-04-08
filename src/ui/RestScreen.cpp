@@ -107,6 +107,17 @@ void RestScreen::init() {
         }
     }
 
+    // Fade overlay — sits on top of everything, animated opaque→transparent on card change
+    _fadeOverlay = lv_obj_create(_lvScreen);
+    lv_obj_set_size(_fadeOverlay, 240, 240);
+    lv_obj_set_pos(_fadeOverlay, 0, 0);
+    lv_obj_set_style_bg_color(_fadeOverlay, lv_color_hex(Theme::BG), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(_fadeOverlay, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_width(_fadeOverlay, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(_fadeOverlay, 0, LV_PART_MAIN);
+    lv_obj_clear_flag(_fadeOverlay, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_clear_flag(_fadeOverlay, LV_OBJ_FLAG_SCROLLABLE);
+
     ESP_LOGI(TAG, "init complete, %d cards", _cardCount);
 }
 
@@ -116,8 +127,6 @@ void RestScreen::show() {
     _lastRingValue = 360;
     _cards[_activeCard]->update();
     updateDeviceStrip();
-    lv_scr_load(_lvScreen);
-    lv_refr_now(NULL);
 }
 
 void RestScreen::tick() {
@@ -144,6 +153,10 @@ void RestScreen::tick() {
     }
 }
 
+void RestScreen::fadeOverlayCb(void* var, int32_t v) {
+    lv_obj_set_style_bg_opa((lv_obj_t*)var, (lv_opa_t)v, LV_PART_MAIN);
+}
+
 void RestScreen::navigateCard(int dir) {
     _cards[_activeCard]->hide();
     // Skip invisible cards (e.g. Spotify when nothing is playing)
@@ -157,7 +170,17 @@ void RestScreen::navigateCard(int dir) {
     _lastCardUpdateMs = millis();
     lv_arc_set_value(_ring, 360);
     _lastRingValue = 360;
-    lv_refr_now(NULL);
+
+    // Fade overlay from opaque → transparent to reveal new card
+    lv_obj_move_foreground(_fadeOverlay);
+    lv_obj_set_style_bg_opa(_fadeOverlay, LV_OPA_COVER, LV_PART_MAIN);
+    lv_anim_t a;
+    lv_anim_init(&a);
+    lv_anim_set_var(&a, _fadeOverlay);
+    lv_anim_set_exec_cb(&a, fadeOverlayCb);
+    lv_anim_set_values(&a, LV_OPA_COVER, LV_OPA_TRANSP);
+    lv_anim_set_duration(&a, 200);
+    lv_anim_start(&a);
 }
 
 void RestScreen::advanceCard() {

@@ -146,8 +146,6 @@ void ACControlScreen::show() {
 
     _lastActivityMs = millis();
     updateDisplay();
-    lv_scr_load(_lvScreen);
-    lv_refr_now(NULL);
 }
 
 void ACControlScreen::tick() {

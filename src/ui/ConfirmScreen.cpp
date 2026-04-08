@@ -92,8 +92,6 @@ void ConfirmScreen::show() {
     _selected = -1;
     if (_question) lv_label_set_text(_questionLabel, _question);
     updateHighlight();
-    lv_scr_load(_lvScreen);
-    lv_refr_now(NULL);
 }
 
 // --- Input ---

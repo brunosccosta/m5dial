@@ -1,7 +1,10 @@
 #include <esp_log.h>
+#include <lvgl.h>
 #include "ScreenManager.h"
 
 static const char* TAG = "NAV";
+
+static constexpr uint32_t SCREEN_ANIM_MS = 200;
 
 ScreenManager screenManager;
 
@@ -13,6 +16,7 @@ void ScreenManager::push(Screen* screen) {
     screen->init();
     _stack[_depth++] = screen;
     screen->show();
+    lv_scr_load_anim(screen->lvScreen(), LV_SCR_LOAD_ANIM_FADE_IN, SCREEN_ANIM_MS, 0, false);
     ESP_LOGD(TAG, "push depth=%d", _depth);
 }
 
@@ -22,7 +26,9 @@ void ScreenManager::pop() {
         return;
     }
     _depth--;
-    _stack[_depth - 1]->show();
+    Screen* screen = _stack[_depth - 1];
+    screen->show();
+    lv_scr_load_anim(screen->lvScreen(), LV_SCR_LOAD_ANIM_FADE_IN, SCREEN_ANIM_MS, 0, false);
     ESP_LOGD(TAG, "pop depth=%d", _depth);
 }
 

@@ -7,9 +7,10 @@ class ACControlScreen : public Screen {
 public:
     void setAC(ACState* ac);
 
-    void init()               override;
-    void show()               override;
-    void onEncoder(int delta) override;
+    void init()                override;
+    void show()                override;
+    lv_obj_t* lvScreen() const override { return _lvScreen; }
+    void onEncoder(int delta)  override;
     void onButton()           override;
     void refresh()            override;
     void tick()               override;

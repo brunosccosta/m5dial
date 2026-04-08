@@ -14,6 +14,7 @@ public:
 
     void init()                override;
     void show()                override;
+    lv_obj_t* lvScreen() const override { return _lvScreen; }
     void onEncoder(int delta)  override;
     void onButton()            override;
     void refresh()             override {}

@@ -10,12 +10,6 @@ M5Dial has an 80dB buzzer via `M5Dial.Speaker`. Potential uses: confirmation bee
 
 ---
 
-## Screen transition animations
-
-Push/pop transitions (rest → menu, menu → control) are still bare `lv_scr_load()` calls. LVGL has `lv_scr_load_anim()` — could add a fade or slide. MenuScreen already has internal slide animation between cards; the same approach could extend to screen-level transitions.
-
----
-
 ## Feature: Notification system
 
 Use HA persistent notifications as the backend. Any HA automation pushes `persistent_notification.create` (title + message + notification_id); the dial subscribes to those entities, shows a badge on RestScreen, and can dismiss via `persistent_notification.dismiss`.

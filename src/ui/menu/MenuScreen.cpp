@@ -113,8 +113,6 @@ void MenuScreen::show() {
     }
     resetActivityTimer();
 
-    lv_scr_load(_lvScreen);
-    lv_refr_now(NULL);
 }
 
 // --- Input ---

@@ -251,6 +251,18 @@ ScreenManager::push(screen) → screen->init() (once) → screen->show()
 ScreenManager::pop()        → show previous screen
 ```
 
+**Transition animations:**
+
+Screen-level transitions are owned entirely by `ScreenManager` — screens do not call `lv_scr_load` or `lv_scr_load_anim`. The `Screen` interface requires `lvScreen() const` so `ScreenManager` can load it. Duration is a single constant (`SCREEN_ANIM_MS = 200`) in `ScreenManager.cpp`.
+
+| Context | Animation |
+|---|---|
+| Any screen push/pop | Fade-in 200ms — `lv_scr_load_anim(FADE_IN)` in `ScreenManager::push/pop` |
+| MenuScreen card-to-card | Horizontal slide 200ms (`lv_anim` on container x) |
+| RestScreen card-to-card | Fade-from-background 200ms (opaque overlay fades to transparent) |
+
+The RestScreen card fade uses a full-screen `_fadeOverlay` object (background colour, no border, non-clickable) parented to `_lvScreen`. On each `navigateCard()` call the overlay is moved to the foreground at full opacity, then animated to transparent via `lv_anim` on `lv_obj_set_style_bg_opa`. This avoids any interface changes to `RestCard` subclasses.
+
 **Input contract:**
 - Dial (encoder delta) → active screen's `onEncoder(delta)`
 - Button press → active screen's `onButton()`
