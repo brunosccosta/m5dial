@@ -4,6 +4,63 @@ Small improvements and known issues parked for later.
 
 ---
 
+## Initiative: UI standardization — rest cards + layout system
+
+**Goal**: make all rest cards feel like one product. Every card uses a shared layout template; no card invents its own spacing, font sizes, or icon gaps.
+
+### Step 1 — Define layout constants (unblocks everything else)
+
+Add a `CardLayout` namespace (or extend `Theme.h`) with shared constants:
+- Vertical offsets for hero, supporting rows
+- Font roles: hero (48pt), value (28pt), detail (14pt)
+- `PAD_ICON_TEXT` — gap between icon and its label (currently varies per card)
+- `PAD_ROW` — vertical gap between rows in a flex column (currently 8px in EnergyCard — make this the standard)
+
+EnergyCard is the reference implementation.
+
+### Step 2 — Redesign QuickPanel + move heater there
+
+**Current state**: QuickPanel has a thermometer row (indoor temp data) + a row with Find My shortcut.
+
+**Target state**: remove the thermometer row. Single row with 3 actions + status items:
+- Find My (existing)
+- Heater status/shortcut (new — replaces heater rest card)
+- TBD third slot (placeholder for future action)
+
+Heater rest card gets deleted. QuickPanel becomes the canonical "quick actions" surface, not a mini status dashboard.
+
+**What this gives**: one fewer rest card to swipe through; heater accessible from anywhere via swipe-down; QuickPanel has a cleaner single purpose.
+
+### Step 3 — Refactor rest cards to layout templates
+
+Three templates, applied to all cards:
+
+| Style | Hero element | Use |
+|---|---|---|
+| **A — Hero number** | Large number (48pt) + inline unit | Energy ✓, Weather (temp), Clock |
+| **B — Status + value** | Mode/state pill + medium number | AC (keep arc, it's intentional) |
+| **C — Equal-weight list** | 2–3 rows, all same weight | IndoorTemps, Forecast, MeshCore |
+
+Spotify stays special (scrolling title, album art future).
+
+**Card-by-card plan:**
+- `EnergyCard` — already done, is the Style A reference ✓
+- `WeatherNowCard` — refactor to Style A (temp as hero, condition + feels-like as supporting rows)
+- `IndoorTempsCard` — normalize to Style C spacing constants
+- `ForecastCard` — normalize to Style C
+- `MeshCoreCard` — normalize to Style C
+- `ACControlScreen` / AC rest state — Style B, arc stays
+- Heater rest card — **delete**, move to QuickPanel
+
+### Priority order
+
+1. Layout constants (`CardLayout` namespace)
+2. Heater → QuickPanel
+3. WeatherNowCard (most visible, biggest current inconsistency)
+4. IndoorTemps, Forecast, MeshCore (lower stakes, mostly spacing normalization)
+
+---
+
 ## Feature: Notification system
 
 Use HA persistent notifications as the backend. Any HA automation pushes `persistent_notification.create` (title + message + notification_id); the dial subscribes to those entities, shows a badge on RestScreen, and can dismiss via `persistent_notification.dismiss`.
