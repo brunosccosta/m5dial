@@ -81,4 +81,20 @@ namespace CardLayout {
         return row;
     }
 
+    // Content-sized vertical flex column for stacking rows inside a larger row.
+    // rowGap: gap between child elements (default = PAD_ROW).
+    inline lv_obj_t* makeColumn(lv_obj_t* parent, int rowGap = PAD_ROW) {
+        lv_obj_t* col = lv_obj_create(parent);
+        lv_obj_set_size(col, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+        lv_obj_set_style_bg_opa(col, LV_OPA_TRANSP, LV_PART_MAIN);
+        lv_obj_set_style_border_width(col, 0, LV_PART_MAIN);
+        lv_obj_set_style_pad_all(col, 0, LV_PART_MAIN);
+        lv_obj_set_style_pad_row(col, rowGap, LV_PART_MAIN);
+        lv_obj_set_layout(col, LV_LAYOUT_FLEX);
+        lv_obj_set_flex_flow(col, LV_FLEX_FLOW_COLUMN);
+        lv_obj_set_flex_align(col, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_clear_flag(col, LV_OBJ_FLAG_SCROLLABLE);
+        return col;
+    }
+
 } // namespace CardLayout

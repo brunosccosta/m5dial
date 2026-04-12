@@ -31,33 +31,39 @@ Heater rest card gets deleted. QuickPanel becomes the canonical "quick actions" 
 
 **What this gives**: one fewer rest card to swipe through; heater accessible from anywhere via swipe-down; QuickPanel has a cleaner single purpose.
 
-### Step 3 — Refactor rest cards to layout templates
+### Step 1 status — ✓ done
 
-Three templates, applied to all cards:
+- `CardLayout.h` created with shared constants, font roles, `makeContainer`, `makeRow`
+- `EnergyCard` → Style A ✓
+- `WeatherNowCard` → Style A ✓
+- `IndoorTempsCard` → Style C ✓ (fixed-width columns, nested groups)
+- Device strip removed; all cards own full screen ✓
+- `SHIFT_UP=0` — all cards centered at true vertical midpoint ✓
 
-| Style | Hero element | Use |
+### Step 3 — Refactor remaining cards to layout templates
+
+Three templates:
+
+| Style | Hero element | Cards |
 |---|---|---|
-| **A — Hero number** | Large number (48pt) + inline unit | Energy ✓, Weather (temp), Clock |
-| **B — Status + value** | Mode/state pill + medium number | AC (keep arc, it's intentional) |
-| **C — Equal-weight list** | 2–3 rows, all same weight | IndoorTemps, Forecast, MeshCore |
+| **A — Hero number** | Large number (48pt) + supporting rows | EnergyCard ✓, WeatherNowCard ✓, ClockCard |
+| **B — Status + value** | Mode/state pill + arc | ACControlScreen (arc intentional, leave as-is) |
+| **C — Equal-weight list** | 2–3 rows, same visual weight | IndoorTempsCard ✓, ForecastCard, MeshCoreCard |
+| **Special** | Bespoke layout, keep as-is | SpotifyCard, LoveCard (animations), FlightCard (adopt makeContainer shell only) |
 
-Spotify stays special (scrolling title, album art future).
-
-**Card-by-card plan:**
-- `EnergyCard` — already done, is the Style A reference ✓
-- `WeatherNowCard` — refactor to Style A (temp as hero, condition + feels-like as supporting rows)
-- `IndoorTempsCard` — normalize to Style C spacing constants
-- `ForecastCard` — normalize to Style C
-- `MeshCoreCard` — normalize to Style C
-- `ACControlScreen` / AC rest state — Style B, arc stays
-- Heater rest card — **delete**, move to QuickPanel
+**Remaining card work:**
+- `ClockCard` → Style A ✓
+- `ForecastCard` → two `makeColumn`s inside `makeRow` ✓ (added `makeColumn` to CardLayout)
+- `MeshCoreCard` → flex column with header/stats/status rows ✓
+- `FlightCard` — adopt `makeContainer` outer shell; keep inner layout bespoke (dynamic centering of flag+destination pair is non-trivial)
+- `HeaterCard` — **delete**, move to QuickPanel (Step 2)
 
 ### Priority order
 
-1. Layout constants (`CardLayout` namespace)
-2. Heater → QuickPanel
-3. WeatherNowCard (most visible, biggest current inconsistency)
-4. IndoorTemps, Forecast, MeshCore (lower stakes, mostly spacing normalization)
+1. ~~Layout constants (`CardLayout` namespace)~~ ✓
+2. ClockCard, ForecastCard, MeshCoreCard (finish Step 3)
+3. Heater → QuickPanel (Step 2)
+4. FlightCard shell migration (low stakes)
 
 ---
 

@@ -598,6 +598,19 @@ lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
 
 Row objects don't need to be stored as fields — they're owned by the parent and only the leaf labels need updating in `update()`. `update()` becomes purely text + color assignments with no layout calls.
 
+### Two-column card layout
+
+For cards with two side-by-side columns (e.g. ForecastCard today/tomorrow), use `makeRow` at the top level with a large `colGap`, then `makeColumn` for each column's vertical stack:
+
+```cpp
+lv_obj_t* cols = CardLayout::makeRow(_container, 30); // large gap between columns
+lv_obj_t* left  = CardLayout::makeColumn(cols, CardLayout::PAD_ROW_LIST);
+lv_obj_t* right = CardLayout::makeColumn(cols, CardLayout::PAD_ROW_LIST);
+// children of left/right are auto-centered within their column
+```
+
+`makeColumn` is `makeRow` transposed: `LV_SIZE_CONTENT` size, transparent, `LV_FLEX_FLOW_COLUMN`, all-center align, `pad_row` instead of `pad_column`.
+
 ---
 
 ## LVGL Montserrat font only covers ASCII 0x20–0x7E

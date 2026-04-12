@@ -2,6 +2,7 @@
 #include "../../AppState.h"
 #include "../fonts/fa_icons.h"
 #include "../Theme.h"
+#include "../CardLayout.h"
 
 // Condition → icon mapping (same keys as WeatherNowCard; "clear" always → FA_SUN for forecasts)
 struct FcConditionInfo { const char* key; const char* icon; };
@@ -25,108 +26,68 @@ static const FcConditionInfo FC_CONDITIONS[] = {
 };
 static constexpr int FC_CONDITION_COUNT = sizeof(FC_CONDITIONS) / sizeof(FC_CONDITIONS[0]);
 
+static constexpr int COL_GAP = 30; // gap between the two day columns
+
 static const char* fcIcon(const char* key) {
     for (int i = 0; i < FC_CONDITION_COUNT; i++)
         if (strcmp(FC_CONDITIONS[i].key, key) == 0) return FC_CONDITIONS[i].icon;
     return nullptr;
 }
 
-// Column x positions (left / right of center)
-static constexpr int COL_X[2] = { -37, +41 };
+static lv_obj_t* makeDay(lv_obj_t* parent, const char* header,
+                         lv_obj_t** iconOut, lv_obj_t** tempOut, lv_obj_t** rainOut) {
+    lv_obj_t* col = CardLayout::makeColumn(parent, CardLayout::PAD_ROW_LIST);
+
+    lv_obj_t* hdr = lv_label_create(col);
+    lv_obj_set_style_text_font(hdr, CardLayout::fontDetail(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(hdr, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
+    lv_label_set_text(hdr, header);
+
+    *iconOut = lv_label_create(col);
+    lv_obj_set_style_text_font(*iconOut, &font_awesome_solid_24, LV_PART_MAIN);
+    lv_obj_set_style_text_color(*iconOut, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
+    lv_label_set_text(*iconOut, "");
+
+    *tempOut = lv_label_create(col);
+    lv_obj_set_style_text_font(*tempOut, CardLayout::fontTitle(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(*tempOut, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
+    lv_label_set_text(*tempOut, "--°");
+
+    lv_obj_t* rainRow = CardLayout::makeRow(col, CardLayout::PAD_ICON_TEXT);
+    lv_obj_t* rainIcon = lv_label_create(rainRow);
+    lv_obj_set_style_text_font(rainIcon, CardLayout::fontIcon(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(rainIcon, lv_color_hex(Theme::ACCENT_RAIN), LV_PART_MAIN);
+    lv_label_set_text(rainIcon, FA_CLOUD_RAIN);
+
+    *rainOut = lv_label_create(rainRow);
+    lv_obj_set_style_text_font(*rainOut, CardLayout::fontDetail(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(*rainOut, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
+    lv_label_set_text(*rainOut, "--%");
+
+    return col;
+}
 
 // --- Lifecycle ---
 
 void ForecastCard::init(lv_obj_t* parent) {
-    _container = lv_obj_create(parent);
-    lv_obj_set_size(_container, 240, 240);
-    lv_obj_set_pos(_container, 0, 0);
-    lv_obj_set_style_bg_opa(_container, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_border_width(_container, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(_container, 0, LV_PART_MAIN);
-    lv_obj_clear_flag(_container, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(_container, LV_OBJ_FLAG_CLICKABLE);
+    _container = CardLayout::makeContainer(parent);
 
-    // --- Left column (today) ---
-    _headerLeft = lv_label_create(_container);
-    lv_obj_set_style_text_font(_headerLeft, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_headerLeft, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
-    lv_obj_align(_headerLeft, LV_ALIGN_CENTER, COL_X[0], -75);
-
-    _iconLeft = lv_label_create(_container);
-    lv_obj_set_style_text_font(_iconLeft, &font_awesome_solid_24, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_iconLeft, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(_iconLeft, LV_ALIGN_CENTER, COL_X[0], -51);
-
-    _tempLeft = lv_label_create(_container);
-    lv_obj_set_style_text_font(_tempLeft, &lv_font_montserrat_28, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_tempLeft, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(_tempLeft, LV_ALIGN_CENTER, COL_X[0] + 3, -24);
-
-    _rainIconLeft = lv_label_create(_container);
-    lv_obj_set_style_text_font(_rainIconLeft, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_rainIconLeft, lv_color_hex(Theme::ACCENT_RAIN), LV_PART_MAIN);
-    lv_obj_align(_rainIconLeft, LV_ALIGN_CENTER, COL_X[0] - 12, -5);
-
-    _rainLeft = lv_label_create(_container);
-    lv_obj_set_style_text_font(_rainLeft, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_rainLeft, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
-    lv_obj_align(_rainLeft, LV_ALIGN_CENTER, COL_X[0] + 12, -5);
-
-    // --- Right column (tomorrow) ---
-    _headerRight = lv_label_create(_container);
-    lv_obj_set_style_text_font(_headerRight, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_headerRight, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
-    lv_obj_align(_headerRight, LV_ALIGN_CENTER, COL_X[1], -75);
-
-    _iconRight = lv_label_create(_container);
-    lv_obj_set_style_text_font(_iconRight, &font_awesome_solid_24, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_iconRight, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(_iconRight, LV_ALIGN_CENTER, COL_X[1], -51);
-
-    _tempRight = lv_label_create(_container);
-    lv_obj_set_style_text_font(_tempRight, &lv_font_montserrat_28, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_tempRight, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(_tempRight, LV_ALIGN_CENTER, COL_X[1] + 3, -24);
-
-    _rainIconRight = lv_label_create(_container);
-    lv_obj_set_style_text_font(_rainIconRight, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_rainIconRight, lv_color_hex(Theme::ACCENT_RAIN), LV_PART_MAIN);
-    lv_obj_align(_rainIconRight, LV_ALIGN_CENTER, COL_X[1] - 12, -5);
-
-    _rainRight = lv_label_create(_container);
-    lv_obj_set_style_text_font(_rainRight, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_rainRight, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
-    lv_obj_align(_rainRight, LV_ALIGN_CENTER, COL_X[1] + 10, -5);
-
-    // Static content never changes
-    lv_label_set_text(_headerLeft,    "TODAY");
-    lv_label_set_text(_headerRight,   "TMR");
-    lv_label_set_text(_rainIconLeft,  FA_CLOUD_RAIN);
-    lv_label_set_text(_rainIconRight, FA_CLOUD_RAIN);
+    lv_obj_t* cols = CardLayout::makeRow(_container, COL_GAP);
+    makeDay(cols, "TODAY", &_iconLeft,  &_tempLeft,  &_rainLeft);
+    makeDay(cols, "TMR",   &_iconRight, &_tempRight, &_rainRight);
 }
 
 void ForecastCard::update() {
-    for (int col = 0; col < 2; col++) updateColumn(col);
-
-    lv_obj_align(_headerLeft,   LV_ALIGN_CENTER, COL_X[0], -73);
-    lv_obj_align(_iconLeft,     LV_ALIGN_CENTER, COL_X[0], -45);
-    lv_obj_align(_tempLeft,     LV_ALIGN_CENTER, COL_X[0] + 3, -16);
-    lv_obj_align(_rainIconLeft, LV_ALIGN_CENTER, COL_X[0] - 13, +13);
-    lv_obj_align(_rainLeft,     LV_ALIGN_CENTER, COL_X[0] + 11, +13);
-
-    lv_obj_align(_headerRight,   LV_ALIGN_CENTER, COL_X[1], -73);
-    lv_obj_align(_iconRight,     LV_ALIGN_CENTER, COL_X[1], -45);
-    lv_obj_align(_tempRight,     LV_ALIGN_CENTER, COL_X[1] + 3, -16);
-    lv_obj_align(_rainIconRight, LV_ALIGN_CENTER, COL_X[1] - 13, +13);
-    lv_obj_align(_rainRight,     LV_ALIGN_CENTER, COL_X[1] + 11, +13);
+    updateColumn(0);
+    updateColumn(1);
 }
 
 void ForecastCard::updateColumn(int col) {
     ForecastDay& f = (col == 0) ? appState.forecastToday : appState.forecastTomorrow;
 
-    lv_obj_t* iconLbl  = (col == 0) ? _iconLeft  : _iconRight;
-    lv_obj_t* tempLbl  = (col == 0) ? _tempLeft  : _tempRight;
-    lv_obj_t* rainLbl  = (col == 0) ? _rainLeft  : _rainRight;
+    lv_obj_t* iconLbl = (col == 0) ? _iconLeft  : _iconRight;
+    lv_obj_t* tempLbl = (col == 0) ? _tempLeft  : _tempRight;
+    lv_obj_t* rainLbl = (col == 0) ? _rainLeft  : _rainRight;
 
     if (f.valid) {
         const char* icon = fcIcon(f.detailedCondition);
@@ -145,5 +106,5 @@ void ForecastCard::updateColumn(int col) {
     }
 }
 
-void ForecastCard::show() { lv_obj_clear_flag(_container, LV_OBJ_FLAG_HIDDEN); }
+void ForecastCard::show() { lv_obj_clear_flag(_container, LV_OBJ_FLAG_HIDDEN); update(); }
 void ForecastCard::hide() { lv_obj_add_flag(_container,   LV_OBJ_FLAG_HIDDEN); }

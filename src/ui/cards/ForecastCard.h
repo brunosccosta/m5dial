@@ -15,17 +15,11 @@ private:
 
     lv_obj_t* _container;
 
-    // Left column (today)
-    lv_obj_t* _headerLeft;
     lv_obj_t* _iconLeft;
     lv_obj_t* _tempLeft;
-    lv_obj_t* _rainIconLeft;
     lv_obj_t* _rainLeft;
 
-    // Right column (tomorrow)
-    lv_obj_t* _headerRight;
     lv_obj_t* _iconRight;
     lv_obj_t* _tempRight;
-    lv_obj_t* _rainIconRight;
     lv_obj_t* _rainRight;
 };

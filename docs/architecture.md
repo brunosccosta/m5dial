@@ -412,9 +412,7 @@ Idle/screensaver shown at boot and after 30s inactivity on the main menu. Displa
 └──────────────────────────────┘
 ```
 
-The screen is split into two zones:
-- **Card area** (upper ~70%): auto-advances through a set of `RestCard` objects every 60s. Easy to add new cards.
-- **Device strip** (lower ~30%): always visible — AC + heater icon, mode, target temp. Icon color matches the AC mode (`Theme::AC_MODE_*`): orange-red for heat, blue for cool, green for auto, grey for off, etc.
+Cards auto-advance every 60s through the full screen. Each card owns the entire 240×240 display.
 
 #### Card system
 
@@ -432,6 +430,18 @@ public:
 ```
 
 `RestScreen` owns a `RestCard* _cards[]` array and a `_cardCount`. To add a new card: implement `RestCard`, instantiate it, add it to the array. No other changes needed.
+
+#### CardLayout
+
+`src/ui/CardLayout.h` — shared layout constants and helpers used by all cards. Three helpers:
+- `makeContainer(parent, shiftUp, rowGap)` — 240×240 transparent flex-column container; `SHIFT_UP=0` centers at 120px
+- `makeRow(parent, colGap)` — content-sized horizontal flex row
+- `makeColumn(parent, rowGap)` — content-sized vertical flex column (used for multi-column cards like ForecastCard)
+
+Three card styles:
+- **Style A — Hero number**: large centered value (48pt) + supporting rows. ClockCard, EnergyCard, WeatherNowCard.
+- **Style B — Status + arc**: bespoke layout kept as-is. ACControlScreen.
+- **Style C — Equal-weight list**: 2–3 rows same visual weight. IndoorTempsCard, MeshCoreCard. ForecastCard uses two `makeColumn`s side-by-side inside a single `makeRow`.
 
 `navigateCard(int dir)` hides the current card, walks the array by `dir` (+1 or −1) skipping cards where `isVisible()` returns false, calls `show()` + `update()` on the target card, and resets both `_lastAdvanceMs` and `_lastCardUpdateMs`. `advanceCard()` (auto-timer) calls `navigateCard(+1)`. `onEncoder(delta)` calls `navigateCard(delta > 0 ? -1 : +1)`.
 
