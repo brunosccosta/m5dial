@@ -318,6 +318,22 @@ static void parseForecastRain(const char* entity_id, const char* state, JsonObje
     ESP_LOGI(TAG, "forecast rain [%s]: %d%%", entity_id, f.rainChance);
 }
 
+// Replace multi-byte Unicode punctuation with ASCII equivalents so LVGL fonts render them.
+// Handles typographic apostrophes/quotes (U+2018/2019) from macOS device names and Spotify metadata.
+static void sanitizeForDisplay(char* s) {
+    char* r = s;
+    char* w = s;
+    while (*r) {
+        if ((uint8_t)r[0] == 0xE2 && (uint8_t)r[1] == 0x80 &&
+            ((uint8_t)r[2] == 0x98 || (uint8_t)r[2] == 0x99)) {
+            *w++ = '\''; r += 3; // U+2018/2019 → '
+        } else {
+            *w++ = *r++;
+        }
+    }
+    *w = '\0';
+}
+
 static void parseSpotify(const char* entity_id, const char* state, JsonObject attrs) {
     SpotifyState& s = appState.spotify;
     if (state) {
@@ -326,11 +342,11 @@ static void parseSpotify(const char* entity_id, const char* state, JsonObject at
     }
     if (!attrs.isNull()) {
         const char* title = attrs["media_title"];
-        if (title)  { strncpy(s.title,  title,  sizeof(s.title)  - 1); s.title[sizeof(s.title)   - 1] = '\0'; }
+        if (title)  { strncpy(s.title,  title,  sizeof(s.title)  - 1); s.title[sizeof(s.title)   - 1] = '\0'; sanitizeForDisplay(s.title);  }
         const char* artist = attrs["media_artist"];
-        if (artist) { strncpy(s.artist, artist, sizeof(s.artist) - 1); s.artist[sizeof(s.artist) - 1] = '\0'; }
+        if (artist) { strncpy(s.artist, artist, sizeof(s.artist) - 1); s.artist[sizeof(s.artist) - 1] = '\0'; sanitizeForDisplay(s.artist); }
         const char* source = attrs["source"];
-        if (source) { strncpy(s.source, source, sizeof(s.source) - 1); s.source[sizeof(s.source) - 1] = '\0'; }
+        if (source) { strncpy(s.source, source, sizeof(s.source) - 1); s.source[sizeof(s.source) - 1] = '\0'; sanitizeForDisplay(s.source); }
         const char* repeat = attrs["repeat"];
         if (repeat) { strncpy(s.repeat, repeat, sizeof(s.repeat) - 1); s.repeat[sizeof(s.repeat) - 1] = '\0'; }
         if (attrs["volume_level"].is<float>()) s.volume  = attrs["volume_level"];

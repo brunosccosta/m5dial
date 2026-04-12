@@ -47,18 +47,11 @@ Connect lamps to HA first, then revisit both together.
 
 ---
 
-## Feature: RFID — Spotify Web API playback ← next
+## Feature: RFID — write speaker pucks
 
-RFID hardware + dispatcher pipeline is done (see `docs/rfid.md`). Remaining work:
-
-- Build `SpotifyClient` (`src/SpotifyClient.h/.cpp`) — OAuth token refresh + Spotify Web API calls
-- `play(context_uri)` → `PUT /me/player/play` — targets active device, works with phone+BT
-- `transfer(device_id)` → `PUT /me/player` — move playback to a Spotify Connect device
-- Token rotation: persist refresh token to NVS so it survives power cycles without reflashing
-- Wire `SpotifyHandler` to `SpotifyClient::play()` instead of `haClient.sendPlayMedia()`
-- Speaker puck format: decide between `ha:` (HA-native, e.g. Sonos via HA) vs `spotify:device:` (pure Spotify Connect) — may support both
-
-One-time setup: Spotify developer app (client_id + client_secret) + Authorization Code flow on computer to get initial refresh token → store in `credentials.h`.
+SpotifyClient done. Device IDs captured in `src/devices.h`. Remaining:
+- Write `spotify:device:<id>` tags via NFC Tools for each speaker puck (Living Room AVR, TV, iPhone, Mac mini)
+- Sonos parked — does not appear as Spotify Connect device when HA controls it
 
 ---
 

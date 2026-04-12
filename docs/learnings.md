@@ -427,6 +427,43 @@ lv_obj_align(_smallLabel, LV_ALIGN_CENTER, smallX, smallY);
 
 ---
 
+## ESP32 `Preferences::begin()` with `readOnly=true` fails if namespace doesn't exist
+
+On first boot (or after NVS erase), opening a `Preferences` namespace with `readOnly = true` returns `NOT_FOUND` — the namespace hasn't been created yet. `getString` is never reached, and the fallback never fires.
+
+**Fix**: always open with `readOnly = false`. If the key is absent, `getString(key, default)` safely returns the default. No data is written unless `putString` is explicitly called.
+
+---
+
+## Typographic apostrophes from Spotify/device metadata break LVGL rendering
+
+macOS device names and Spotify track metadata use Unicode typographic apostrophes (U+2018 `'`, U+2019 `'`) instead of ASCII `'`. These are 3-byte UTF-8 sequences (`0xE2 0x80 0x98/99`). LVGL's compiled Montserrat font doesn't include these code points — they render as garbage or boxes.
+
+**Fix**: sanitize strings on ingestion with a simple in-place replacer before storing to AppState. Applied to `media_title`, `media_artist`, and `source` in `parseSpotify()` via `sanitizeForDisplay()` in `HAClient.cpp`.
+
+---
+
+## Spotify API — `context_uri` vs `uris` for playback
+
+`PUT /v1/me/player/play` uses different body fields depending on what you're playing:
+
+- **Albums, playlists, artists, shows**: `{"context_uri":"spotify:album:..."}`
+- **Tracks, episodes**: `{"uris":["spotify:track:..."]}` — must be an array, `context_uri` returns 400
+
+Using `context_uri` with a track URI returns HTTP 400 with no useful error message.
+
+---
+
+## NTAG213 NDEF read buffer must cover the full URI length
+
+`MIFARE_Read` reads 4 pages (16 bytes) per call. NDEF text payload starts at page 4, offset 9 (after TLV + record header + lang). A `spotify:device:<40-char-id>` URI is 55 bytes — plus 9 bytes overhead = 64 bytes total from page 4, which spans pages 4–19.
+
+Reading only pages 4–15 (48 bytes) truncates and corrupts any URI longer than ~39 bytes. The tag appears to read successfully (no error) but the payload buffer contains garbage past the read boundary.
+
+**Fix**: read pages 4–23 (80 bytes, 5 MIFARE_Read calls). Covers any Spotify URI with room to spare. NTAG213 user memory goes to page 39 so this is well within bounds.
+
+---
+
 ## `media_player.spotify` does not support `play_media`
 
 The HA Spotify integration entity (`media_player.spotify`) is a read/tracking entity — it reports state, title, artist, source, volume, etc. It does **not** accept `media_player.play_media` service calls; HA returns:

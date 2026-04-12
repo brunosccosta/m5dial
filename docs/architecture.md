@@ -188,6 +188,43 @@ haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN, true);
 
 ---
 
+## SpotifyClient
+
+`src/SpotifyClient.h/.cpp` — Spotify Web API client. Handles OAuth token lifecycle and playback commands. Instantiated as `spotifyClient` (global singleton).
+
+### Token lifecycle
+
+Credentials stored in `src/credentials.h` (gitignored): `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN`.
+
+- **Access token**: 1h TTL. Proactively refreshed 60s before expiry — `update()` checks every loop tick and refreshes when needed.
+- **Refresh token**: loaded from NVS on boot (`Preferences`, namespace `"spotify"`, key `"refresh_token"`); falls back to `credentials.h` if NVS is empty. If Spotify rotates the refresh token in a response, the new token is immediately persisted to NVS — survives power cycles without reflashing.
+- **Retry**: on refresh failure, retries after 30s.
+- **Auth**: `POST accounts.spotify.com/api/token` with `Authorization: Basic base64(client_id:client_secret)` computed at runtime via mbedTLS.
+
+### Commands
+
+```cpp
+spotifyClient.play(uri);          // albums, playlists → context_uri; tracks → uris[]
+spotifyClient.transfer(device_id); // PUT /v1/me/player — move to Spotify Connect device
+spotifyClient.logDevices();        // temporary: log available device IDs to Serial
+```
+
+**Play body selection** — Spotify API requires different fields by content type:
+- Albums, playlists, artists: `{"context_uri":"spotify:album:..."}`
+- Tracks, episodes: `{"uris":["spotify:track:..."]}`
+
+Both return HTTP 204 on success.
+
+**Device IDs** for known speakers stored in `src/devices.h` (gitignored). Captured once via `logDevices()`.
+
+### HTTP
+
+`WiFiClientSecure` + `HTTPClient` (Arduino ESP32). `setInsecure()` — no CA pinning for home use. All calls are blocking (~200–500ms); acceptable since they're user-triggered or infrequent (token refresh every ~55min).
+
+**State reads** stay on HA WebSocket — `SpotifyClient` is write-only. The Spotify card on RestScreen is driven by `appState.spotify` updated via HA's `media_player.spotify` entity.
+
+---
+
 ## SleepManager
 
 `src/SleepManager.h/.cpp` — display-off idle manager. Instantiated as `sleepManager` (global, defined in `SleepManager.cpp`).

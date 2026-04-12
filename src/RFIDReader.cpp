@@ -39,10 +39,11 @@ void RFIDReader::update() {
 void RFIDReader::readUltralight() {
     auto& rfid = M5Dial.Rfid;
 
-    // Read pages 4–15 (user memory, 12 pages = 48 bytes)
+    // Read pages 4–23 (user memory, 20 pages = 80 bytes)
     // MIFARE_Read reads 4 pages (16 bytes) per call
-    uint8_t data[48];
-    for (uint8_t startPage = 4; startPage < 16; startPage += 4) {
+    // 80 bytes covers any Spotify URI (max ~55 bytes) with NDEF overhead
+    uint8_t data[80];
+    for (uint8_t startPage = 4; startPage < 24; startPage += 4) {
         uint8_t buf[18]; uint8_t sz = 18;
         if (rfid.MIFARE_Read(startPage, buf, &sz) != MFRC522::STATUS_OK) {
             ESP_LOGW(TAG, "read failed at page %d", startPage);

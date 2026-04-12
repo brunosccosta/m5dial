@@ -115,7 +115,7 @@ No external library needed.
 
 **Finding:** `media_player.spotify` is a read/tracking entity — it does not accept `play_media`. Spotify playback must go through the Spotify Web API directly.
 
-### Step 4 — Spotify Web API integration ← next
+### Step 4 — Spotify Web API integration ✓ DONE (2026-04-12)
 
 Replace `haClient.sendPlayMedia` with direct Spotify API calls from a new `SpotifyClient` class.
 
@@ -144,11 +144,24 @@ Replace `haClient.sendPlayMedia` with direct Spotify API calls from a new `Spoti
 **Speaker puck format:** tag stores `ha:media_player.sala` today (routing to HA). After this step, speaker pucks will store Spotify device IDs or friendly names and be routed differently. Format TBD — may keep `ha:` prefix for HA-native speakers (Sonos via HA) and add `spotify:device:` prefix for pure Spotify Connect.
 
 **New class:** `src/SpotifyClient.h/.cpp`
-- `begin()` — reads credentials, triggers first token refresh
-- `update()` — checks token expiry, refreshes if <60s remaining
-- `play(const char* context_uri)` — PUT /me/player/play
-- `transfer(const char* device_id)` — PUT /me/player
-- `getDevices(...)` — GET /me/player/devices (for setup/debugging)
+- `begin()` — loads refresh token from NVS (falls back to `credentials.h`), sets up credentials
+- `update()` — called every loop; if WiFi up and token missing or expiring in <60s → refresh; logs devices once after first successful refresh (temporary, to be removed after speaker puck IDs are known)
+- `play(const char* context_uri)` — PUT /v1/me/player/play, targets currently active device
+- `transfer(const char* device_id)` — PUT /v1/me/player with `{"device_ids":[...],"play":true}`
+- `logDevices()` — GET /v1/me/player/devices, logs id/name/type/active to Serial; **remove after capturing device IDs for speaker pucks**
+
+**Token lifecycle:**
+- Access token: 1h TTL, proactively refreshed 60s before expiry; on refresh failure retry after 30s
+- Refresh token: persisted in ESP32 NVS (`Preferences`, namespace `"spotify"`, key `"refresh_token"`) so token rotation survives power cycles without reflashing
+- Auth: `POST accounts.spotify.com/api/token`, `Authorization: Basic base64(client_id:client_secret)` computed at runtime via mbedTLS
+
+**HTTP:** `WiFiClientSecure` + `HTTPClient` (Arduino ESP32). `setInsecure()` — no CA pinning for home use.
+
+**State reads:** HA WebSocket stays as the data source for the Spotify card — no change there.
+
+**Speaker puck format:** `spotify:device:<id>` — routed by SpotifyHandler (same `spotify:` prefix), calls `spotifyClient.transfer(device_id)`. Device IDs captured via `logDevices()` and stored in `src/devices.h` (gitignored).
+
+**Sonos:** does not appear as a Spotify Connect device when controlled via HA. Sonos speaker pucks are parked — not supported. HAHandler remains registered but unused; no `ha:` tags will be written.
 
 `SpotifyHandler` switches from `haClient.sendPlayMedia` to `spotifyClient.play(uri)`.
 
