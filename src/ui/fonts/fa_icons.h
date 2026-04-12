@@ -13,6 +13,7 @@ extern const lv_font_t font_montserrat_cyr_24;
 #define FA_HEART          "\xEF\x80\x84"  // U+F004 — fa-heart
 #define FA_LIGHTBULB      "\xEF\x83\xAB"  // U+F0EB — fa-lightbulb
 #define FA_SNOWFLAKE      "\xEF\x8B\x9C"  // U+F2DC — fa-snowflake
+#define FA_LEAF           "\xEF\x81\xAC"  // U+F06C — fa-leaf
 #define FA_FIRE           "\xEF\x81\xAD"  // U+F06D — fa-fire
 #define FA_GEAR           "\xEF\x80\x93"  // U+F013 — fa-gear
 #define FA_ARROWS_ROTATE  "\xEF\x80\xA1"  // U+F021 — fa-arrows-rotate

@@ -8,6 +8,7 @@
 #include "cards/IndoorTempsCard.h"
 #include "cards/ForecastCard.h"
 #include "cards/SpotifyCard.h"
+#include "cards/EnergyCard.h"
 #include "cards/MeshCoreCard.h"
 #include "cards/LoveCard.h"
 #include "cards/FlightCard.h"
@@ -41,7 +42,7 @@ public:
     static constexpr uint32_t CARD_INTERVAL_MS = 60000;
 
     // Pin to a specific card index during development (-1 = normal rotation).
-    // 0 = ClockCard, 1 = WeatherNowCard, 2 = ForecastCard, 3 = IndoorTempsCard, 4 = SpotifyCard, 5 = MeshCoreCard, 6 = LoveCard, 7 = FlightCard
+    // 0 = ClockCard, 1 = WeatherNowCard, 2 = ForecastCard, 3 = IndoorTempsCard, 4 = SpotifyCard, 5 = EnergyCard, 6 = MeshCoreCard, 7 = LoveCard, 8 = FlightCard
     static constexpr int DEV_CARD_PIN = -1;
 
     // Timer ring — thin arc around the dial edge showing time until next card.
@@ -57,7 +58,7 @@ private:
 
     static void onFooterTap(lv_event_t* e);
 
-    static constexpr int MAX_CARDS = 9;
+    static constexpr int MAX_CARDS = 10;
 
     bool _initialized        = false;
     bool _footerTapConsumed  = false;
@@ -71,6 +72,7 @@ private:
     IndoorTempsCard  _cardIndoorTemps;
     ForecastCard     _cardForecast;
     SpotifyCard      _cardSpotify;
+    EnergyCard       _cardEnergy;
     MeshCoreCard     _cardMeshCore;
     LoveCard         _cardLove;
     FlightCard       _cardFlight;

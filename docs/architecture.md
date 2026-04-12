@@ -234,7 +234,7 @@ Both return HTTP 204 on success.
 **Behaviour:**
 - `begin(normalBrightness)` — stores brightness, resets activity timestamp.
 - `onActivity()` — resets idle timer. If currently sleeping, restores brightness and clears `_sleeping`.
-- `tick()` — called at end of `loop()`. Guards: clock not synced (`time < 2020`) → skip. Not in sleep window → skip. Idle > `SLEEP_TIMEOUT_MS` (60s) → set brightness to 0, set `_sleeping`.
+- `tick()` — called at end of `loop()`. If sleeping: checks if sleep window has ended → auto-wakes (restores brightness + `wake()` tone). If awake: guards (clock not synced, not in sleep window) → skip. Idle > `SLEEP_TIMEOUT_MS` (60s) → set brightness to 0, set `_sleeping`.
 - `isSleeping()` — checked in `loop()` after every `onActivity()` call to swallow the wake input.
 
 **Integration in `main.cpp`:**
@@ -473,9 +473,10 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 | 2 | `ForecastCard` | `sensor.*_1d` / `sensor.*_2d` Buienradar forecast sensors | always |
 | 3 | `IndoorTempsCard` | `sensor.atc_3294/03be/88dc` temp + humidity (balcony, bedroom, bathroom) | always |
 | 4 | `SpotifyCard` | `media_player.spotify` — title, artist, source, volume, shuffle, repeat | only when state is `"playing"` or `"paused"` |
-| 5 | `MeshCoreCard` | MeshCore repeater GigiTower — battery %, 24h trend, uptime, last-updated | always |
-| 6 | `LoveCard` | Easter egg — beating heart + cycling messages (Russian/English/Portuguese); peach emoji swaps in for "Gostosa!" | `appState.loveMode` (driven by `input_boolean.nastya_at_home`) |
-| 7 | `FlightCard` | Countdown to next flight — flag emoji, destination, days + date, hint line for next-next flight; urgency coloring ≤14d/≤6d | at least one flight with `daysUntil >= 0` in `src/flights.h` |
+| 5 | `EnergyCard` | Zonneplan sensors — daily kWh, live watts, tariff, sustainability score, status tip | only when `energy.valid` |
+| 6 | `MeshCoreCard` | MeshCore repeater GigiTower — battery %, 24h trend, uptime, last-updated | always |
+| 7 | `LoveCard` | Easter egg — beating heart + cycling messages (Russian/English/Portuguese); peach emoji swaps in for "Gostosa!" | `appState.loveMode` (driven by `input_boolean.nastya_at_home`) |
+| 8 | `FlightCard` | Countdown to next flight — flag emoji, destination, days + date, hint line for next-next flight; urgency coloring ≤14d/≤6d | at least one flight with `daysUntil >= 0` in `src/flights.h` |
 
 #### MeshCoreCard layout
 

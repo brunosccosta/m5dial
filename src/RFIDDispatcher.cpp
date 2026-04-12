@@ -1,4 +1,5 @@
 #include "RFIDDispatcher.h"
+#include "Buzzer.h"
 #include <esp_log.h>
 #include <string.h>
 
@@ -14,6 +15,7 @@ void RFIDDispatcher::dispatch(const char* uri) {
     for (int i = 0; i < _count; i++) {
         const char* pfx = _handlers[i]->prefix();
         if (strncmp(uri, pfx, strlen(pfx)) == 0) {
+            buzzer.rfid();
             _handlers[i]->handle(uri);
             return;
         }

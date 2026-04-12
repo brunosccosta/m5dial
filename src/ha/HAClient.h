@@ -14,6 +14,7 @@ public:
     void sendFindMyIPhone(const char* account, const char* deviceName);
     void sendPlayMedia(const char* entity_id, const char* uri);
     void sendTransferMedia(const char* target_entity_id);
+    void requestKwhBaseline(); // public so parseEnergyUsageKwh can trigger day-rollover re-query
 
     void onWsEvent(WStype_t type, uint8_t* payload, size_t length);
 
@@ -47,6 +48,7 @@ private:
     uint16_t _subscribeIds[MAX_BATCHES]  = {};
     int      _subscribeCount             = 0;
     uint16_t _batteryHistoryMsgId        = 0;
+    uint16_t _kwhBaselineMsgId           = 0;
 };
 
 extern HAClient haClient;

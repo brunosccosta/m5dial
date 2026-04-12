@@ -69,6 +69,7 @@ Update the codepoints table below.
 | 61459 | F013 | fa-gear | `FA_GEAR` |
 | 61473 | F021 | fa-arrows-rotate | `FA_ARROWS_ROTATE` |
 | 61507 | F043 | fa-droplet | `FA_DROPLET` |
+| 61548 | F06C | fa-leaf | `FA_LEAF` |
 | 61549 | F06D | fa-fire | `FA_FIRE` |
 | 61671 | F0E7 | fa-bolt | `FA_BOLT` |
 | 61675 | F0EB | fa-lightbulb | `FA_LIGHTBULB` |

@@ -552,3 +552,22 @@ lv_obj_set_flex_align(_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV
 
 Children need no manual `lv_obj_align` — flex positions them. The container itself is then aligned on the parent with `lv_obj_align`.
 
+---
+
+## LVGL Montserrat font only covers ASCII 0x20–0x7E
+
+The built-in `lv_font_montserrat_*` fonts are compiled with a limited Unicode range. Characters outside ASCII render as squares:
+- Em dash `—` (U+2014, UTF-8: `0xE2 0x80 0x94`) → square
+- Cent sign `¢` (U+00A2) → square
+- Euro sign `€` (U+20AC) → square
+
+**Fix**: use ASCII-only placeholders and suffixes in placeholder text and formatted strings. E.g. use `"-"` not `"—"`, `"ct"` not `"¢"`, and avoid currency symbols in label text.
+
+---
+
+## SleepManager must check for window-end while sleeping
+
+`tick()` originally returned immediately when `_sleeping` was true, so the display stayed off past 07:00 until the user manually interacted. The sleep window exit was never detected.
+
+**Fix**: at the top of `tick()`, when sleeping, call `inSleepWindow()` — if false, auto-wake (restore brightness, play wake tone). Only then return. This way the first `tick()` after 07:00 wakes the display without any user input.
+

@@ -156,6 +156,24 @@ void HAClient::handleMessage(uint8_t* payload, size_t length) {
             if (_subscribeIds[i] == id)
                 ESP_LOGI(TAG, "subscribe_entities batch id=%d %s", id, ok ? "confirmed" : "failed");
         }
+        if (id == _kwhBaselineMsgId) {
+            if (!ok) { ESP_LOGW(TAG, "kWh baseline request failed"); return; }
+            JsonArray history = doc["result"]["sensor.zonneplan_usage_kwh"];
+            if (history.isNull() || history.size() == 0) {
+                ESP_LOGW(TAG, "kWh baseline: no data at midnight — using current as base");
+                // Will be set to current reading on next parseEnergyUsageKwh
+            } else {
+                float base = atof(history[0]["s"] | "0");
+                struct tm t; time_t now = time(nullptr); localtime_r(&now, &t);
+                appState.energy.baseKwh   = base;
+                appState.energy.baseDay   = t.tm_mday;
+                appState.energy.baseValid = true;
+                if (appState.energy.currentKwh > 0)
+                    appState.energy.dailyKwh = appState.energy.currentKwh - base;
+                appState.dirty = true;
+                ESP_LOGI(TAG, "kWh baseline: %.3f (day %d)", base, t.tm_mday);
+            }
+        }
         if (id == _batteryHistoryMsgId) {
             if (!ok) { ESP_LOGW(TAG, "battery history request failed"); return; }
             JsonArray history = doc["result"]["sensor.meshcore_82b3166b70_battery_percentage_gigitower"];
@@ -391,6 +409,54 @@ static void parseMeshCoreAirtime(const char* entity_id, const char* state, JsonO
     ESP_LOGI(TAG, "meshcore airtime: %.1f%%", appState.meshcore.airtimeUtil);
 }
 
+static void parseEnergyUsageKwh(const char* entity_id, const char* state, JsonObject attrs) {
+    if (!state) return;
+    float current = atof(state);
+    appState.energy.currentKwh = current;
+    appState.energy.valid = true;
+
+    // Day rollover: re-request baseline when local day changes
+    struct tm t; time_t now = time(nullptr); localtime_r(&now, &t);
+    if (appState.energy.baseValid && t.tm_mday != appState.energy.baseDay) {
+        appState.energy.baseValid = false;
+        haClient.requestKwhBaseline();
+    }
+
+    if (appState.energy.baseValid) {
+        appState.energy.dailyKwh = current - appState.energy.baseKwh;
+    } else {
+        // No baseline yet — show 0 until baseline query resolves
+        appState.energy.dailyKwh = 0.0f;
+    }
+    ESP_LOGI(TAG, "energy kWh: meter=%.3f daily=%.3f", current, appState.energy.dailyKwh);
+}
+
+static void parseEnergyCurrentUsage(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.energy.currentW = atof(state);
+    appState.energy.valid = true;
+    ESP_LOGI(TAG, "energy current: %.0f W", appState.energy.currentW);
+}
+
+static void parseEnergyTariff(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.energy.tariff = atof(state);
+    appState.energy.valid = true;
+    ESP_LOGI(TAG, "energy tariff: %.4f", appState.energy.tariff);
+}
+
+static void parseEnergySustainScore(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.energy.sustainScore = atof(state);
+    appState.energy.valid = true;
+    ESP_LOGI(TAG, "energy sustainability: %.1f%%", appState.energy.sustainScore);
+}
+
+static void parseEnergyTip(const char* entity_id, const char* state, JsonObject attrs) {
+    if (!state) return;
+    strncpy(appState.energy.tip, state, sizeof(appState.energy.tip) - 1);
+    appState.energy.tip[sizeof(appState.energy.tip) - 1] = '\0';
+    appState.energy.valid = true;
+    ESP_LOGI(TAG, "energy tip: %s", appState.energy.tip);
+}
+
 static void parseLoveMode(const char* entity_id, const char* state, JsonObject attrs) {
     if (!state) return;
     appState.loveMode = strcmp(state, "on") == 0;
@@ -421,6 +487,11 @@ static const SensorEntry SENSORS[] = {
     { "sensor.meshcore_82b3166b70_battery_percentage_gigitower",   parseMeshCoreBattery  },
     { "sensor.meshcore_82b3166b70_uptime_gigitower",               parseMeshCoreUptime   },
     { "sensor.meshcore_82b3166b70_airtime_utilization_gigitower",  parseMeshCoreAirtime  },
+    { "sensor.zonneplan_usage_kwh",                                parseEnergyUsageKwh   },
+    { "sensor.zonneplan_current_usage",                            parseEnergyCurrentUsage },
+    { "sensor.zonneplan_current_electricity_tariff",               parseEnergyTariff     },
+    { "sensor.zonneplan_sustainability_score",                     parseEnergySustainScore },
+    { "sensor.zonneplan_status_tip",                               parseEnergyTip        },
 };
 static constexpr int SENSOR_COUNT = sizeof(SENSORS) / sizeof(SENSORS[0]);
 
@@ -451,6 +522,33 @@ void HAClient::subscribeEntities() {
     }
 
     requestBatteryHistory();
+    requestKwhBaseline();
+}
+
+void HAClient::requestKwhBaseline() {
+    time_t now = time(nullptr);
+    if (now < 1577836800LL) {
+        ESP_LOGW(TAG, "clock not synced, skipping kWh baseline request");
+        return;
+    }
+    // Today's local midnight → convert to UTC for HA query
+    struct tm t; localtime_r(&now, &t);
+    t.tm_hour = 0; t.tm_min = 0; t.tm_sec = 0;
+    time_t midnight = mktime(&t);
+    struct tm t_utc; gmtime_r(&midnight, &t_utc);
+    char startBuf[32];
+    strftime(startBuf, sizeof(startBuf), "%Y-%m-%dT%H:%M:%S+00:00", &t_utc);
+
+    _kwhBaselineMsgId = ++_msgId;
+    char buf[320];
+    snprintf(buf, sizeof(buf),
+        "{\"id\":%d,\"type\":\"history/history_during_period\","
+        "\"start_time\":\"%s\","
+        "\"entity_ids\":[\"sensor.zonneplan_usage_kwh\"],"
+        "\"minimal_response\":true,\"no_attributes\":true}",
+        _kwhBaselineMsgId, startBuf);
+    _ws.sendTXT(buf);
+    ESP_LOGI(TAG, "sent kWh baseline request (id=%d, midnight=%s)", _kwhBaselineMsgId, startBuf);
 }
 
 void HAClient::requestBatteryHistory() {

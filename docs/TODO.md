@@ -31,9 +31,16 @@ Alternative: a MenuCard for Spotify (alongside AC, Heater). Less discoverable bu
 
 ---
 
-## Feature: Energy card
+## Feature: Energy card ✓
 
-New `RestCard` showing current power draw + daily consumption from HA energy monitoring. Needs `sensor.*` entities from HA energy dashboard. At-a-glance, no interaction needed — pure display card.
+`EnergyCard` added as a `RestCard`. Subscribes to 5 Zonneplan sensors:
+- `sensor.zonneplan_usage_kwh` — today's total kWh (big center number)
+- `sensor.zonneplan_current_usage` — live watts (bolt icon row)
+- `sensor.zonneplan_current_electricity_tariff` — tariff in €/kWh (same row)
+- `sensor.zonneplan_sustainability_score` — 0–100, colored by value (leaf icon row)
+- `sensor.zonneplan_status_tip` — Dutch status tip, scrolling at top, color-coded
+
+Card visible only when `energy.valid`. Tip colors: green if "groen"/"goedkoop", orange if "hoog".
 
 ---
 

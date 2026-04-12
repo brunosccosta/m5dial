@@ -60,6 +60,19 @@ struct SpotifyState {
     bool  valid;      // false until first HA update
 };
 
+struct EnergyState {
+    float dailyKwh;     // today's usage = currentKwh - baseKwh
+    float currentKwh;   // sensor.zonneplan_usage_kwh (monotonic meter)
+    float baseKwh;      // meter reading at today's local midnight
+    int   baseDay;      // local day-of-month when baseline was taken
+    bool  baseValid;    // false until first baseline query resolves
+    float currentW;     // sensor.zonneplan_current_usage (live watts)
+    float tariff;       // sensor.zonneplan_current_electricity_tariff (€/kWh)
+    float sustainScore; // sensor.zonneplan_sustainability_score (0–100 %)
+    char  tip[80];      // sensor.zonneplan_status_tip
+    bool  valid;
+};
+
 struct MeshCoreState {
     time_t   lastUpdatedAt;   // epoch from battery sensor attrs.last_updated (local time)
     int      batteryPct;      // sensor.meshcore_82b3166b70_battery_percentage_gigitower
@@ -85,6 +98,7 @@ struct AppState {
     ForecastDay  forecastToday;    // sensor.*_1d
     ForecastDay  forecastTomorrow; // sensor.*_2d
     SpotifyState  spotify;         // media_player.spotify
+    EnergyState   energy;          // zonneplan sensors
     MeshCoreState meshcore;        // meshcore repeater GigiTower
 
     bool            loveMode;    // easter egg; will be driven by input_boolean.dial_love_mode later

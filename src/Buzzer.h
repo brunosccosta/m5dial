@@ -7,6 +7,7 @@ public:
     void tap();      // screen tap / touch confirm
     void confirm();  // button confirm action
     void wake();     // display wake from sleep
+    void rfid();     // RFID tag scanned
 
     void mute(bool m) { _muted = m; }
     bool isMuted()    { return _muted; }
@@ -26,6 +27,9 @@ private:
 
     static constexpr uint32_t WAKE_FREQ    = 440;  // Hz
     static constexpr uint32_t WAKE_MS      = 30;
+
+    static constexpr uint32_t RFID_FREQ    = 700;  // Hz
+    static constexpr uint32_t RFID_MS      = 60;
 };
 
 extern Buzzer buzzer;

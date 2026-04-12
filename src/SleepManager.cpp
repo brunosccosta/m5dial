@@ -25,7 +25,16 @@ void SleepManager::onActivity() {
 }
 
 void SleepManager::tick() {
-    if (_sleeping) return; // already asleep — nothing to check
+    if (_sleeping) {
+        // Auto-wake when sleep window ends (e.g. 07:00)
+        if (!inSleepWindow()) {
+            _sleeping = false;
+            M5Dial.Display.setBrightness(_normalBrightness);
+            buzzer.wake();
+            ESP_LOGI(TAG, "auto-wake: sleep window ended");
+        }
+        return;
+    }
 
     // Guard: skip if clock not synced
     time_t now = time(nullptr);
