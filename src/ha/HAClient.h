@@ -32,7 +32,6 @@ private:
     void dispatchSensor(const char* entity_id, const char* state, JsonObject attrs);
 
     static constexpr int BATCH_SIZE    = 5;
-    static constexpr int MAX_BATCHES   = 5; // ceil(SENSOR_COUNT / BATCH_SIZE)
 
     const char* _ssid;
     const char* _password;
@@ -44,11 +43,10 @@ private:
     uint32_t         _lastRetryMs = 0;
     WebSocketsClient _ws;
 
-    uint16_t _msgId                     = 0;
-    uint16_t _subscribeIds[MAX_BATCHES]  = {};
-    int      _subscribeCount             = 0;
-    uint16_t _batteryHistoryMsgId        = 0;
-    uint16_t _kwhBaselineMsgId           = 0;
+    uint16_t _msgId              = 0;
+    int      _subscribeCount     = 0; // number of subscribe_entities batches sent (ids 1.._subscribeCount)
+    uint16_t _batteryHistoryMsgId = 0;
+    uint16_t _kwhBaselineMsgId    = 0;
 };
 
 extern HAClient haClient;

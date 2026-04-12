@@ -135,7 +135,7 @@ After `auth_ok`, HAClient sends `subscribe_entities` in batches of 5, one messag
 {"id":2,"type":"subscribe_entities","entity_ids":["sensor.d","sensor.e",...]}
 ```
 
-Each batch gets its own message ID. `_subscribeIds[]` tracks all active IDs; the event handler accepts events from any of them.
+Each batch gets its own message ID. Since `_msgId` resets to 0 at the start of each `subscribeEntities()` call, batch IDs are always `1.._subscribeCount`. The event handler accepts events from any ID in that range.
 
 **Why not `get_states`**: `get_states` returns all HA entities in one WS frame — easily 50–200KB. The Links2004 WS library drops the connection when the incoming frame exceeds its buffer. `subscribe_entities` with specific IDs returns only the requested entities.
 

@@ -152,10 +152,8 @@ void HAClient::handleMessage(uint8_t* payload, size_t length) {
     } else if (strcmp(type, "result") == 0) {
         int  id = doc["id"] | 0;
         bool ok = doc["success"] | false;
-        for (int i = 0; i < _subscribeCount; i++) {
-            if (_subscribeIds[i] == id)
-                ESP_LOGI(TAG, "subscribe_entities batch id=%d %s", id, ok ? "confirmed" : "failed");
-        }
+        if (id >= 1 && id <= _subscribeCount)
+            ESP_LOGI(TAG, "subscribe_entities batch id=%d %s", id, ok ? "confirmed" : "failed");
         if (id == _kwhBaselineMsgId) {
             if (!ok) { ESP_LOGW(TAG, "kWh baseline request failed"); return; }
             JsonArray history = doc["result"]["sensor.zonneplan_usage_kwh"];
@@ -191,10 +189,7 @@ void HAClient::handleMessage(uint8_t* payload, size_t length) {
         }
     } else if (strcmp(type, "event") == 0) {
         int id = doc["id"] | 0;
-        bool known = false;
-        for (int i = 0; i < _subscribeCount; i++)
-            if (_subscribeIds[i] == id) { known = true; break; }
-        if (!known) return;
+        if (id < 1 || id > _subscribeCount) return;
 
         // Initial snapshot: event.a = added entities
         JsonObject added = doc["event"]["a"];
@@ -513,8 +508,7 @@ void HAClient::subscribeEntities() {
         }
         pos += snprintf(buf + pos, sizeof(buf) - pos, "]}");
 
-        if (_subscribeCount < MAX_BATCHES)
-            _subscribeIds[_subscribeCount++] = id;
+        _subscribeCount++;
 
         ESP_LOGD(TAG, "<< %s", buf);
         _ws.sendTXT(buf);

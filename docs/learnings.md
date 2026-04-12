@@ -194,6 +194,24 @@ lv_obj_add_flag(_container,   LV_OBJ_FLAG_HIDDEN); // hide
 - `enableHeartbeat(pingMs, pongTimeoutMs, retries)` — built-in WS ping/pong keepalive
 - HA sends `auth_required` on every new connection, so auth flow repeats automatically after reconnect
 
+## `subscribe_entities` batch ID tracking — don't cap at a fixed MAX_BATCHES
+
+The original implementation stored each subscription batch's message ID in a fixed array (`_subscribeIds[MAX_BATCHES]`) and rejected events whose ID wasn't in the array. When the number of sensors grew past `MAX_BATCHES * BATCH_SIZE`, the extra batches' IDs were silently not stored — their events were dropped with no log. The sensor appeared to receive data (the HA event was logged) but `AppState` was never updated.
+
+**Fix**: subscription IDs are always sequential starting from 1 (since `_msgId` resets to 0 on each `subscribeEntities()` call). Replace the array with a count and a range check:
+
+```cpp
+// In subscribeEntities():
+_subscribeCount++; // was: if (_subscribeCount < MAX_BATCHES) _subscribeIds[_subscribeCount++] = id;
+
+// In handleMessage() event handler:
+if (id < 1 || id > _subscribeCount) return; // was: loop over _subscribeIds[]
+```
+
+No array, no cap — works for any number of sensors.
+
+---
+
 ## `get_states` disconnects the WS — use `subscribe_entities` instead
 
 `get_states` returns all HA entities in a single WS frame. For a typical HA install this is 50–200KB. The Links2004 WebSocketsClient library drops the connection when the incoming frame exceeds its buffer — no error, just `WStype_DISCONNECTED` immediately after the frame arrives.
@@ -536,7 +554,9 @@ The timer callback gets `this` via `lv_timer_get_user_data(timer)`. For `lv_anim
 
 ---
 
-## LVGL flex row for centered icon+label pairs
+## LVGL flex layout for centered cards
+
+### Single row (icon + label pair)
 
 Using `LV_ALIGN_LEFT_MID` / `LV_ALIGN_RIGHT_MID` on an icon and a text label inside a fixed-width container leaves a large gap because LVGL pins each child to the container edges regardless of content width. The gap varies by mode label length.
 
@@ -551,6 +571,32 @@ lv_obj_set_flex_align(_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV
 ```
 
 Children need no manual `lv_obj_align` — flex positions them. The container itself is then aligned on the parent with `lv_obj_align`.
+
+### Full card layout (vertical stack of centered rows)
+
+For cards with multiple rows of mixed-font content (e.g. big number + small unit, then icon + value + value, then icon + score), make the outer container a vertical flex column. Each row is a horizontal flex row sized to content. No manual `lv_obj_align` or `lv_obj_align_to` anywhere in `update()`.
+
+```cpp
+// Outer container — vertical flex, all rows centered
+lv_obj_set_style_pad_row(_container, 8, LV_PART_MAIN); // row gap
+lv_obj_set_layout(_container, LV_LAYOUT_FLEX);
+lv_obj_set_flex_flow(_container, LV_FLEX_FLOW_COLUMN);
+lv_obj_set_flex_align(_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+
+// Per row — content-sized horizontal flex row
+lv_obj_t* row = lv_obj_create(_container);
+lv_obj_set_size(row, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, LV_PART_MAIN);
+lv_obj_set_style_border_width(row, 0, LV_PART_MAIN);
+lv_obj_set_style_pad_all(row, 0, LV_PART_MAIN);
+lv_obj_set_style_pad_column(row, 6, LV_PART_MAIN);
+lv_obj_set_layout(row, LV_LAYOUT_FLEX);
+lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+lv_obj_clear_flag(row, LV_OBJ_FLAG_SCROLLABLE);
+```
+
+Row objects don't need to be stored as fields — they're owned by the parent and only the leaf labels need updating in `update()`. `update()` becomes purely text + color assignments with no layout calls.
 
 ---
 
