@@ -13,20 +13,9 @@
 #include "cards/LoveCard.h"
 #include "cards/FlightCard.h"
 
-class RestScreen;  // forward declaration for FooterSlot
-
-struct FooterSlot {
-    lv_obj_t*             iconLabel  = nullptr;
-    lv_obj_t*             stateLabel = nullptr;
-    lv_obj_t*             touchArea  = nullptr;
-    std::function<void()> onTap;
-    RestScreen*           owner      = nullptr;
-};
-
 class RestScreen : public Screen {
 public:
     void setOnWake(std::function<void()> cb);
-    void setFooterTap(int side, std::function<void()> cb);
 
     void init()                override;
     void show()                override;
@@ -56,12 +45,9 @@ private:
     void advanceCard();
     void wake();
 
-    static void onFooterTap(lv_event_t* e);
-
     static constexpr int MAX_CARDS = 10;
 
-    bool _initialized        = false;
-    bool _footerTapConsumed  = false;
+    bool _initialized = false;
     std::function<void()> _onWake;
 
     lv_obj_t* _lvScreen;
@@ -92,8 +78,6 @@ private:
     lv_obj_t* _fadeOverlay = nullptr;
     static void fadeOverlayCb(void* var, int32_t v);
 
-    // Device strip (always visible, not part of card rotation)
-    FooterSlot _slots[2];
 };
 
 extern RestScreen restScreen;

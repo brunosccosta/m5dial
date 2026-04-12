@@ -1,31 +1,11 @@
+#include <Arduino.h>
 #include <esp_log.h>
 #include "RestScreen.h"
-#include "../AppState.h"
-#include "fonts/fa_icons.h"
 #include "Theme.h"
 
 static const char* TAG = "REST";
 
 RestScreen restScreen;
-
-static lv_color_t modeColor(const char* mode) {
-    if (strcmp(mode, "heat")     == 0) return lv_color_hex(Theme::AC_MODE_HEAT);
-    if (strcmp(mode, "cool")     == 0) return lv_color_hex(Theme::AC_MODE_COOL);
-    if (strcmp(mode, "auto")     == 0) return lv_color_hex(Theme::AC_MODE_AUTO);
-    if (strcmp(mode, "heat_cool")== 0) return lv_color_hex(Theme::AC_MODE_AUTO);
-    if (strcmp(mode, "fan_only") == 0) return lv_color_hex(Theme::AC_MODE_FAN);
-    if (strcmp(mode, "dry")      == 0) return lv_color_hex(Theme::AC_MODE_DRY);
-    return lv_color_hex(Theme::AC_MODE_OFF);
-}
-
-static const char* modeIcon(const char* mode) {
-    if (strcmp(mode, "heat")     == 0) return FA_FIRE;
-    if (strcmp(mode, "cool")     == 0) return FA_SNOWFLAKE;
-    if (strcmp(mode, "auto")     == 0) return FA_ARROWS_ROTATE;
-    if (strcmp(mode, "fan_only") == 0) return FA_FAN;
-    if (strcmp(mode, "dry")      == 0) return FA_DROPLET;
-    return FA_POWER_OFF;
-}
 
 // --- Lifecycle ---
 
@@ -33,16 +13,6 @@ void RestScreen::setOnWake(std::function<void()> cb) {
     _onWake = cb;
 }
 
-void RestScreen::setFooterTap(int side, std::function<void()> cb) {
-    if (side < 0 || side > 1) return;
-    _slots[side].onTap = cb;
-}
-
-void RestScreen::onFooterTap(lv_event_t* e) {
-    FooterSlot* slot = static_cast<FooterSlot*>(lv_obj_get_user_data(static_cast<lv_obj_t*>(lv_event_get_target(e))));
-    slot->owner->_footerTapConsumed = true;
-    slot->onTap();
-}
 
 void RestScreen::init() {
     if (_initialized) return;
@@ -91,32 +61,6 @@ void RestScreen::init() {
     lv_obj_set_style_arc_rounded(_ring, true, LV_PART_INDICATOR);
     lv_obj_set_style_arc_rounded(_ring, true, LV_PART_MAIN);
 
-    // Device strip — two slots: 0=AC (left), 1=Heater (right)
-    static constexpr int SLOT_X[2] = { -45, +45 };
-    for (int s = 0; s < 2; s++) {
-        _slots[s].owner = this;
-
-        _slots[s].iconLabel = lv_label_create(_lvScreen);
-        lv_obj_set_style_text_font(_slots[s].iconLabel, &font_awesome_solid_18, LV_PART_MAIN);
-        lv_obj_set_style_text_color(_slots[s].iconLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-        lv_obj_align(_slots[s].iconLabel, LV_ALIGN_CENTER, SLOT_X[s], +52);
-
-        _slots[s].stateLabel = lv_label_create(_lvScreen);
-        lv_obj_set_style_text_font(_slots[s].stateLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-        lv_obj_set_style_text_color(_slots[s].stateLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
-        lv_obj_align(_slots[s].stateLabel, LV_ALIGN_CENTER, SLOT_X[s], +74);
-
-        if (_slots[s].onTap) {
-            _slots[s].touchArea = lv_obj_create(_lvScreen);
-            lv_obj_set_size(_slots[s].touchArea, 120, 80);
-            lv_obj_set_pos(_slots[s].touchArea, s == 0 ? 0 : 120, 160);
-            lv_obj_set_style_bg_opa(_slots[s].touchArea, LV_OPA_TRANSP, LV_PART_MAIN);
-            lv_obj_set_style_border_width(_slots[s].touchArea, 0, LV_PART_MAIN);
-            lv_obj_add_flag(_slots[s].touchArea, LV_OBJ_FLAG_CLICKABLE);
-            lv_obj_set_user_data(_slots[s].touchArea, &_slots[s]);
-            lv_obj_add_event_cb(_slots[s].touchArea, onFooterTap, LV_EVENT_CLICKED, nullptr);
-        }
-    }
 
     // Fade overlay — sits on top of everything, animated opaque→transparent on card change
     _fadeOverlay = lv_obj_create(_lvScreen);
@@ -137,7 +81,6 @@ void RestScreen::show() {
     lv_arc_set_value(_ring, 360);
     _lastRingValue = 360;
     _cards[_activeCard]->update();
-    updateDeviceStrip();
 }
 
 void RestScreen::tick() {
@@ -211,10 +154,6 @@ void RestScreen::onSwipe(int dir) {
 }
 
 void RestScreen::onTouch() {
-    if (_footerTapConsumed) {
-        _footerTapConsumed = false;
-        return;
-    }
     wake();
 }
 
@@ -231,31 +170,4 @@ void RestScreen::wake() {
 
 void RestScreen::updateDisplay() {
     _cards[_activeCard]->update();
-    updateDeviceStrip();
-}
-
-void RestScreen::updateDeviceStrip() {
-    char buf[24];
-    static constexpr int SLOT_X[2] = { -45, +45 };
-
-    ACState* states[2] = { &appState.ac, &appState.heater };
-    for (int s = 0; s < 2; s++) {
-        ACState& state = *states[s];
-        if (state.valid) {
-            lv_label_set_text(_slots[s].iconLabel, modeIcon(state.mode));
-            lv_obj_set_style_text_color(_slots[s].iconLabel, modeColor(state.mode), LV_PART_MAIN);
-            if (s == 1 && strcmp(state.mode, "off") == 0) {
-                lv_label_set_text(_slots[s].stateLabel, "off");
-            } else {
-                snprintf(buf, sizeof(buf), "%s %.0f°", state.mode, state.target_temp);
-                lv_label_set_text(_slots[s].stateLabel, buf);
-            }
-        } else {
-            lv_label_set_text(_slots[s].iconLabel,  FA_POWER_OFF);
-            lv_obj_set_style_text_color(_slots[s].iconLabel, lv_color_hex(Theme::AC_MODE_OFF), LV_PART_MAIN);
-            lv_label_set_text(_slots[s].stateLabel, "---");
-        }
-        lv_obj_align(_slots[s].iconLabel,  LV_ALIGN_CENTER, SLOT_X[s], +52);
-        lv_obj_align(_slots[s].stateLabel, LV_ALIGN_CENTER, SLOT_X[s], +74);
-    }
 }

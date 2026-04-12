@@ -2,6 +2,7 @@
 #include "../../AppState.h"
 #include "../fonts/fa_icons.h"
 #include "../Theme.h"
+#include "../CardLayout.h"
 
 // Condition map — key matches sensor.detailed_condition state values.
 // To add/change an icon: update the icon field below; only this table needs touching.
@@ -40,43 +41,38 @@ static const ConditionInfo* conditionInfo(const char* key) {
 // --- Lifecycle ---
 
 void WeatherNowCard::init(lv_obj_t* parent) {
-    _container = lv_obj_create(parent);
-    lv_obj_set_size(_container, 240, 240);
-    lv_obj_set_pos(_container, 0, 0);
-    lv_obj_set_style_bg_opa(_container, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_border_width(_container, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(_container, 0, LV_PART_MAIN);
-    lv_obj_clear_flag(_container, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_clear_flag(_container, LV_OBJ_FLAG_CLICKABLE);
+    _container = CardLayout::makeContainer(parent);
 
-    _tempLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_tempLabel, &lv_font_montserrat_48, LV_PART_MAIN);
+    // Row 1: temperature (hero) + feels-like
+    lv_obj_t* tempRow = CardLayout::makeRow(_container);
+    _tempLabel = lv_label_create(tempRow);
+    lv_obj_set_style_text_font(_tempLabel, CardLayout::fontHero(), LV_PART_MAIN);
     lv_obj_set_style_text_color(_tempLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(_tempLabel, LV_ALIGN_CENTER, -9, -45);
-
-    _feelsLikeLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_feelsLikeLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_label_set_text(_tempLabel, "--°");
+    _feelsLikeLabel = lv_label_create(tempRow);
+    lv_obj_set_style_text_font(_feelsLikeLabel, CardLayout::fontDetail(), LV_PART_MAIN);
     lv_obj_set_style_text_color(_feelsLikeLabel, lv_color_hex(Theme::TEXT_FAINT), LV_PART_MAIN);
-    lv_obj_align(_feelsLikeLabel, LV_ALIGN_CENTER, 20, -45);
+    lv_label_set_text(_feelsLikeLabel, "");
 
-    _iconLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_iconLabel, &font_awesome_solid_18, LV_PART_MAIN);
+    // Row 2: condition icon + condition text
+    lv_obj_t* condRow = CardLayout::makeRow(_container);
+    _iconLabel = lv_label_create(condRow);
+    lv_obj_set_style_text_font(_iconLabel, CardLayout::fontIcon(), LV_PART_MAIN);
     lv_obj_set_style_text_color(_iconLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(_iconLabel, LV_ALIGN_CENTER, -40, -8);
-
-    _conditionLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_conditionLabel, &lv_font_montserrat_24, LV_PART_MAIN);
+    lv_label_set_text(_iconLabel, "");
+    _conditionLabel = lv_label_create(condRow);
+    lv_obj_set_style_text_font(_conditionLabel, CardLayout::fontValue(), LV_PART_MAIN);
     lv_obj_set_style_text_color(_conditionLabel, lv_color_hex(Theme::TEXT_FAINT), LV_PART_MAIN);
-    lv_obj_align(_conditionLabel, LV_ALIGN_CENTER, 0, -8);
+    lv_label_set_text(_conditionLabel, "---");
 }
 
 void WeatherNowCard::update() {
     WeatherState& w = appState.weather;
+
     if (w.valid) {
         char buf[16];
         snprintf(buf, sizeof(buf), "%.0f°", w.temperature);
         lv_label_set_text(_tempLabel, buf);
-
         snprintf(buf, sizeof(buf), "/ %.0f°", w.feelsLike);
         lv_label_set_text(_feelsLikeLabel, buf);
 
@@ -86,7 +82,7 @@ void WeatherNowCard::update() {
         const char* icon = nullptr;
         if (info) {
             icon = (info->icon == nullptr)
-                ? (appState.weather.isDaytime ? FA_SUN : FA_MOON)  // "clear" — day/night
+                ? (w.isDaytime ? FA_SUN : FA_MOON)
                 : info->icon;
         }
         lv_label_set_text(_iconLabel,      icon ? icon : "");
@@ -97,42 +93,22 @@ void WeatherNowCard::update() {
         lv_label_set_text(_iconLabel,      "");
         lv_label_set_text(_conditionLabel, "---");
     }
-    lv_obj_align(_tempLabel, LV_ALIGN_CENTER, -9, -45);
-    lv_obj_update_layout(_container);
-    lv_obj_align_to(_feelsLikeLabel, _tempLabel, LV_ALIGN_OUT_RIGHT_BOTTOM, 6, -2);
 
-    // Measure natural sizes so we can center the icon+label group.
-    // Reset to auto-size first in case a previous update set a fixed width.
+    // If condition + icon together exceed the usable width, cap and scroll.
+    static constexpr int MAX_TOTAL = 200;
     lv_label_set_long_mode(_conditionLabel, LV_LABEL_LONG_WRAP);
     lv_obj_set_width(_conditionLabel, LV_SIZE_CONTENT);
     lv_obj_update_layout(_container);
 
-    static constexpr int GAP       = 6;
-    static constexpr int MAX_TOTAL = 200; // max group width before scrolling kicks in
+    bool hasIcon = lv_label_get_text(_iconLabel)[0] != '\0';
+    int  iconW   = hasIcon ? lv_obj_get_width(_iconLabel) + CardLayout::PAD_ICON_TEXT : 0;
+    int  textW   = lv_obj_get_width(_conditionLabel);
 
-    bool   hasIcon = lv_label_get_text(_iconLabel)[0] != '\0';
-    int    icon_w  = hasIcon ? lv_obj_get_width(_iconLabel) : 0;
-    int    text_w  = lv_obj_get_width(_conditionLabel);
-    int    total_w = icon_w + (hasIcon ? GAP : 0) + text_w;
-
-    if (total_w > MAX_TOTAL) {
-        int max_text_w = MAX_TOTAL - icon_w - (hasIcon ? GAP : 0);
-        lv_obj_set_width(_conditionLabel, max_text_w);
+    if (iconW + textW > MAX_TOTAL) {
+        lv_obj_set_width(_conditionLabel, MAX_TOTAL - iconW);
         lv_label_set_long_mode(_conditionLabel, LV_LABEL_LONG_SCROLL_CIRCULAR);
         lv_obj_set_style_anim_duration(_conditionLabel, 14000, LV_PART_MAIN);
-        lv_obj_update_layout(_container);
-        text_w  = max_text_w;
-        total_w = MAX_TOTAL;
     }
-
-    // Place icon center then text center so the group is centered on screen
-    int group_left = -(total_w / 2);
-    int icon_x     = group_left + icon_w / 2;
-    int text_x     = group_left + icon_w + (hasIcon ? GAP : 0) + text_w / 2;
-
-    if (hasIcon) lv_obj_align(_iconLabel, LV_ALIGN_CENTER, icon_x, -8);
-    else         lv_obj_align(_iconLabel, LV_ALIGN_CENTER, 0, -8);
-    lv_obj_align(_conditionLabel, LV_ALIGN_CENTER, text_x, -8);
 }
 
 void WeatherNowCard::show() { lv_obj_clear_flag(_container, LV_OBJ_FLAG_HIDDEN); }
