@@ -20,12 +20,14 @@ namespace CardLayout {
     static constexpr int PAD_ICON_TEXT = 6;
 
     // Vertical gap between rows inside a flex column container.
-    static constexpr int PAD_ROW = 8;
+    // PAD_ROW      — for hero cards (Style A): hero + 1–2 supporting rows
+    // PAD_ROW_LIST — for list cards (Style C): 2–3 equal-weight rows need more breathing room
+    static constexpr int PAD_ROW      = 8;
+    static constexpr int PAD_ROW_LIST = 14;
 
-    // pad_bottom applied to the outer container to shift content 15px above center.
-    // (Available height = 240 - SHIFT_UP → center of content sits at 120 - 15 = 105px.)
-    // Pass 0 to makeContainer() to opt out.
-    static constexpr int SHIFT_UP = 30;
+    // pad_bottom applied to the outer container to offset content from true center.
+    // 0 = perfectly centered at 120px. Increase to shift content upward.
+    static constexpr int SHIFT_UP = 0;
 
     // ── Font roles ─────────────────────────────────────────────────────────────
     //
@@ -46,7 +48,7 @@ namespace CardLayout {
     // Standard 240×240 transparent outer container with vertical flex column layout.
     // All card rows are direct children of this object.
     // shiftUp: pad_bottom to push content above center (default = SHIFT_UP = 15px).
-    inline lv_obj_t* makeContainer(lv_obj_t* parent, int shiftUp = SHIFT_UP) {
+    inline lv_obj_t* makeContainer(lv_obj_t* parent, int shiftUp = SHIFT_UP, int rowGap = PAD_ROW) {
         lv_obj_t* c = lv_obj_create(parent);
         lv_obj_set_size(c, 240, 240);
         lv_obj_set_pos(c, 0, 0);
@@ -54,7 +56,7 @@ namespace CardLayout {
         lv_obj_set_style_border_width(c, 0, LV_PART_MAIN);
         lv_obj_set_style_pad_all(c, 0, LV_PART_MAIN);
         lv_obj_set_style_pad_bottom(c, shiftUp, LV_PART_MAIN);
-        lv_obj_set_style_pad_row(c, PAD_ROW, LV_PART_MAIN);
+        lv_obj_set_style_pad_row(c, rowGap, LV_PART_MAIN);
         lv_obj_set_layout(c, LV_LAYOUT_FLEX);
         lv_obj_set_flex_flow(c, LV_FLEX_FLOW_COLUMN);
         lv_obj_set_flex_align(c, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
