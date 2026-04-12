@@ -22,6 +22,7 @@
 #include "RFIDDispatcher.h"
 #include "SpotifyHandler.h"
 #include "HAHandler.h"
+#include "SpotifyClient.h"
 
 // --- AC control ---
 ACControlScreen acControl;
@@ -133,6 +134,7 @@ void setup() {
     }
 
     input.begin();
+    spotifyClient.begin();
     rfidReader.begin();
     rfidDispatcher.registerHandler(&spotifyHandler);
     rfidDispatcher.registerHandler(&haHandler);
@@ -151,6 +153,7 @@ void setup() {
 void loop() {
     M5Dial.update();
     haClient.update();
+    spotifyClient.update();
 
     // --- Input (before lv_timer_handler so swipe suppression takes effect) ---
     input.update();

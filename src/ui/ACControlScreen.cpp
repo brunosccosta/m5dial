@@ -110,26 +110,47 @@ void ACControlScreen::init() {
 
     // Mode pill — clickable container with icon + label
     _modeContainer = lv_obj_create(_lvScreen);
-    lv_obj_set_size(_modeContainer, 90, 36);
+    lv_obj_set_size(_modeContainer, LV_SIZE_CONTENT, 36);
     lv_obj_set_style_bg_opa(_modeContainer, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(_modeContainer, 0, LV_PART_MAIN);
     lv_obj_set_style_pad_all(_modeContainer, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_column(_modeContainer, 4, LV_PART_MAIN);
+    lv_obj_set_layout(_modeContainer, LV_LAYOUT_FLEX);
+    lv_obj_set_flex_flow(_modeContainer, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(_modeContainer, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_clear_flag(_modeContainer, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_add_flag(_modeContainer, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_align(_modeContainer, LV_ALIGN_CENTER, 0, 47);
+    lv_obj_align(_modeContainer, LV_ALIGN_CENTER, 0, 42);
     lv_obj_add_event_cb(_modeContainer, onModeClick, LV_EVENT_CLICKED, this);
 
     _modeIconLabel = lv_label_create(_modeContainer);
     lv_obj_set_style_text_font(_modeIconLabel, &font_awesome_solid_18, LV_PART_MAIN);
     lv_obj_set_style_text_color(_modeIconLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_label_set_text(_modeIconLabel, FA_POWER_OFF);
-    lv_obj_align(_modeIconLabel, LV_ALIGN_LEFT_MID, 0, 0);
 
     _modeTextLabel = lv_label_create(_modeContainer);
     lv_obj_set_style_text_font(_modeTextLabel, &lv_font_montserrat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_modeTextLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_label_set_text(_modeTextLabel, "OFF");
-    lv_obj_align(_modeTextLabel, LV_ALIGN_RIGHT_MID, 0, 0);
+
+    // Confirm button — pill at the bottom, alternative to dial press
+    _confirmBtn = lv_obj_create(_lvScreen);
+    lv_obj_set_size(_confirmBtn, 100, 34);
+    lv_obj_align(_confirmBtn, LV_ALIGN_CENTER, 0, 82);
+    lv_obj_set_style_bg_color(_confirmBtn, lv_color_hex(Theme::SURFACE), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(_confirmBtn, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_border_width(_confirmBtn, 0, LV_PART_MAIN);
+    lv_obj_set_style_radius(_confirmBtn, 17, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(_confirmBtn, 0, LV_PART_MAIN);
+    lv_obj_clear_flag(_confirmBtn, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_add_flag(_confirmBtn, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_add_event_cb(_confirmBtn, onConfirmClick, LV_EVENT_CLICKED, this);
+
+    _confirmLabel = lv_label_create(_confirmBtn);
+    lv_obj_set_style_text_font(_confirmLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_color(_confirmLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
+    lv_label_set_text(_confirmLabel, "APPLY");
+    lv_obj_center(_confirmLabel);
 
     ESP_LOGI(TAG, "init complete");
 }
@@ -198,6 +219,10 @@ void ACControlScreen::onModeClick(lv_event_t* e) {
     static_cast<ACControlScreen*>(lv_event_get_user_data(e))->toggleMode();
 }
 
+void ACControlScreen::onConfirmClick(lv_event_t* e) {
+    static_cast<ACControlScreen*>(lv_event_get_user_data(e))->onButton();
+}
+
 void ACControlScreen::onButton() {
     _lastActivityMs = millis();
     if (!hasChanges()) {
@@ -262,8 +287,7 @@ void ACControlScreen::updateDisplay() {
 
     lv_obj_align(_currentTempLabel, LV_ALIGN_CENTER, 0, -46);
     lv_obj_align(_targetTempLabel,  LV_ALIGN_CENTER, 0, -2);
-    lv_obj_align(_modeIconLabel,    LV_ALIGN_LEFT_MID,  0, 0);
-    lv_obj_align(_modeTextLabel,    LV_ALIGN_RIGHT_MID, 0, 0);
+    lv_obj_align(_modeContainer,    LV_ALIGN_CENTER, 0, 42);
 
     lv_refr_now(NULL);
 }

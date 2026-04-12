@@ -534,3 +534,21 @@ lv_timer_pause(_msgTimer);
 
 The timer callback gets `this` via `lv_timer_get_user_data(timer)`. For `lv_anim_t` callbacks (which are static), store `this` in the animated object's user_data with `lv_obj_set_user_data(obj, this)`.
 
+---
+
+## LVGL flex row for centered icon+label pairs
+
+Using `LV_ALIGN_LEFT_MID` / `LV_ALIGN_RIGHT_MID` on an icon and a text label inside a fixed-width container leaves a large gap because LVGL pins each child to the container edges regardless of content width. The gap varies by mode label length.
+
+**Fix**: use flex layout so the pair sizes to content and centers itself:
+
+```cpp
+lv_obj_set_size(_container, LV_SIZE_CONTENT, 36);  // width shrinks to fit
+lv_obj_set_style_pad_column(_container, 4, LV_PART_MAIN); // 4px gap between children
+lv_obj_set_layout(_container, LV_LAYOUT_FLEX);
+lv_obj_set_flex_flow(_container, LV_FLEX_FLOW_ROW);
+lv_obj_set_flex_align(_container, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+```
+
+Children need no manual `lv_obj_align` — flex positions them. The container itself is then aligned on the parent with `lv_obj_align`.
+

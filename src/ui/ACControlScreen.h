@@ -21,6 +21,7 @@ private:
     void toggleMode();
 
     static void onModeClick(lv_event_t* e);
+    static void onConfirmClick(lv_event_t* e);
 
     ACState* _ac          = nullptr;
     bool     _initialized = false;
@@ -41,4 +42,6 @@ private:
     lv_obj_t* _modeContainer;
     lv_obj_t* _modeIconLabel;
     lv_obj_t* _modeTextLabel;
+    lv_obj_t* _confirmBtn;
+    lv_obj_t* _confirmLabel;
 };
