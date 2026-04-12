@@ -47,7 +47,22 @@ Connect lamps to HA first, then revisit both together.
 
 ---
 
-## Feature: RFID — Spotify tag collection
+## Feature: RFID — Spotify Web API playback ← next
+
+RFID hardware + dispatcher pipeline is done (see `docs/rfid.md`). Remaining work:
+
+- Build `SpotifyClient` (`src/SpotifyClient.h/.cpp`) — OAuth token refresh + Spotify Web API calls
+- `play(context_uri)` → `PUT /me/player/play` — targets active device, works with phone+BT
+- `transfer(device_id)` → `PUT /me/player` — move playback to a Spotify Connect device
+- Token rotation: persist refresh token to NVS so it survives power cycles without reflashing
+- Wire `SpotifyHandler` to `SpotifyClient::play()` instead of `haClient.sendPlayMedia()`
+- Speaker puck format: decide between `ha:` (HA-native, e.g. Sonos via HA) vs `spotify:device:` (pure Spotify Connect) — may support both
+
+One-time setup: Spotify developer app (client_id + client_secret) + Authorization Code flow on computer to get initial refresh token → store in `credentials.h`.
+
+---
+
+## Feature: RFID — Spotify tag collection (original spec, archived)
 
 M5Dial has a built-in RFID reader (WS1850S, ISO 14443A). Primary use case: physical Spotify tokens — tap a tag to play a playlist/album on HA media player.
 

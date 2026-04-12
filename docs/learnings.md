@@ -427,6 +427,34 @@ lv_obj_align(_smallLabel, LV_ALIGN_CENTER, smallX, smallY);
 
 ---
 
+## `media_player.spotify` does not support `play_media`
+
+The HA Spotify integration entity (`media_player.spotify`) is a read/tracking entity — it reports state, title, artist, source, volume, etc. It does **not** accept `media_player.play_media` service calls; HA returns:
+
+```
+service_validation_error: Entity media_player.spotify does not support action media_player.play_media
+```
+
+**Fix**: use the Spotify Web API directly (`PUT /me/player/play` with `context_uri`). This targets the currently active Spotify device — works regardless of whether it's a phone, BT speaker, or Spotify Connect device. Requires OAuth Authorization Code flow once to get a refresh token.
+
+---
+
+## NTAG213 NDEF TLV layout (confirmed 2026-04-12)
+
+NTAG213 user memory starts at page 4. A Text record written by NFC Tools has this exact layout:
+
+```
+page 04: 03 <len> D1 01    — TLV type=NDEF (0x03), 1-byte length, record header (MB|ME|SR), type_len=1
+page 05: <payload_len> 54 02 <lang[0]>  — payload length (SR=1→1 byte), type='T', status byte (lang_len=2, UTF-8), lang start
+page 06: <lang[1]> <text...>            — lang byte 2, then text payload
+```
+
+TLV parse order: type (0x03) → length → NDEF header → type_len → payload_len (1 byte if SR flag set) → skip ID if IL flag → type byte ('T') → status byte → skip lang → read text.
+
+No external library needed. MIFARE Classic tags (`PICC_TYPE_MIFARE_1K` etc.) require `PCD_Authenticate` before any read and are irrelevant to this project — ignore them.
+
+---
+
 ## HA WebSocket auth flow
 
 Fixed protocol on connect — no variation:

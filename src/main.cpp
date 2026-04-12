@@ -18,6 +18,10 @@
 #include "ui/fonts/fa_icons.h"
 #include "SleepManager.h"
 #include "Buzzer.h"
+#include "RFIDReader.h"
+#include "RFIDDispatcher.h"
+#include "SpotifyHandler.h"
+#include "HAHandler.h"
 
 // --- AC control ---
 ACControlScreen acControl;
@@ -92,7 +96,7 @@ void setupNavigation() {
 
 void setup() {
     auto cfg = M5.config();
-    M5Dial.begin(cfg, true, false);
+    M5Dial.begin(cfg, true, true);
     Serial.begin(115200);
 
     ESP_LOGI("BOOT", "M5Dial SmartHome starting");
@@ -129,6 +133,10 @@ void setup() {
     }
 
     input.begin();
+    rfidReader.begin();
+    rfidDispatcher.registerHandler(&spotifyHandler);
+    rfidDispatcher.registerHandler(&haHandler);
+    rfidReader.onTag([](const char* uri) { rfidDispatcher.dispatch(uri); });
     haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
     errorOverlay.init();
     toast.init();
@@ -224,6 +232,9 @@ void loop() {
             }
         }
     }
+
+    // --- RFID ---
+    rfidReader.update();
 
     // --- Render (touch suppression flag already set if needed) ---
     lv_timer_handler();

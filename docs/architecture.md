@@ -238,6 +238,46 @@ haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN, true);
 
 ---
 
+## RFID
+
+Three-layer pipeline — hardware, routing, and action are fully decoupled:
+
+```
+RFIDReader → RFIDDispatcher → RFIDHandler impl
+              (prefix match)   (SpotifyHandler, HAHandler, ...)
+```
+
+**`RFIDReader`** (`src/RFIDReader.h/.cpp`) — pure hardware layer. Polls `PICC_IsNewCardPresent` / `PICC_ReadCardSerial` every loop. On NTAG213 (`PICC_TYPE_MIFARE_UL`) reads pages 4–15, walks the NDEF TLV, extracts the Text record payload, debounces same UID for 2s, and fires `callback(uri)`. All other tag types are halted and ignored.
+
+**`RFIDDispatcher`** (`src/RFIDDispatcher.h/.cpp`) — iterates registered handlers, finds the first whose `prefix()` matches the start of the URI, calls `handle(uri)`. Fixed array of 8 slots, no heap.
+
+**`RFIDHandler`** interface:
+```cpp
+class RFIDHandler {
+public:
+    virtual const char* prefix() const = 0;
+    virtual void handle(const char* uri) = 0;
+};
+```
+
+**Registered handlers:**
+
+| Handler | File | Prefix | Action |
+|---|---|---|---|
+| `SpotifyHandler` | `src/SpotifyHandler.h/.cpp` | `spotify:` | Spotify Web API `play` |
+| `HAHandler` | `src/HAHandler.h/.cpp` | `ha:` | `haClient.sendTransferMedia(entity)` |
+
+**Adding a new tag type:** implement `RFIDHandler`, register in `setup()` with `rfidDispatcher.registerHandler(&myHandler)`. No other files change.
+
+**Wiring in `main.cpp`:**
+```cpp
+rfidDispatcher.registerHandler(&spotifyHandler);
+rfidDispatcher.registerHandler(&haHandler);
+rfidReader.onTag([](const char* uri) { rfidDispatcher.dispatch(uri); });
+```
+
+---
+
 ## Sensor registry
 
 All subscribed entities and their parse handlers live in `SENSORS[]` in `src/ha/HAClient.cpp`. Adding a new sensor = one row in the table + a handler function + a field in `AppState`.

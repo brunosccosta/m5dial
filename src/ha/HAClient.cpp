@@ -504,6 +504,39 @@ void HAClient::sendFindMyIPhone(const char* account, const char* deviceName) {
     _ws.sendTXT(buf);
 }
 
+void HAClient::sendPlayMedia(const char* entity_id, const char* uri) {
+    char buf[256];
+    snprintf(buf, sizeof(buf),
+             "{\"id\":%d,\"type\":\"call_service\",\"domain\":\"media_player\","
+             "\"service\":\"play_media\","
+             "\"service_data\":{\"media_content_id\":\"%s\",\"media_content_type\":\"music\"},"
+             "\"target\":{\"entity_id\":\"%s\"}}",
+             _msgId + 1, uri, entity_id);
+    if (_dryRun) {
+        ESP_LOGI(TAG, "sendPlayMedia (dry run): %s", buf);
+        return;
+    }
+    ++_msgId;
+    ESP_LOGD(TAG, "<< %s", buf);
+    _ws.sendTXT(buf);
+}
+
+void HAClient::sendTransferMedia(const char* target_entity_id) {
+    char buf[256];
+    snprintf(buf, sizeof(buf),
+             "{\"id\":%d,\"type\":\"call_service\",\"domain\":\"media_player\","
+             "\"service\":\"transfer\","
+             "\"target\":{\"entity_id\":\"%s\"}}",
+             _msgId + 1, target_entity_id);
+    if (_dryRun) {
+        ESP_LOGI(TAG, "sendTransferMedia (dry run): %s", buf);
+        return;
+    }
+    ++_msgId;
+    ESP_LOGD(TAG, "<< %s", buf);
+    _ws.sendTXT(buf);
+}
+
 void HAClient::sendACMode(const char* entity_id, const char* mode) {
     char buf[256];
     snprintf(buf, sizeof(buf),
