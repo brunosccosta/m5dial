@@ -6,7 +6,7 @@
 
 // Fixed column widths — keeps all 3 rows identical in structure so columns align.
 static constexpr int W_ROOM_ICON = 22; // FA glyph, center-aligned
-static constexpr int W_TEMP      = 60; // "22.8°" at montserrat_24
+static constexpr int W_TEMP      = 72; // "20.0°" at montserrat_24 needs ~70px
 static constexpr int W_DROPLET   = 20; // FA droplet glyph, center-aligned
 static constexpr int W_HUMIDITY  = 34; // "100%" at montserrat_14
 
