@@ -2,10 +2,12 @@
 #include <lvgl.h>
 #include "../ha/FindMyAction.h"
 #include "../credentials.h"
+#include "../AppState.h"
+#include "ACControlScreen.h"
 
 class QuickPanel {
 public:
-    void init();
+    void init(ACControlScreen& acCtrl, ACState& ac, ACState& heater);
     void show();
     void dismiss();
     void update();
@@ -20,20 +22,28 @@ public:
 private:
     static void slideAnimCb(void* var, int32_t val);
     static void onFindMyTap(lv_event_t* e);
+    static void onACTap(lv_event_t* e);
+    static void onHeaterTap(lv_event_t* e);
 
     void updateConnection();
-    void updateTemps();
+    void updateAC();
 
     lv_obj_t* _panel        = nullptr;
     lv_obj_t* _wifiIcon     = nullptr;
     lv_obj_t* _haIcon       = nullptr;
     lv_obj_t* _connLabel    = nullptr;
-    lv_obj_t* _tempBalcony  = nullptr;
-    lv_obj_t* _tempBedroom  = nullptr;
-    lv_obj_t* _tempBathroom = nullptr;
+    lv_obj_t* _acBtn         = nullptr;
+    lv_obj_t* _acIcon        = nullptr;  // FA glyph (font_awesome_solid_18)
+    lv_obj_t* _acTextLabel   = nullptr;  // mode/temp text (montserrat_14)
+    lv_obj_t* _heaterBtn     = nullptr;
+    lv_obj_t* _heaterIcon    = nullptr;
+    lv_obj_t* _heaterTextLabel = nullptr;
     lv_obj_t* _findMyBtn    = nullptr;
 
-    FindMyAction _findMyAction { ICLOUD_ACCOUNT, ICLOUD_DEVICE_NAME };
+    FindMyAction    _findMyAction { ICLOUD_ACCOUNT, ICLOUD_DEVICE_NAME };
+    ACControlScreen* _acCtrl  = nullptr;
+    ACState*         _ac      = nullptr;
+    ACState*         _heater  = nullptr;
 
     static constexpr uint32_t OPEN_DEBOUNCE_MS = 300; // ignore taps this long after open
 

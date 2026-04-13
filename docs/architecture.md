@@ -385,6 +385,40 @@ The RestScreen card fade uses a full-screen `_fadeOverlay` object (background co
 - `onTouch()` (no-op by default) is called from main.cpp on any tap; used only for coarse whole-screen tap responses (RestScreen wake, MenuScreen select active card)
 - Precise touch targets (ConfirmScreen Yes/No, ACControlScreen mode pill) use `lv_obj_add_event_cb` + LVGL events
 
+### QuickPanel
+
+Overlay panel (240×240, `lv_layer_top`) that slides in from the top on swipe-down. Dismisses on swipe-up, button press, or after navigating to a sub-screen. All input is captured while visible.
+
+**Layout (y from panel top):**
+
+| y | Row | Contents |
+|---|---|---|
+| 47 | Connection | WiFi icon + HA icon + IP / status label |
+| 98 | AC status | Two tappable pills — AC (left) and heater (right) |
+| 154 | Actions | Find My button (centered) |
+
+**AC status pills** — each pill shows an icon (FA 18px, left-of-center) + text label (montserrat_14, right-of-center):
+
+| Pill | Icon | Active text | Inactive text |
+|---|---|---|---|
+| AC (main unit) | `FA_HOUSE` | `22°` | `off` |
+| Heater (office) | `FA_DESKTOP` | `21°` | `off` |
+
+Tapping a pill dismisses the panel and pushes `ACControlScreen` for that entity (`acCtrl.setAC(&ac/heater)` + `screenManager.push`).
+
+**Icon color by mode** (text label always `TEXT_PRIMARY`):
+
+| Mode | Color | Hex |
+|---|---|---|
+| `heat` | orange | `0xFF7733` |
+| `cool` | blue | `0x66BBFF` |
+| `heat_cool` / `auto` | purple | `0xBB66FF` |
+| `fan_only` | light grey | `0xCCCCCC` |
+| `dry` | yellow | `0xFFCC44` |
+| `off` / unknown | dim | `Theme::TEXT_DIM` |
+
+**Init signature:** `QuickPanel::init(ACControlScreen& acCtrl, ACState& ac, ACState& heater)` — injected from `main.cpp` to avoid a new extern.
+
 ### Screen hierarchy
 
 ```
@@ -407,12 +441,10 @@ Idle/screensaver shown at boot and after 30s inactivity on the main menu. Displa
 │                              │
 │     [ rotating card area ]   │  ← cycles every CARD_INTERVAL_MS (60s)
 │                              │
-│  ────────────────────────    │
-│   ❄ auto 21°   🔥 heat 21°  │  ← static device strip, always visible
 └──────────────────────────────┘
 ```
 
-Cards auto-advance every 60s through the full screen. Each card owns the entire 240×240 display.
+Cards auto-advance every 60s through the full screen. Each card owns the entire 240×240 display. AC/heater status is surfaced via the QuickPanel (swipe down).
 
 #### Card system
 

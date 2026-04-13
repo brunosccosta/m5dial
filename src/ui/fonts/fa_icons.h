@@ -46,6 +46,7 @@ extern const lv_font_t font_montserrat_cyr_24;
 // Indoor room icons
 #define FA_BED               "\xEF\x88\xB6"  // U+F236 — fa-bed
 #define FA_SHOWER            "\xEF\x8B\x8C"  // U+F2CC — fa-shower
+#define FA_DESKTOP           "\xEF\x84\x88"  // U+F108 — fa-desktop (office/computer monitor)
 
 // Travel
 #define FA_PLANE_DEPARTURE   "\xEF\x96\xB0"  // U+F5B0 — fa-plane-departure

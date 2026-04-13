@@ -133,7 +133,7 @@ void setup() {
     haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
     errorOverlay.init();
     toast.init();
-    quickPanel.init();
+    quickPanel.init(acControl, appState.ac, appState.heater);
 
     setupNavigation();
     screenManager.push(&restScreen);

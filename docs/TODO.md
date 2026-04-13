@@ -18,18 +18,13 @@ Add a `CardLayout` namespace (or extend `Theme.h`) with shared constants:
 
 EnergyCard is the reference implementation.
 
-### Step 2 — Redesign QuickPanel + move heater there
+### Step 2 — Redesign QuickPanel + move heater there ✓ (partial)
 
-**Current state**: QuickPanel has a thermometer row (indoor temp data) + a row with Find My shortcut.
+**Done**: thermometer row removed. AC status row added — two tappable pills (AC + Heater), each showing mode + target temp; tap navigates to ACControlScreen for that entity.
 
-**Target state**: remove the thermometer row. Single row with 3 actions + status items:
-- Find My (existing)
-- Heater status/shortcut (new — replaces heater rest card)
-- TBD third slot (placeholder for future action)
-
-Heater rest card gets deleted. QuickPanel becomes the canonical "quick actions" surface, not a mini status dashboard.
-
-**What this gives**: one fewer rest card to swipe through; heater accessible from anywhere via swipe-down; QuickPanel has a cleaner single purpose.
+**Remaining**:
+- HeaterCard rest card — delete it (now redundant; status visible in QuickPanel)
+- TBD third action slot next to Find My (placeholder for future)
 
 ### Step 1 status — ✓ done
 
@@ -55,15 +50,21 @@ Three templates:
 - `ClockCard` → Style A ✓
 - `ForecastCard` → two `makeColumn`s inside `makeRow` ✓ (added `makeColumn` to CardLayout)
 - `MeshCoreCard` → flex column with header/stats/status rows ✓
-- `FlightCard` — adopt `makeContainer` outer shell; keep inner layout bespoke (dynamic centering of flag+destination pair is non-trivial)
+- `FlightCard` — intentionally bespoke; dynamic group centering incompatible with flex. Leave as-is.
 - `HeaterCard` — **delete**, move to QuickPanel (Step 2)
 
 ### Priority order
 
 1. ~~Layout constants (`CardLayout` namespace)~~ ✓
-2. ClockCard, ForecastCard, MeshCoreCard (finish Step 3)
+2. ~~ClockCard, ForecastCard, MeshCoreCard~~ ✓
 3. Heater → QuickPanel (Step 2)
-4. FlightCard shell migration (low stakes)
+4. HeaterStatusCard rest card (see below)
+
+---
+
+## ~~Feature: HeaterStatusCard~~ — superseded
+
+QuickPanel now shows AC + heater status (mode + target temp) via two tappable pills. Tapping navigates directly to ACControlScreen. This replaces the need for a dedicated rest card.
 
 ---
 

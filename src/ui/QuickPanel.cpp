@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <esp_log.h>
 #include "QuickPanel.h"
+#include "ScreenManager.h"
 #include "Theme.h"
 #include "fonts/fa_icons.h"
 #include "../AppState.h"
@@ -27,11 +28,33 @@ void QuickPanel::onFindMyTap(lv_event_t* e) {
 }
 
 // ---------------------------------------------------------------------------
+// AC / Heater tap handlers
+// ---------------------------------------------------------------------------
+void QuickPanel::onACTap(lv_event_t* e) {
+    QuickPanel* self = (QuickPanel*)lv_event_get_user_data(e);
+    if (millis() - self->_shownAtMs < OPEN_DEBOUNCE_MS) return;
+    self->dismiss();
+    self->_acCtrl->setAC(self->_ac);
+    screenManager.push(self->_acCtrl);
+}
+
+void QuickPanel::onHeaterTap(lv_event_t* e) {
+    QuickPanel* self = (QuickPanel*)lv_event_get_user_data(e);
+    if (millis() - self->_shownAtMs < OPEN_DEBOUNCE_MS) return;
+    self->dismiss();
+    self->_acCtrl->setAC(self->_heater);
+    screenManager.push(self->_acCtrl);
+}
+
+// ---------------------------------------------------------------------------
 // init — create all LVGL objects once
 // ---------------------------------------------------------------------------
-void QuickPanel::init() {
+void QuickPanel::init(ACControlScreen& acCtrl, ACState& ac, ACState& heater) {
     if (_initialized) return;
     _initialized = true;
+    _acCtrl  = &acCtrl;
+    _ac      = &ac;
+    _heater  = &heater;
 
     lv_obj_t* layer = lv_layer_top();
 
@@ -66,45 +89,50 @@ void QuickPanel::init() {
     lv_label_set_text(_connLabel, "Connecting...");
     lv_obj_set_pos(_connLabel, 98, 49);
 
-    // --- Indoor temps row (y≈105 from panel top) ---
-    // Balcony
-    lv_obj_t* iconBalcony = lv_label_create(_panel);
-    lv_obj_set_style_text_font(iconBalcony, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(iconBalcony, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
-    lv_label_set_text(iconBalcony, FA_SUN);
-    lv_obj_set_pos(iconBalcony, 37, 100);
+    // --- AC status row (y≈100 from panel top) ---
+    // Two tappable pills: [AC] [Heater], centered, ~108px wide each with 8px gap
+    // Total width = 108+8+108 = 224, start x = (240-224)/2 = 8
 
-    _tempBalcony = lv_label_create(_panel);
-    lv_obj_set_style_text_font(_tempBalcony, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_tempBalcony, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_label_set_text(_tempBalcony, "--°");
-    lv_obj_set_pos(_tempBalcony, 60, 102);
+    auto makePill = [&](int x, lv_event_cb_t tapCb) -> lv_obj_t* {
+        lv_obj_t* btn = lv_obj_create(_panel);
+        lv_obj_set_size(btn, 108, 38);
+        lv_obj_set_pos(btn, x, 98);
+        lv_obj_set_style_bg_color(btn, lv_color_hex(Theme::SURFACE), LV_PART_MAIN);
+        lv_obj_set_style_bg_opa(btn, LV_OPA_COVER, LV_PART_MAIN);
+        lv_obj_set_style_border_width(btn, 0, LV_PART_MAIN);
+        lv_obj_set_style_radius(btn, 19, LV_PART_MAIN);
+        lv_obj_set_style_pad_all(btn, 0, LV_PART_MAIN);
+        lv_obj_clear_flag(btn, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_add_flag(btn, LV_OBJ_FLAG_CLICKABLE);
+        lv_obj_add_event_cb(btn, tapCb, LV_EVENT_CLICKED, this);
+        return btn;
+    };
 
-    // Bedroom
-    lv_obj_t* iconBedroom = lv_label_create(_panel);
-    lv_obj_set_style_text_font(iconBedroom, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(iconBedroom, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
-    lv_label_set_text(iconBedroom, FA_BED);
-    lv_obj_set_pos(iconBedroom, 99, 100);
+    _acBtn = makePill(8, onACTap);
+    _acIcon = lv_label_create(_acBtn);
+    lv_obj_set_style_text_font(_acIcon, &font_awesome_solid_18, LV_PART_MAIN);
+    lv_obj_set_style_text_color(_acIcon, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
+    lv_label_set_text(_acIcon, FA_HOUSE);
+    lv_obj_align(_acIcon, LV_ALIGN_CENTER, -22, 0);
 
-    _tempBedroom = lv_label_create(_panel);
-    lv_obj_set_style_text_font(_tempBedroom, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_tempBedroom, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_label_set_text(_tempBedroom, "--°");
-    lv_obj_set_pos(_tempBedroom, 125, 102);
+    _acTextLabel = lv_label_create(_acBtn);
+    lv_obj_set_style_text_font(_acTextLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_color(_acTextLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
+    lv_label_set_text(_acTextLabel, "--");
+    lv_obj_align(_acTextLabel, LV_ALIGN_CENTER, 12, 0);
 
-    // Bathroom
-    lv_obj_t* iconBathroom = lv_label_create(_panel);
-    lv_obj_set_style_text_font(iconBathroom, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(iconBathroom, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
-    lv_label_set_text(iconBathroom, FA_SHOWER);
-    lv_obj_set_pos(iconBathroom, 166, 100);
+    _heaterBtn = makePill(124, onHeaterTap);
+    _heaterIcon = lv_label_create(_heaterBtn);
+    lv_obj_set_style_text_font(_heaterIcon, &font_awesome_solid_18, LV_PART_MAIN);
+    lv_obj_set_style_text_color(_heaterIcon, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
+    lv_label_set_text(_heaterIcon, FA_DESKTOP);
+    lv_obj_align(_heaterIcon, LV_ALIGN_CENTER, -22, 0);
 
-    _tempBathroom = lv_label_create(_panel);
-    lv_obj_set_style_text_font(_tempBathroom, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(_tempBathroom, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_label_set_text(_tempBathroom, "--°");
-    lv_obj_set_pos(_tempBathroom, 188, 102);
+    _heaterTextLabel = lv_label_create(_heaterBtn);
+    lv_obj_set_style_text_font(_heaterTextLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_color(_heaterTextLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
+    lv_label_set_text(_heaterTextLabel, "--");
+    lv_obj_align(_heaterTextLabel, LV_ALIGN_CENTER, 12, 0);
 
     // --- Find My button (y≈155 from panel top) ---
     _findMyBtn = lv_obj_create(_panel);
@@ -145,7 +173,7 @@ void QuickPanel::show() {
 
     lv_obj_remove_flag(_panel, LV_OBJ_FLAG_HIDDEN);
     updateConnection();
-    updateTemps();
+    updateAC();
 
     lv_anim_t a;
     lv_anim_init(&a);
@@ -192,7 +220,7 @@ void QuickPanel::dismiss() {
 void QuickPanel::update() {
     if (!_visible) return;
     updateConnection();
-    updateTemps();
+    updateAC();
 }
 
 // ---------------------------------------------------------------------------
@@ -236,27 +264,34 @@ void QuickPanel::updateConnection() {
     }
 }
 
-void QuickPanel::updateTemps() {
-    char buf[8];
+static uint32_t acModeColor(const char* mode) {
+    if (strcmp(mode, "heat")      == 0) return 0xFF7733;
+    if (strcmp(mode, "cool")      == 0) return 0x66BBFF;
+    if (strcmp(mode, "heat_cool") == 0) return 0xBB66FF;
+    if (strcmp(mode, "auto")      == 0) return 0xBB66FF;
+    if (strcmp(mode, "fan_only")  == 0) return 0xCCCCCC;
+    if (strcmp(mode, "dry")       == 0) return 0xFFCC44;
+    return Theme::TEXT_DIM; // "off" or unknown
+}
 
-    if (appState.sensors.outdoorTemp != 0.0f) {
-        snprintf(buf, sizeof(buf), "%.0f°", appState.sensors.outdoorTemp);
-    } else {
-        snprintf(buf, sizeof(buf), "--°");
-    }
-    lv_label_set_text(_tempBalcony, buf);
+void QuickPanel::updateAC() {
+    char buf[12];
 
-    if (appState.sensors.bedroomTemp != 0.0f) {
-        snprintf(buf, sizeof(buf), "%.0f°", appState.sensors.bedroomTemp);
+    if (!_ac->valid || strcmp(_ac->mode, "off") == 0) {
+        lv_label_set_text(_acTextLabel, "off");
+        lv_obj_set_style_text_color(_acIcon, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
     } else {
-        snprintf(buf, sizeof(buf), "--°");
+        snprintf(buf, sizeof(buf), "%.0f\xC2\xB0", _ac->target_temp);
+        lv_label_set_text(_acTextLabel, buf);
+        lv_obj_set_style_text_color(_acIcon, lv_color_hex(acModeColor(_ac->mode)), LV_PART_MAIN);
     }
-    lv_label_set_text(_tempBedroom, buf);
 
-    if (appState.sensors.bathroomTemp != 0.0f) {
-        snprintf(buf, sizeof(buf), "%.0f°", appState.sensors.bathroomTemp);
+    if (!_heater->valid || strcmp(_heater->mode, "off") == 0) {
+        lv_label_set_text(_heaterTextLabel, "off");
+        lv_obj_set_style_text_color(_heaterIcon, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
     } else {
-        snprintf(buf, sizeof(buf), "--°");
+        snprintf(buf, sizeof(buf), "%.0f\xC2\xB0", _heater->target_temp);
+        lv_label_set_text(_heaterTextLabel, buf);
+        lv_obj_set_style_text_color(_heaterIcon, lv_color_hex(acModeColor(_heater->mode)), LV_PART_MAIN);
     }
-    lv_label_set_text(_tempBathroom, buf);
 }

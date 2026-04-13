@@ -85,6 +85,7 @@ Update the codepoints table below.
 | 63299 | F743 | fa-cloud-sun-rain | `FA_CLOUD_SUN_RAIN` |
 | 63327 | F75F | fa-smog | `FA_SMOG` |
 | 63340 | F76C | fa-cloud-bolt | `FA_CLOUD_BOLT` |
+| 61704 | F108 | fa-desktop | `FA_DESKTOP` |
 | 62006 | F236 | fa-bed | `FA_BED` |
 | 62156 | F2CC | fa-shower | `FA_SHOWER` |
 | 63587 | F863 | fa-fan | `FA_FAN` |
