@@ -562,9 +562,9 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 ```
 ┌──────────────────────────────┐
 │                              │
-│    8°  / 5°                  │  ← temp montserrat_48 at x=−9, y=−45;
-│                              │    feels-like montserrat_14 anchored to temp right-bottom
-│    ☁  Partly Cloudy          │  ← icon (FA 18px) + label (montserrat_24, TEXT_FAINT), y=−8
+│    8°    feels               │  ← temp montserrat_48; "feels\n5°" label (montserrat_14,
+│           5°                 │    TEXT_DIM) — same pattern as EnergyCard "kWh\ntoday"
+│    ☁  Partly Cloudy          │  ← icon (FA 18px) + label (montserrat_24, TEXT_FAINT)
 │                              │    group dynamically centered; scrolls circular if >200px
 └──────────────────────────────┘
 ```

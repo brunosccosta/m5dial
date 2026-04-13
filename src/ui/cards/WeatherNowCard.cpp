@@ -43,7 +43,7 @@ static const ConditionInfo* conditionInfo(const char* key) {
 void WeatherNowCard::init(lv_obj_t* parent) {
     _container = CardLayout::makeContainer(parent);
 
-    // Row 1: temperature (hero) + feels-like
+    // Row 1: temperature (hero) + "feels like\nX°" label (same pattern as EnergyCard kWh\ntoday)
     lv_obj_t* tempRow = CardLayout::makeRow(_container);
     _tempLabel = lv_label_create(tempRow);
     lv_obj_set_style_text_font(_tempLabel, CardLayout::fontHero(), LV_PART_MAIN);
@@ -51,7 +51,7 @@ void WeatherNowCard::init(lv_obj_t* parent) {
     lv_label_set_text(_tempLabel, "--°");
     _feelsLikeLabel = lv_label_create(tempRow);
     lv_obj_set_style_text_font(_feelsLikeLabel, CardLayout::fontDetail(), LV_PART_MAIN);
-    lv_obj_set_style_text_color(_feelsLikeLabel, lv_color_hex(Theme::TEXT_FAINT), LV_PART_MAIN);
+    lv_obj_set_style_text_color(_feelsLikeLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
     lv_label_set_text(_feelsLikeLabel, "");
 
     // Row 2: condition icon + condition text
@@ -73,7 +73,7 @@ void WeatherNowCard::update() {
         char buf[16];
         snprintf(buf, sizeof(buf), "%.0f°", w.temperature);
         lv_label_set_text(_tempLabel, buf);
-        snprintf(buf, sizeof(buf), "/ %.0f°", w.feelsLike);
+        snprintf(buf, sizeof(buf), "feels\n%.0f°", w.feelsLike);
         lv_label_set_text(_feelsLikeLabel, buf);
 
         const ConditionInfo* info = (w.detailedCondition[0] != '\0')
