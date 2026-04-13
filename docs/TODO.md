@@ -50,7 +50,7 @@ Three templates:
 - `ClockCard` → Style A ✓
 - `ForecastCard` → two `makeColumn`s inside `makeRow` ✓ (added `makeColumn` to CardLayout)
 - `MeshCoreCard` → flex column with header/stats/status rows ✓
-- `FlightCard` — intentionally bespoke; dynamic group centering incompatible with flex. Leave as-is.
+- `FlightCard` → Style C ✓ (makeContainer shell + makeRow rows; dynamic centering code removed)
 - `HeaterCard` — **delete**, move to QuickPanel (Step 2)
 
 ### Priority order

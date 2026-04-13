@@ -5,6 +5,7 @@
 #include "../fonts/fa_icons.h"
 #include "../images/lvgl_images.h"
 #include "../Theme.h"
+#include "../CardLayout.h"
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -67,53 +68,38 @@ void FlightCard::init(lv_obj_t* parent) {
     if (_initialized) return;
     _initialized = true;
 
-    _container = lv_obj_create(parent);
-    lv_obj_set_size(_container, 240, 240);
-    lv_obj_set_pos(_container, 0, 0);
-    lv_obj_set_style_bg_opa(_container, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_border_width(_container, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(_container, 0, LV_PART_MAIN);
-    lv_obj_clear_flag(_container, LV_OBJ_FLAG_SCROLLABLE);
+    _container = CardLayout::makeContainer(parent, 0, CardLayout::PAD_ROW_LIST);
 
-    // Header: plane icon + "Next Flight"
-    lv_obj_t* headerIcon = lv_label_create(_container);
-    lv_obj_set_style_text_font(headerIcon, &font_awesome_solid_18, LV_PART_MAIN);
-    lv_obj_set_style_text_color(headerIcon, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
-    lv_label_set_text(headerIcon, FA_PLANE_DEPARTURE);
-    lv_obj_align(headerIcon, LV_ALIGN_CENTER, -42, -75);
+    // Header row: plane icon + "Next Flight"
+    lv_obj_t* hdrRow = CardLayout::makeRow(_container, CardLayout::PAD_ICON_TEXT);
+    lv_obj_t* hdrIcon = lv_label_create(hdrRow);
+    lv_obj_set_style_text_font(hdrIcon, CardLayout::fontIcon(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(hdrIcon, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
+    lv_label_set_text(hdrIcon, FA_PLANE_DEPARTURE);
+    lv_obj_t* hdrLabel = lv_label_create(hdrRow);
+    lv_obj_set_style_text_font(hdrLabel, CardLayout::fontDetail(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(hdrLabel, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
+    lv_label_set_text(hdrLabel, "Next Flight");
 
-    lv_obj_t* headerLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(headerLabel, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_set_style_text_color(headerLabel, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
-    lv_label_set_text(headerLabel, "Next Flight");
-    lv_obj_align(headerLabel, LV_ALIGN_CENTER, +18, -75);
-
-    // Flag image
-    _flagImg = lv_image_create(_container);
-    lv_obj_align(_flagImg, LV_ALIGN_CENTER, -40, -42);
-
-    // Destination name
-    _destLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_destLabel, &lv_font_montserrat_24, LV_PART_MAIN);
+    // Destination row: flag image + destination name
+    lv_obj_t* destRow = CardLayout::makeRow(_container, 10);
+    _flagImg = lv_image_create(destRow);
+    _destLabel = lv_label_create(destRow);
+    lv_obj_set_style_text_font(_destLabel, CardLayout::fontTitle(), LV_PART_MAIN);
     lv_obj_set_style_text_color(_destLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
-    lv_obj_align(_destLabel, LV_ALIGN_CENTER, +20, -42);
 
-    // Countdown "45 days" / "Today!"
-    _countLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_countLabel, &lv_font_montserrat_24, LV_PART_MAIN);
-    lv_obj_align(_countLabel, LV_ALIGN_CENTER, 0, -5);
-
-    // Departure date "22 May"
-    _dateLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_dateLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    // Countdown row: "45 days" + "Wed 22nd May"
+    lv_obj_t* countRow = CardLayout::makeRow(_container, 10);
+    _countLabel = lv_label_create(countRow);
+    lv_obj_set_style_text_font(_countLabel, CardLayout::fontTitle(), LV_PART_MAIN);
+    _dateLabel = lv_label_create(countRow);
+    lv_obj_set_style_text_font(_dateLabel, CardLayout::fontDetail(), LV_PART_MAIN);
     lv_obj_set_style_text_color(_dateLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
-    lv_obj_align(_dateLabel, LV_ALIGN_CENTER, 0, -5);  // x set dynamically in update()
 
-    // Hint "then Brazil in 48d"
+    // Hint line: "then Brazil in 48d"
     _hintLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_hintLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_hintLabel, CardLayout::fontDetail(), LV_PART_MAIN);
     lv_obj_set_style_text_color(_hintLabel, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
-    lv_obj_align(_hintLabel, LV_ALIGN_CENTER, 0, +20);
 
     lv_obj_add_flag(_container, LV_OBJ_FLAG_HIDDEN);
 }
@@ -162,10 +148,8 @@ void FlightCard::update() {
     const FlightEntry& f = FLIGHTS[primary];
     int days = daysUntil(f.year, f.month, f.day);
 
-    // Flag
+    // Flag + destination
     lv_image_set_src(_flagImg, f.flag);
-
-    // Destination
     lv_label_set_text(_destLabel, f.destination);
 
     // Countdown
@@ -180,9 +164,9 @@ void FlightCard::update() {
         lv_label_set_text(_countLabel, buf);
     }
 
-    // Date — "/ Wed 22nd May" (smaller, bottom-aligned beside the countdown)
+    // Date
     char dateBuf[28];
-    snprintf(dateBuf, sizeof(dateBuf), "/ %s %d%s %s",
+    snprintf(dateBuf, sizeof(dateBuf), "%s %d%s %s",
              dayOfWeek(f.year, f.month, f.day),
              f.day, ordinalSuffix(f.day),
              monthName(f.month));
@@ -199,29 +183,4 @@ void FlightCard::update() {
     } else {
         lv_obj_add_flag(_hintLabel, LV_OBJ_FLAG_HIDDEN);
     }
-
-    // Re-center flag + destination as a group
-    lv_obj_update_layout(_container);
-    int flagW = lv_obj_get_width(_flagImg);
-    int destW = lv_obj_get_width(_destLabel);
-    int gap   = 8;
-    int flagX = -(flagW + gap + destW) / 2 + flagW / 2;
-    int destX = flagX + flagW / 2 + gap + destW / 2;
-    lv_obj_align(_flagImg,   LV_ALIGN_CENTER, flagX, -42);
-    lv_obj_align(_destLabel, LV_ALIGN_CENTER, destX, -42);
-
-    // Re-center countdown + date side by side; date bottom-aligned to countdown bottom
-    lv_obj_update_layout(_container);
-    int countW = lv_obj_get_width(_countLabel);
-    int countH = lv_obj_get_height(_countLabel);
-    int dateW  = lv_obj_get_width(_dateLabel);
-    int dateH  = lv_obj_get_height(_dateLabel);
-    int rowGap = 8;
-    int countX = -(countW + rowGap + dateW) / 2 + countW / 2;
-    int dateX  = countX + countW / 2 + rowGap + dateW / 2;
-    // countdown center at y=-5; date bottom matches countdown bottom
-    int countY  = -5;
-    int dateY   = countY + countH / 2 - dateH / 2;
-    lv_obj_align(_countLabel, LV_ALIGN_CENTER, countX, countY);
-    lv_obj_align(_dateLabel,  LV_ALIGN_CENTER, dateX,  dateY);
 }

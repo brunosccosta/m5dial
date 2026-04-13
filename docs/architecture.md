@@ -473,7 +473,7 @@ public:
 Three card styles:
 - **Style A — Hero number**: large centered value (48pt) + supporting rows. ClockCard, EnergyCard, WeatherNowCard.
 - **Style B — Status + arc**: bespoke layout kept as-is. ACControlScreen.
-- **Style C — Equal-weight list**: 2–3 rows same visual weight. IndoorTempsCard, MeshCoreCard. ForecastCard uses two `makeColumn`s side-by-side inside a single `makeRow`.
+- **Style C — Equal-weight list**: 2–3 rows same visual weight. IndoorTempsCard, MeshCoreCard, FlightCard. ForecastCard uses two `makeColumn`s side-by-side inside a single `makeRow`.
 
 `navigateCard(int dir)` hides the current card, walks the array by `dir` (+1 or −1) skipping cards where `isVisible()` returns false, calls `show()` + `update()` on the target card, and resets both `_lastAdvanceMs` and `_lastCardUpdateMs`. `advanceCard()` (auto-timer) calls `navigateCard(+1)`. `onEncoder(delta)` calls `navigateCard(delta > 0 ? -1 : +1)`.
 
@@ -595,6 +595,19 @@ Columns: icon `x=−61`, temp `x=−15` (montserrat_24), droplet `x=+30` (FA 18p
 ```
 
 Two columns at `x=−37` (today) and `x=+41` (tomorrow). All positions static.
+
+#### FlightCard layout
+
+```
+┌──────────────────────────────┐
+│  ✈  Next Flight              │  ← FA_PLANE_DEPARTURE (dim) + montserrat_14 (TEXT_MUTED)
+│  🇧🇷  Brazil                 │  ← flag image + montserrat_28 (TEXT_PRIMARY)
+│  45 days  Wed 22nd May       │  ← countdown montserrat_28 (urgency color) + date montserrat_14 (TEXT_DIM)
+│  then Portugal in 12d        │  ← montserrat_14 (TEXT_MUTED); hidden if no secondary flight
+└──────────────────────────────┘
+```
+
+Style C — `makeContainer` + `makeRow` rows. Countdown urgency: white > 14d, orange ≤ 14d, red ≤ 6d. `isVisible()` returns true only when at least one flight has `daysUntil >= 0`. Flight data in `src/flights.h` (gitignored).
 
 #### SpotifyCard layout
 
