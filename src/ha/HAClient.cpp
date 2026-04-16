@@ -452,6 +452,34 @@ static void parseEnergyTip(const char* entity_id, const char* state, JsonObject 
     ESP_LOGI(TAG, "energy tip: %s", appState.energy.tip);
 }
 
+static void parseSolarLive(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.solar.liveW = atof(state);
+    appState.solar.valid = true;
+    appState.dirty = true;
+    ESP_LOGI(TAG, "solar live: %.0f W", appState.solar.liveW);
+}
+
+static void parseSolarEnergyToday(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.solar.energyTodayKwh = atof(state);
+    appState.solar.valid = true;
+    appState.dirty = true;
+    ESP_LOGI(TAG, "solar energy today: %.3f kWh", appState.solar.energyTodayKwh);
+}
+
+static void parseSolarValueToday(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.solar.valueTodayEur = atof(state);
+    appState.solar.valid = true;
+    appState.dirty = true;
+    ESP_LOGI(TAG, "solar value today: %.4f EUR", appState.solar.valueTodayEur);
+}
+
+static void parseBatterySavingsToday(const char* entity_id, const char* state, JsonObject attrs) {
+    if (state) appState.solar.savingsTodayEur = atof(state);
+    appState.solar.valid = true;
+    appState.dirty = true;
+    ESP_LOGI(TAG, "battery savings today: %.4f EUR", appState.solar.savingsTodayEur);
+}
+
 static void parseLoveMode(const char* entity_id, const char* state, JsonObject attrs) {
     if (!state) return;
     appState.loveMode = strcmp(state, "on") == 0;
@@ -487,6 +515,10 @@ static const SensorEntry SENSORS[] = {
     { "sensor.zonneplan_current_electricity_tariff",               parseEnergyTariff     },
     { "sensor.zonneplan_sustainability_score",                     parseEnergySustainScore },
     { "sensor.zonneplan_status_tip",                               parseEnergyTip        },
+    { "sensor.e200_dc_input_power",                                parseSolarLive          },
+    { "sensor.solar_energy_today",                                 parseSolarEnergyToday   },
+    { "sensor.solar_value_today",                                  parseSolarValueToday    },
+    { "sensor.battery_savings_today",                              parseBatterySavingsToday},
 };
 static constexpr int SENSOR_COUNT = sizeof(SENSORS) / sizeof(SENSORS[0]);
 

@@ -73,6 +73,14 @@ struct EnergyState {
     bool  valid;
 };
 
+struct SolarState {
+    float liveW;           // sensor.e200_dc_input_power (W)
+    float energyTodayKwh;  // sensor.solar_energy_today (kWh)
+    float valueTodayEur;   // sensor.solar_value_today (EUR, time-weighted by tariff)
+    float savingsTodayEur; // sensor.battery_savings_today (EUR)
+    bool  valid;
+};
+
 struct MeshCoreState {
     time_t   lastUpdatedAt;   // epoch from battery sensor attrs.last_updated (local time)
     int      batteryPct;      // sensor.meshcore_82b3166b70_battery_percentage_gigitower
@@ -99,6 +107,7 @@ struct AppState {
     ForecastDay  forecastTomorrow; // sensor.*_2d
     SpotifyState  spotify;         // media_player.spotify
     EnergyState   energy;          // zonneplan sensors
+    SolarState    solar;           // bluetti e200 + derived HA sensors
     MeshCoreState meshcore;        // meshcore repeater GigiTower
 
     bool            loveMode;    // easter egg; will be driven by input_boolean.dial_love_mode later

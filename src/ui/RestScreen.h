@@ -12,6 +12,7 @@
 #include "cards/MeshCoreCard.h"
 #include "cards/LoveCard.h"
 #include "cards/FlightCard.h"
+#include "cards/SolarCard.h"
 
 class RestScreen : public Screen {
 public:
@@ -45,7 +46,7 @@ private:
     void advanceCard();
     void wake();
 
-    static constexpr int MAX_CARDS = 10;
+    static constexpr int MAX_CARDS = 11;
 
     bool _initialized = false;
     std::function<void()> _onWake;
@@ -59,6 +60,7 @@ private:
     ForecastCard     _cardForecast;
     SpotifyCard      _cardSpotify;
     EnergyCard       _cardEnergy;
+    SolarCard        _cardSolar;
     MeshCoreCard     _cardMeshCore;
     LoveCard         _cardLove;
     FlightCard       _cardFlight;
