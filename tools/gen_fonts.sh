@@ -14,8 +14,16 @@ lv_font_conv --bpp 4 --size 32 --no-compress --font "$FONT" --range "$GLYPHS" --
 lv_font_conv --bpp 4 --size 24 --no-compress --font "$FONT" --range "$GLYPHS" --format lvgl -o "$OUT/font_awesome_solid_24.c"
 lv_font_conv --bpp 4 --size 18 --no-compress --font "$FONT" --range "$GLYPHS" --format lvgl -o "$OUT/font_awesome_solid_18.c"
 
-# Montserrat with Cyrillic — used by LoveCard
+# Montserrat with Latin Extended — used everywhere for accented chars (Portuguese, etc.)
+# Range: ASCII 0x20-0x7E + Latin-1 Supplement 0xA0-0xFF (° ã á â à ç é ê í ó ô õ ú etc.)
 MONTSERRAT="tools/fonts/Montserrat-Medium.ttf"
-lv_font_conv --bpp 4 --size 24 --no-compress --font "$MONTSERRAT" --range "0x20-0x7E,0x400-0x4FF" --format lvgl -o "$OUT/font_montserrat_cyr_24.c"
+LATIN_RANGE="0x20-0x7E,0xA0-0xFF"
+lv_font_conv --bpp 4 --size 14 --no-compress --font "$MONTSERRAT" --range "$LATIN_RANGE" --format lvgl -o "$OUT/font_montserrat_lat_14.c"
+lv_font_conv --bpp 4 --size 24 --no-compress --font "$MONTSERRAT" --range "$LATIN_RANGE" --format lvgl -o "$OUT/font_montserrat_lat_24.c"
+lv_font_conv --bpp 4 --size 28 --no-compress --font "$MONTSERRAT" --range "$LATIN_RANGE" --format lvgl -o "$OUT/font_montserrat_lat_28.c"
+lv_font_conv --bpp 4 --size 48 --no-compress --font "$MONTSERRAT" --range "$LATIN_RANGE" --format lvgl -o "$OUT/font_montserrat_lat_48.c"
+
+# Montserrat with Cyrillic + Latin Extended — used by LoveCard (Russian + Portuguese messages)
+lv_font_conv --bpp 4 --size 24 --no-compress --font "$MONTSERRAT" --range "0x20-0x7E,0xA0-0xFF,0x400-0x4FF" --format lvgl -o "$OUT/font_montserrat_cyr_24.c"
 
 echo "Done."

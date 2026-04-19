@@ -15,13 +15,13 @@ void MenuCardAC::init(lv_obj_t* container) {
     lv_obj_align(_iconLabel, LV_ALIGN_CENTER, 0, -40);
 
     _nameLabel = lv_label_create(container);
-    lv_obj_set_style_text_font(_nameLabel, &lv_font_montserrat_28, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_nameLabel, &font_montserrat_lat_28, LV_PART_MAIN);
     lv_obj_set_style_text_color(_nameLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_label_set_text(_nameLabel, _name);
     lv_obj_align(_nameLabel, LV_ALIGN_CENTER, 0, +5);
 
     _stateLabel = lv_label_create(container);
-    lv_obj_set_style_text_font(_stateLabel, &lv_font_montserrat_24, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_stateLabel, &font_montserrat_lat_24, LV_PART_MAIN);
     lv_obj_set_style_text_color(_stateLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
     lv_label_set_text(_stateLabel, "---");
     lv_obj_align(_stateLabel, LV_ALIGN_CENTER, 0, +40);

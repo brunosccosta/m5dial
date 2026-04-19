@@ -96,14 +96,14 @@ void ACControlScreen::init() {
 
     // Current temp
     _currentTempLabel = lv_label_create(_lvScreen);
-    lv_obj_set_style_text_font(_currentTempLabel, &lv_font_montserrat_24, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_currentTempLabel, &font_montserrat_lat_24, LV_PART_MAIN);
     lv_obj_set_style_text_color(_currentTempLabel, lv_color_hex(Theme::TEXT_FAINT), LV_PART_MAIN);
     lv_label_set_text(_currentTempLabel, "--.-\xC2\xB0");
     lv_obj_align(_currentTempLabel, LV_ALIGN_CENTER, 0, -46);
 
     // Target temp — large, center
     _targetTempLabel = lv_label_create(_lvScreen);
-    lv_obj_set_style_text_font(_targetTempLabel, &lv_font_montserrat_48, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_targetTempLabel, &font_montserrat_lat_48, LV_PART_MAIN);
     lv_obj_set_style_text_color(_targetTempLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_label_set_text(_targetTempLabel, "--\xC2\xB0");
     lv_obj_align(_targetTempLabel, LV_ALIGN_CENTER, 0, -2);
@@ -129,7 +129,7 @@ void ACControlScreen::init() {
     lv_label_set_text(_modeIconLabel, FA_POWER_OFF);
 
     _modeTextLabel = lv_label_create(_modeContainer);
-    lv_obj_set_style_text_font(_modeTextLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_modeTextLabel, &font_montserrat_lat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_modeTextLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_label_set_text(_modeTextLabel, "OFF");
 
@@ -147,7 +147,7 @@ void ACControlScreen::init() {
     lv_obj_add_event_cb(_confirmBtn, onConfirmClick, LV_EVENT_CLICKED, this);
 
     _confirmLabel = lv_label_create(_confirmBtn);
-    lv_obj_set_style_text_font(_confirmLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_confirmLabel, &font_montserrat_lat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_confirmLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_label_set_text(_confirmLabel, "APPLY");
     lv_obj_center(_confirmLabel);

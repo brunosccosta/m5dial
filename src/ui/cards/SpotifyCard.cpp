@@ -22,14 +22,14 @@ void SpotifyCard::init(lv_obj_t* parent) {
 
     // State — "playing" / "paused" / "idle"
     _stateLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_stateLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_stateLabel, &font_montserrat_lat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_stateLabel, lv_color_hex(Theme::TEXT_MUTED), LV_PART_MAIN);
     lv_obj_align(_stateLabel, LV_ALIGN_CENTER, 0, -77);
     lv_label_set_text(_stateLabel, "—");
 
     // Title — scrolls if too long
     _titleLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_titleLabel, &lv_font_montserrat_24, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_titleLabel, &font_montserrat_lat_24, LV_PART_MAIN);
     lv_obj_set_style_text_color(_titleLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_set_style_text_align(_titleLabel, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_width(_titleLabel, 180);
@@ -40,7 +40,7 @@ void SpotifyCard::init(lv_obj_t* parent) {
 
     // Artist — scrolls if too long
     _artistLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_artistLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_artistLabel, &font_montserrat_lat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_artistLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
     lv_obj_set_style_text_align(_artistLabel, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_set_width(_artistLabel, 180);
@@ -73,7 +73,7 @@ void SpotifyCard::init(lv_obj_t* parent) {
     lv_label_set_text(_volIconLabel, FA_VOLUME_HIGH);
 
     _volLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_volLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_volLabel, &font_montserrat_lat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_volLabel, lv_color_hex(Theme::TEXT_FAINT), LV_PART_MAIN);
     lv_obj_align(_volLabel, LV_ALIGN_CENTER, +76, +14);
     lv_label_set_text(_volLabel, "");
@@ -86,7 +86,7 @@ void SpotifyCard::init(lv_obj_t* parent) {
     lv_label_set_text(_srcIconLabel, FA_MOBILE);
 
     _srcLabel = lv_label_create(_container);
-    lv_obj_set_style_text_font(_srcLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_srcLabel, &font_montserrat_lat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_srcLabel, lv_color_hex(Theme::TEXT_FAINT), LV_PART_MAIN);
     lv_obj_set_width(_srcLabel, 80);
     lv_obj_set_style_text_align(_srcLabel, LV_TEXT_ALIGN_LEFT, LV_PART_MAIN);

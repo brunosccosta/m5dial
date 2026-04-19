@@ -37,10 +37,10 @@ namespace CardLayout {
     //   Detail (14pt) — small labels, units, humidity, timestamps
     //   Icon         — FontAwesome solid 18pt glyphs
 
-    inline const lv_font_t* fontHero()   { return &lv_font_montserrat_48; }
-    inline const lv_font_t* fontTitle()  { return &lv_font_montserrat_28; }
-    inline const lv_font_t* fontValue()  { return &lv_font_montserrat_24; }
-    inline const lv_font_t* fontDetail() { return &lv_font_montserrat_14; }
+    inline const lv_font_t* fontHero()   { return &font_montserrat_lat_48; }
+    inline const lv_font_t* fontTitle()  { return &font_montserrat_lat_28; }
+    inline const lv_font_t* fontValue()  { return &font_montserrat_lat_24; }
+    inline const lv_font_t* fontDetail() { return &font_montserrat_lat_14; }
     inline const lv_font_t* fontIcon()   { return &font_awesome_solid_18; }
 
     // ── Container helpers ──────────────────────────────────────────────────────

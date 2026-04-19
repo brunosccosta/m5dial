@@ -40,7 +40,7 @@ void ToastOverlay::init() {
     lv_obj_set_style_border_width(_iconLabel, 0, LV_PART_MAIN);
 
     _msgLabel = lv_label_create(_pill);
-    lv_obj_set_style_text_font(_msgLabel, &lv_font_montserrat_24, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_msgLabel, &font_montserrat_lat_24, LV_PART_MAIN);
     lv_obj_set_style_text_color(_msgLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_obj_set_style_bg_opa(_msgLabel, LV_OPA_TRANSP, LV_PART_MAIN);
     lv_obj_set_style_border_width(_msgLabel, 0, LV_PART_MAIN);

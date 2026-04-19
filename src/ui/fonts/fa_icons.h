@@ -6,8 +6,15 @@ extern const lv_font_t font_awesome_solid_32;
 extern const lv_font_t font_awesome_solid_24;
 extern const lv_font_t font_awesome_solid_18;
 
-// Montserrat with Cyrillic — declared in font_montserrat_cyr_24.c
+// Montserrat with Cyrillic + Latin Extended — declared in font_montserrat_cyr_24.c
 extern const lv_font_t font_montserrat_cyr_24;
+
+// Montserrat with Latin Extended (ASCII + 0xC0-0xFF) — declared in font_montserrat_lat_*.c
+// Use these everywhere instead of lv_font_montserrat_* to support accented chars (ã á â ç é ê etc.)
+extern const lv_font_t font_montserrat_lat_14;
+extern const lv_font_t font_montserrat_lat_24;
+extern const lv_font_t font_montserrat_lat_28;
+extern const lv_font_t font_montserrat_lat_48;
 
 // UTF-8 encoded glyph strings (U+F000 range → 3-byte sequences)
 #define FA_HEART          "\xEF\x80\x84"  // U+F004 — fa-heart

@@ -84,7 +84,7 @@ void QuickPanel::init(ACControlScreen& acCtrl, ACState& ac, ACState& heater) {
     lv_obj_set_pos(_haIcon, 74, 47);
 
     _connLabel = lv_label_create(_panel);
-    lv_obj_set_style_text_font(_connLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_connLabel, &font_montserrat_lat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_connLabel, lv_color_hex(Theme::TEXT_DIM), LV_PART_MAIN);
     lv_label_set_text(_connLabel, "Connecting...");
     lv_obj_set_pos(_connLabel, 98, 49);
@@ -116,7 +116,7 @@ void QuickPanel::init(ACControlScreen& acCtrl, ACState& ac, ACState& heater) {
     lv_obj_align(_acIcon, LV_ALIGN_CENTER, -22, 0);
 
     _acTextLabel = lv_label_create(_acBtn);
-    lv_obj_set_style_text_font(_acTextLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_acTextLabel, &font_montserrat_lat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_acTextLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_label_set_text(_acTextLabel, "--");
     lv_obj_align(_acTextLabel, LV_ALIGN_CENTER, 12, 0);
@@ -129,7 +129,7 @@ void QuickPanel::init(ACControlScreen& acCtrl, ACState& ac, ACState& heater) {
     lv_obj_align(_heaterIcon, LV_ALIGN_CENTER, -22, 0);
 
     _heaterTextLabel = lv_label_create(_heaterBtn);
-    lv_obj_set_style_text_font(_heaterTextLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_font(_heaterTextLabel, &font_montserrat_lat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(_heaterTextLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_label_set_text(_heaterTextLabel, "--");
     lv_obj_align(_heaterTextLabel, LV_ALIGN_CENTER, 12, 0);
@@ -154,7 +154,7 @@ void QuickPanel::init(ACControlScreen& acCtrl, ACState& ac, ACState& heater) {
     lv_obj_align(btnIcon, LV_ALIGN_CENTER, -42, 0);
 
     lv_obj_t* btnLabel = lv_label_create(_findMyBtn);
-    lv_obj_set_style_text_font(btnLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_font(btnLabel, &font_montserrat_lat_14, LV_PART_MAIN);
     lv_obj_set_style_text_color(btnLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_label_set_text(btnLabel, "Find iPhone");
     lv_obj_align(btnLabel, LV_ALIGN_CENTER, 11, 0);
