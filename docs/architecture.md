@@ -52,6 +52,14 @@ struct ForecastDay {
     bool  valid;
 };
 
+struct SolarState {
+    float liveW;           // sensor.e200_dc_input_power (W)
+    float energyTodayKwh;  // sensor.solar_energy_today (kWh)
+    float valueTodayEur;   // sensor.solar_value_today (EUR, time-weighted by tariff)
+    float savingsTodayEur; // sensor.battery_savings_today (EUR)
+    bool  valid;
+};
+
 struct SpotifyState {
     char  state[12];  // "playing" / "paused" / "idle" / "off"
     char  title[64];
@@ -71,6 +79,8 @@ struct AppState {
     ForecastDay  forecastToday;    // sensor.*_1d
     ForecastDay  forecastTomorrow; // sensor.*_2d
     SpotifyState  spotify;         // media_player.spotify
+    EnergyState   energy;          // zonneplan sensors
+    SolarState    solar;           // bluetti e200 + derived HA sensors
     MeshCoreState meshcore;        // meshcore repeater GigiTower (binary_sensor + sensors)
     bool         loveMode;     // easter egg — shows LoveCard; driven by input_boolean.nastya_at_home
     bool         dirty;         // set by HA layer; cleared by UI after refresh
@@ -519,9 +529,10 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 | 3 | `IndoorTempsCard` | `sensor.atc_3294/03be/88dc` temp + humidity (balcony, bedroom, bathroom) | always |
 | 4 | `SpotifyCard` | `media_player.spotify` — title, artist, source, volume, shuffle, repeat | only when state is `"playing"` or `"paused"` |
 | 5 | `EnergyCard` | Zonneplan sensors — daily kWh, live watts, tariff, sustainability score, status tip | only when `energy.valid` |
-| 6 | `MeshCoreCard` | MeshCore repeater GigiTower — battery %, 24h trend, uptime, last-updated | always |
-| 7 | `LoveCard` | Easter egg — beating heart + cycling messages (Russian/English/Portuguese); peach emoji swaps in for "Gostosa!" | `appState.loveMode` (driven by `input_boolean.nastya_at_home`) |
-| 8 | `FlightCard` | Countdown to next flight — flag emoji, destination, days + date, hint line for next-next flight; urgency coloring ≤14d/≤6d | at least one flight with `daysUntil >= 0` in `src/flights.h` |
+| 6 | `SolarCard` | Bluetti E200 — today's Wh, live watts, solar value (ct), battery savings (ct) | only when `solar.valid` |
+| 7 | `MeshCoreCard` | MeshCore repeater GigiTower — battery %, 24h trend, uptime, last-updated | always |
+| 8 | `LoveCard` | Easter egg — beating heart + cycling messages (Russian/English/Portuguese); peach emoji swaps in for "Gostosa!" | `appState.loveMode` (driven by `input_boolean.nastya_at_home`) |
+| 9 | `FlightCard` | Countdown to next flight — flag emoji, destination, days + date, hint line for next-next flight; urgency coloring ≤14d/≤6d | at least one flight with `daysUntil >= 0` in `src/flights.h` |
 
 #### MeshCoreCard layout
 
@@ -611,6 +622,21 @@ Two columns at `x=−37` (today) and `x=+41` (tomorrow). All positions static.
 ```
 
 Style C — `makeContainer` + `makeRow` rows. Countdown urgency: white > 14d, orange ≤ 14d, red ≤ 6d. `isVisible()` returns true only when at least one flight has `daysUntil >= 0`. Flight data in `src/flights.h` (gitignored).
+
+#### SolarCard layout
+
+```
+┌──────────────────────────────┐
+│                              │
+│    423    Wh                 │  ← hero: today's energy in Wh (kWh×1000); montserrat_48 + "Wh\ntoday" detail
+│    ☀  312 W                  │  ← sun icon (yellow when producing) + live watts
+│    ⚡  18 ct solar            │  ← bolt icon + solar value in cents
+│    🔋  6 ct saved             │  ← battery icon + savings in cents (green when > 0)
+│                              │
+└──────────────────────────────┘
+```
+
+Style A — `makeContainer` + `makeRow` rows. Energy displayed in Wh (not kWh) since panels are small — kWh would show `0.x`. Sun icon and live-watts label turn yellow (`TEMP_WARM`) when producing ≥ 1W, dim otherwise. Savings row green (`AC_MODE_AUTO`) when non-zero. `isVisible()` returns `solar.valid`.
 
 #### LoveCard layout
 
