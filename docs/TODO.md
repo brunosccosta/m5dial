@@ -45,7 +45,7 @@ Three templates:
 | **B — Status + value** | Mode/state pill + arc | ACControlScreen (arc intentional, leave as-is) |
 | **C — Equal-weight list** | 2–3 rows, same visual weight | IndoorTempsCard ✓, ForecastCard, MeshCoreCard |
 | **D — Icon + label** | Fixed icon slot + centered text row | LoveCard ✓ |
-| **Special** | Bespoke layout, keep as-is | SpotifyCard |
+| **Special** | Bespoke layout, keep as-is | ~~SpotifyCard~~ (migrated to flex) |
 
 **Remaining card work:**
 - `ClockCard` → Style A ✓

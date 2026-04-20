@@ -660,13 +660,15 @@ Style D — `makeContainer` flex column (PAD_ROW_LIST gap). Icon slot is a fixed
 
 ```
 ┌──────────────────────────────┐
-│           playing            │  ← state, montserrat_14 (TEXT_MUTED), y=−77, centered
-│        Song Title            │  ← montserrat_24, y=−40, w=180, scroll circular (19s)
-│         Artist               │  ← montserrat_14 (TEXT_DIM), y=−12, w=180, scroll (14s)
-│  📱 iPhone   🔊 75%          │  ← source icon+label left (x=−82/−29), vol icon+label right (x=+40/+76), y=+14
-│       🔀        🔁           │  ← shuffle (x=−12) + repeat (x=+12), y=+36; hidden when inactive
+│           playing            │  ← state, montserrat_14 (TEXT_MUTED)
+│        Song Title            │  ← montserrat_24, w=180, scroll circular (19s)
+│         Artist               │  ← montserrat_14 (TEXT_DIM), w=180, scroll (14s)
+│  📱 iPhone        🔊 75%     │  ← source group left ←space-between→ vol group right; 180px row
+│       🔀              🔁     │  ← shuffle + repeat; always visible, dim when off, green when on
 └──────────────────────────────┘
 ```
+
+`makeContainer` flex-col (`PAD_ROW=8` gap) — content centered on circle. Details row is a fixed 180px flex-row with `LV_FLEX_ALIGN_SPACE_BETWEEN` to push source left and volume right. Each side is a `makeRow` sub-group (icon + label). Toggles row is a `makeRow` with 20px gap; shuffle/repeat always rendered — `AC_MODE_AUTO` (green) when active, `TEXT_MUTED` when off.
 
 `isVisible()` returns true only when state is `"playing"` or `"paused"`. Source icon maps: iPhone→`FA_MOBILE`, Sala→`FA_TOWER_BROADCAST`, Living Room→`FA_TV`.
 

@@ -14,10 +14,9 @@ private:
     lv_obj_t* _stateLabel;
     lv_obj_t* _titleLabel;
     lv_obj_t* _artistLabel;
-    lv_obj_t* _shuffleLabel;  // hidden unless shuffle on
-    lv_obj_t* _repeatLabel;   // hidden unless repeat on
-    lv_obj_t* _volIconLabel;
-    lv_obj_t* _volLabel;
     lv_obj_t* _srcIconLabel;
     lv_obj_t* _srcLabel;
+    lv_obj_t* _volLabel;
+    lv_obj_t* _shuffleLabel;
+    lv_obj_t* _repeatLabel;
 };
