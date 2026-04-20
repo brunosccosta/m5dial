@@ -44,13 +44,15 @@ Three templates:
 | **A — Hero number** | Large number (48pt) + supporting rows | EnergyCard ✓, WeatherNowCard ✓, ClockCard |
 | **B — Status + value** | Mode/state pill + arc | ACControlScreen (arc intentional, leave as-is) |
 | **C — Equal-weight list** | 2–3 rows, same visual weight | IndoorTempsCard ✓, ForecastCard, MeshCoreCard |
-| **Special** | Bespoke layout, keep as-is | SpotifyCard, LoveCard (animations), FlightCard (adopt makeContainer shell only) |
+| **D — Icon + label** | Fixed icon slot + centered text row | LoveCard ✓ |
+| **Special** | Bespoke layout, keep as-is | SpotifyCard |
 
 **Remaining card work:**
 - `ClockCard` → Style A ✓
 - `ForecastCard` → two `makeColumn`s inside `makeRow` ✓ (added `makeColumn` to CardLayout)
 - `MeshCoreCard` → flex column with header/stats/status rows ✓
 - `FlightCard` → Style C ✓ (makeContainer shell + makeRow rows; dynamic centering code removed)
+- `LoveCard` → Style D ✓ (makeContainer + fixed icon slot)
 - `HeaterCard` — **delete**, move to QuickPanel (Step 2)
 
 ### Priority order

@@ -3,6 +3,7 @@
 #include "../fonts/fa_icons.h"
 #include "../images/lvgl_images.h"
 #include "../Theme.h"
+#include "../CardLayout.h"
 #include "../../AppState.h"
 
 // ---------------------------------------------------------------------------
@@ -59,27 +60,29 @@ void LoveCard::init(lv_obj_t* parent) {
     if (_initialized) return;
     _initialized = true;
 
-    _container = lv_obj_create(parent);
-    lv_obj_set_size(_container, 240, 240);
-    lv_obj_set_pos(_container, 0, 0);
-    lv_obj_set_style_bg_opa(_container, LV_OPA_TRANSP, LV_PART_MAIN);
-    lv_obj_set_style_border_width(_container, 0, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(_container, 0, LV_PART_MAIN);
-    lv_obj_clear_flag(_container, LV_OBJ_FLAG_SCROLLABLE);
+    _container = CardLayout::makeContainer(parent, 0, CardLayout::PAD_ROW_LIST);
+
+    // Icon slot — fixed size so flex layout doesn't shift when heart/peach swap
+    lv_obj_t* iconSlot = lv_obj_create(_container);
+    lv_obj_set_size(iconSlot, 40, 40);
+    lv_obj_set_style_bg_opa(iconSlot, LV_OPA_TRANSP, LV_PART_MAIN);
+    lv_obj_set_style_border_width(iconSlot, 0, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(iconSlot, 0, LV_PART_MAIN);
+    lv_obj_clear_flag(iconSlot, LV_OBJ_FLAG_SCROLLABLE);
 
     // Heart icon
-    _heart = lv_label_create(_container);
+    _heart = lv_label_create(iconSlot);
     lv_obj_set_style_text_font(_heart, &font_awesome_solid_32, LV_PART_MAIN);
     lv_obj_set_style_text_color(_heart, lv_color_hex(0xFF3355), LV_PART_MAIN);
     lv_label_set_text(_heart, FA_HEART);
-    lv_obj_align(_heart, LV_ALIGN_CENTER, 0, -55);
+    lv_obj_align(_heart, LV_ALIGN_CENTER, 0, 0);
     lv_obj_set_style_transform_pivot_x(_heart, LV_PCT(50), LV_PART_MAIN);
     lv_obj_set_style_transform_pivot_y(_heart, LV_PCT(50), LV_PART_MAIN);
 
     // Peach image (shown instead of heart on "Gostosa!")
-    _peach = lv_image_create(_container);
+    _peach = lv_image_create(iconSlot);
     lv_image_set_src(_peach, &emoji_peach);
-    lv_obj_align(_peach, LV_ALIGN_CENTER, 0, -55);
+    lv_obj_align(_peach, LV_ALIGN_CENTER, 0, 0);
     lv_obj_add_flag(_peach, LV_OBJ_FLAG_HIDDEN);
 
     // Message label
@@ -87,7 +90,6 @@ void LoveCard::init(lv_obj_t* parent) {
     lv_obj_set_style_text_font(_msgLabel, &font_montserrat_cyr_24, LV_PART_MAIN);
     lv_obj_set_style_text_color(_msgLabel, lv_color_hex(Theme::TEXT_PRIMARY), LV_PART_MAIN);
     lv_label_set_text(_msgLabel, MESSAGES[_msgIndex]);
-    lv_obj_align(_msgLabel, LV_ALIGN_CENTER, 0, -4);
     lv_obj_set_user_data(_msgLabel, this);
 
     lv_obj_add_flag(_container, LV_OBJ_FLAG_HIDDEN);

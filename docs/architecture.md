@@ -196,7 +196,7 @@ haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN, true);
 
 Credentials stored in `src/credentials.h` (gitignored): `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`, `SPOTIFY_REFRESH_TOKEN`.
 
-- **Access token**: 1h TTL. Proactively refreshed 60s before expiry — `update()` checks every loop tick and refreshes when needed.
+- **Access token**: 1h TTL. Proactively refreshed 60s before expiry — `update()` checks every loop tick but only refreshes when `appState.spotify.state` is `"playing"` or `"paused"`. No background HTTP calls when Spotify is idle.
 - **Refresh token**: loaded from NVS on boot (`Preferences`, namespace `"spotify"`, key `"refresh_token"`); falls back to `credentials.h` if NVS is empty. If Spotify rotates the refresh token in a response, the new token is immediately persisted to NVS — survives power cycles without reflashing.
 - **Retry**: on refresh failure, retries after 30s.
 - **Auth**: `POST accounts.spotify.com/api/token` with `Authorization: Basic base64(client_id:client_secret)` computed at runtime via mbedTLS.
@@ -219,7 +219,9 @@ Both return HTTP 204 on success.
 
 ### HTTP
 
-`WiFiClientSecure` + `HTTPClient` (Arduino ESP32). `setInsecure()` — no CA pinning for home use. All calls are blocking (~200–500ms); acceptable since they're user-triggered or infrequent (token refresh every ~55min).
+`WiFiClientSecure` + `HTTPClient` (Arduino ESP32). `setInsecure()` — no CA pinning for home use. All calls are blocking (~200–500ms); acceptable since they're user-triggered or infrequent (token refresh every ~55min, and only when Spotify is active).
+
+All HTTP call sites go through the private `beginHttp(HTTPClient&, WiFiClientSecure&, url)` helper, which applies `setInsecure()`, 5s connect timeout, and 8s transfer timeout before `http.begin()`. This bounds any network-related freeze to ~8s maximum.
 
 **State reads** stay on HA WebSocket — `SpotifyClient` is write-only. The Spotify card on RestScreen is driven by `appState.spotify` updated via HA's `media_player.spotify` entity.
 
@@ -474,6 +476,7 @@ Three card styles:
 - **Style A — Hero number**: large centered value (48pt) + supporting rows. ClockCard, EnergyCard, WeatherNowCard.
 - **Style B — Status + arc**: bespoke layout kept as-is. ACControlScreen.
 - **Style C — Equal-weight list**: 2–3 rows same visual weight. IndoorTempsCard, MeshCoreCard, FlightCard. ForecastCard uses two `makeColumn`s side-by-side inside a single `makeRow`.
+- **Style D — Icon + label**: `makeContainer` flex column with a fixed-size icon slot + centered text row. LoveCard. SpotifyCard uses its own bespoke layout.
 
 `navigateCard(int dir)` hides the current card, walks the array by `dir` (+1 or −1) skipping cards where `isVisible()` returns false, calls `show()` + `update()` on the target card, and resets both `_lastAdvanceMs` and `_lastCardUpdateMs`. `advanceCard()` (auto-timer) calls `navigateCard(+1)`. `onEncoder(delta)` calls `navigateCard(delta > 0 ? -1 : +1)`.
 
@@ -608,6 +611,24 @@ Two columns at `x=−37` (today) and `x=+41` (tomorrow). All positions static.
 ```
 
 Style C — `makeContainer` + `makeRow` rows. Countdown urgency: white > 14d, orange ≤ 14d, red ≤ 6d. `isVisible()` returns true only when at least one flight has `daysUntil >= 0`. Flight data in `src/flights.h` (gitignored).
+
+#### LoveCard layout
+
+```
+┌──────────────────────────────┐
+│                              │
+│          ❤  (or 🍑)          │  ← 40×40 icon slot; heart (FA_HEART 32px, red) or peach image (32×32)
+│       Я тебя люблю           │  ← font_montserrat_cyr_24 (TEXT_PRIMARY); cycles 5 messages
+│                              │
+└──────────────────────────────┘
+```
+
+Style D — `makeContainer` flex column (PAD_ROW_LIST gap). Icon slot is a fixed 40×40 transparent `lv_obj` containing both `_heart` and `_peach` centered at (0,0) — flex layout stays stable on swap. Messages cycle every 8s with a 250ms fade-out/in. Heart pulses (scale 256→310, 500ms ease-in-out, 3.5s delay, infinite repeat) on all non-Gostosa messages. `isVisible()` returns `appState.loveMode`.
+
+**Animation notes:**
+- `_msgTimer` (8s, paused when hidden) fires `msgTimerCb` → `startMsgFadeOut()` → on complete `fadeOutDoneCb` updates text + restarts fade-in
+- `stopHeartAnim()` is always called before `startHeartAnim()` to prevent stacking infinite animations
+- `hide()` cancels any in-flight fade via `lv_anim_delete(_msgLabel, fadeAnimCb)` before pausing the timer
 
 #### SpotifyCard layout
 
