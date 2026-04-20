@@ -629,6 +629,14 @@ Still unsupported: em dash `—` (U+2014), euro `€` (U+20AC) — outside 0xC0�
 
 ---
 
+## Blocking HTTP in main loop freezes display
+
+`HTTPClient` / `WiFiClientSecure` calls block the Arduino loop. Without explicit timeouts the default ESP32 TCP connect timeout is ~75s — if the network is flaky the display freezes for that duration with no log output (loop never returns so nothing gets flushed).
+
+**Fix**: always set `http.setConnectTimeout(5000)` and `http.setTimeout(8000)` before `http.begin()`. Also gate proactive refreshes behind a precondition (e.g. only refresh Spotify token when state is `"playing"` or `"paused"`) to avoid background blocking when it serves no purpose.
+
+---
+
 ## SleepManager must check for window-end while sleeping
 
 `tick()` originally returned immediately when `_sleeping` was true, so the display stayed off past 07:00 until the user manually interacted. The sleep window exit was never detected.
