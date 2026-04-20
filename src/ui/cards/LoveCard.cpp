@@ -110,6 +110,7 @@ void LoveCard::show() {
 void LoveCard::hide() {
     lv_obj_add_flag(_container, LV_OBJ_FLAG_HIDDEN);
     stopHeartAnim();
+    lv_anim_delete(_msgLabel, fadeAnimCb);
     lv_timer_pause(_msgTimer);
 }
 
@@ -132,6 +133,7 @@ void LoveCard::updateIcon() {
         lv_obj_add_flag(_heart, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(_peach, LV_OBJ_FLAG_HIDDEN);
     } else {
+        stopHeartAnim();
         lv_obj_add_flag(_peach, LV_OBJ_FLAG_HIDDEN);
         lv_obj_remove_flag(_heart, LV_OBJ_FLAG_HIDDEN);
         startHeartAnim();

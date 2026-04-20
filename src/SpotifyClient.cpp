@@ -1,5 +1,6 @@
 #include "SpotifyClient.h"
 #include "credentials.h"
+#include "AppState.h"
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
@@ -32,9 +33,17 @@ void SpotifyClient::begin() {
 
 void SpotifyClient::update() {
     if (WiFi.status() != WL_CONNECTED) return;
+    const char* s = appState.spotify.state;
+    if (strcmp(s, "playing") != 0 && strcmp(s, "paused") != 0) return;
     if (_tokenValid && (int32_t)(millis() - _tokenExpiresAt) < 0) return;
-
     refreshAccessToken();
+}
+
+void SpotifyClient::beginHttp(HTTPClient& http, WiFiClientSecure& client, const char* url) {
+    client.setInsecure();
+    http.setConnectTimeout(5000);
+    http.setTimeout(8000);
+    http.begin(client, url);
 }
 
 bool SpotifyClient::refreshAccessToken() {
@@ -52,9 +61,8 @@ bool SpotifyClient::refreshAccessToken() {
     snprintf(body, sizeof(body), "grant_type=refresh_token&refresh_token=%s", _refreshToken);
 
     WiFiClientSecure client;
-    client.setInsecure();
     HTTPClient http;
-    http.begin(client, "https://accounts.spotify.com/api/token");
+    beginHttp(http, client, "https://accounts.spotify.com/api/token");
     http.addHeader("Authorization", authHeader);
     http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
@@ -115,9 +123,8 @@ bool SpotifyClient::put(const char* path, const char* body) {
     snprintf(authHeader, sizeof(authHeader), "Bearer %s", _accessToken);
 
     WiFiClientSecure client;
-    client.setInsecure();
     HTTPClient http;
-    http.begin(client, url);
+    beginHttp(http, client, url);
     http.addHeader("Authorization", authHeader);
     http.addHeader("Content-Type", "application/json");
 
@@ -152,9 +159,8 @@ void SpotifyClient::logDevices() {
     snprintf(authHeader, sizeof(authHeader), "Bearer %s", _accessToken);
 
     WiFiClientSecure client;
-    client.setInsecure();
     HTTPClient http;
-    http.begin(client, "https://api.spotify.com/v1/me/player/devices");
+    beginHttp(http, client, "https://api.spotify.com/v1/me/player/devices");
     http.addHeader("Authorization", authHeader);
 
     int code = http.GET();

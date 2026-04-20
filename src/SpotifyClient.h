@@ -1,5 +1,7 @@
 #pragma once
 #include <stdint.h>
+#include <HTTPClient.h>
+#include <WiFiClientSecure.h>
 
 class SpotifyClient {
 public:
@@ -17,6 +19,7 @@ private:
     bool refreshAccessToken();
     bool ensureToken();
     bool put(const char* path, const char* body);
+    void beginHttp(HTTPClient& http, WiFiClientSecure& client, const char* url);
 
     char     _accessToken[300]  = {};
     char     _refreshToken[200] = {};
