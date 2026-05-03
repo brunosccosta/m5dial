@@ -13,6 +13,7 @@
 #include "cards/LoveCard.h"
 #include "cards/FlightCard.h"
 #include "cards/SolarCard.h"
+#include "cards/art/GoLCard.h"
 
 class RestScreen : public Screen {
 public:
@@ -46,7 +47,7 @@ private:
     void advanceCard();
     void wake();
 
-    static constexpr int MAX_CARDS = 11;
+    static constexpr int MAX_CARDS = 12;
 
     bool _initialized = false;
     std::function<void()> _onWake;
@@ -64,6 +65,7 @@ private:
     MeshCoreCard     _cardMeshCore;
     LoveCard         _cardLove;
     FlightCard       _cardFlight;
+    GoLCard          _cardGoL;
 
     // Card registry — populated in init()
     RestCard* _cards[MAX_CARDS] = {};

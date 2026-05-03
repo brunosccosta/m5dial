@@ -469,11 +469,34 @@ public:
     virtual void update()               = 0;  // refresh labels from AppState
     virtual void show()                 = 0;  // make objects visible
     virtual void hide()                 = 0;  // hide objects
+    virtual void tick()                 {}    // called every loop; override for animation
     virtual bool isVisible() const      { return true; }  // override to conditionally skip
 };
 ```
 
+`RestScreen::tick()` calls `_cards[_activeCard]->tick()` every loop. Data cards leave it as a no-op. Animation cards override it.
+
 `RestScreen` owns a `RestCard* _cards[]` array and a `_cardCount`. To add a new card: implement `RestCard`, instantiate it, add it to the array. No other changes needed.
+
+#### Math art cards
+
+Generative animation cards live in `src/ui/cards/art/`. They share a base class:
+
+**`MathArtCard`** (`art/MathArtCard.h/.cpp`) — extends `RestCard`:
+- Owns a single shared `static uint16_t* pixBuf` (115KB, allocated once on first `init()`). Shared across all subclasses — only one art card is active at a time, and 3×115KB would exceed free heap.
+- Creates the LVGL canvas in `init()` (before the timer ring, so it sits below it in z-order) and shows/hides it via `LV_OBJ_FLAG_HIDDEN`.
+- Provides `rgb565()` and `hsv565()` color utilities.
+- Subclasses implement `onInit()`, `onShow()`, `onTick()`, `onHide()`.
+- `isVisible()` always true (pure generative, no AppState dependency).
+- `update()` is a no-op.
+
+**`GoLCard`** (`art/GoLCard.h/.cpp`) — Conway's Game of Life:
+- 48×48 grid, 5×5 px cells, toroidal wrapping
+- Age coloring: newborn=white → yellow → orange → blue-purple (old). Trail: 8-gen dim blue ghost on death.
+- `onShow()`: seeds center 20×20 random cluster, builds palette, precomputes per-cell circular clip
+- `onTick()`: steps one generation every `_genInterval` ticks (~28 gen/s at default 6), redraws pixBuf directly, invalidates canvas
+- Auto-reseeds when alive cells < 30
+- Clip precomputation: each cell tagged 0=skip/1=full draw/2=per-pixel check — avoids redundant sqrt for interior cells
 
 #### CardLayout
 
@@ -533,6 +556,7 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 | 7 | `MeshCoreCard` | MeshCore repeater GigiTower — battery %, 24h trend, uptime, last-updated | always |
 | 8 | `LoveCard` | Easter egg — beating heart + cycling messages (Russian/English/Portuguese); peach emoji swaps in for "Gostosa!" | `appState.loveMode` (driven by `input_boolean.nastya_at_home`) |
 | 9 | `FlightCard` | Countdown to next flight — flag emoji, destination, days + date, hint line for next-next flight; urgency coloring ≤14d/≤6d | at least one flight with `daysUntil >= 0` in `src/flights.h` |
+| 10 | `GoLCard` | Conway's Game of Life — 48×48 grid, 5px cells, age coloring + trail effect | always |
 
 #### MeshCoreCard layout
 

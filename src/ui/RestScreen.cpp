@@ -36,6 +36,7 @@ void RestScreen::init() {
     _cards[_cardCount++] = &_cardMeshCore;
     _cards[_cardCount++] = &_cardLove;
     _cards[_cardCount++] = &_cardFlight;
+    _cards[_cardCount++] = &_cardGoL;
 
     // Init all cards; show first (or pinned), hide the rest
     _activeCard = (DEV_CARD_PIN >= 0 && DEV_CARD_PIN < _cardCount) ? DEV_CARD_PIN : 0;
@@ -99,6 +100,8 @@ void RestScreen::tick() {
             _lastRingValue = value;
         }
     }
+
+    _cards[_activeCard]->tick();
 
     // Refresh active card every minute so the clock stays current
     if (now - _lastCardUpdateMs >= 60000) {

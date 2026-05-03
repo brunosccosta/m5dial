@@ -97,6 +97,22 @@ Alternative: a MenuCard for Spotify (alongside AC, Heater). Less discoverable bu
 
 ---
 
+## Feature: Math art cards ✓ (phase 1)
+
+`MathArtCard` base class + `GoLCard` implemented and registered in RestScreen.
+
+**Done:**
+- `RestCard::tick()` added (default no-op) — called every loop from `RestScreen::tick()`
+- `MathArtCard` base: shared 115KB pixBuf, canvas z-order fix, `rgb565`/`hsv565` utils
+- `GoLCard`: 48×48 / 5px cells / age coloring / trail effect / auto-reseed / circular clip
+
+**Up next (math art):**
+- `FractalCard` — lift Julia sketch from `src/main_julia.cpp.bak`, wrap as `MathArtCard` subclass
+- `LangtonCard` — Langton's Ant; same memory model as GoL, ~80 lines
+- `ParticleCard` — Particle Life; N=150 particles, K=4–6 species, random force table per seed
+
+---
+
 ## Feature: Energy card ✓
 
 `EnergyCard` added as a `RestCard`. Subscribes to 5 Zonneplan sensors:

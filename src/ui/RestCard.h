@@ -7,6 +7,7 @@ public:
     virtual void update()               = 0;  // refresh labels from AppState
     virtual void show()                 = 0;  // make objects visible
     virtual void hide()                 = 0;  // hide objects
+    virtual void tick()                 {}    // called every loop; override for animation
     virtual bool isVisible() const      { return true; }
     virtual ~RestCard() = default;
 };

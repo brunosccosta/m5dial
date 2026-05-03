@@ -1,0 +1,295 @@
+// Julia set explorer — color cycling + preset-lerp shape animation
+// Encoder: zoom | Button: jump to next preset
+// Animation: lerps c between curated presets — never wanders into boring regions
+
+#include <M5Dial.h>
+#include <lvgl.h>
+#include <esp_log.h>
+#include <math.h>
+
+static const char* TAG = "JULIA";
+static const int W = 240, H = 240, NPIX = W * H;
+
+static uint8_t*  counts = nullptr;
+static uint16_t* pixBuf = nullptr;
+
+static lv_obj_t* canvas    = nullptr;
+static lv_obj_t* zoomLabel = nullptr;
+
+// ---------------------------------------------------------------- presets ---
+
+struct CVal { float r, i; };  // complex c value
+
+struct Preset { float r, i; const char* name; };
+static const Preset PRESETS[] = {
+    { -0.700f,  0.270f, "dendrite"   },
+    { -0.400f,  0.600f, "spirals"    },
+    {  0.285f,  0.010f, "mandel"     },
+    { -0.800f,  0.156f, "seahorse"   },
+    {  0.450f,  0.143f, "rabbit"     },
+    { -0.727f,  0.189f, "feathers"   },
+    { -0.540f,  0.540f, "arms"       },
+    {  0.000f,  0.800f, "symmetric"  },
+    { -0.622f,  0.420f, "spirals2"   },
+    { -0.070f,  0.650f, "galaxy"     },
+};
+static const int NUM_PRESETS = sizeof(PRESETS) / sizeof(PRESETS[0]);
+
+// --- lerp state ---
+static int   fromIdx  = 0;
+static int   toIdx    = 1;
+static float lerpT    = 0.0f;
+static const float LERP_STEP = 0.1f;   // advance per completed render (10 steps = full journey)
+
+static CVal currentC() {
+    const Preset& f = PRESETS[fromIdx];
+    const Preset& t = PRESETS[toIdx];
+    return { f.r + (t.r - f.r) * lerpT,
+             f.i + (t.i - f.i) * lerpT };
+}
+
+// --- Julia / zoom params ---
+static float zoom  = 1.3f;
+static const float BASE_SCALE = 75.0f;
+static const float ZOOM_STEP  = 0.08f;  // added to zoom each time a new render starts
+static const float ZOOM_MAX   = 5.0f;
+static const float ZOOM_RESET = 1.3f;
+
+static int maxIter() { return zoom > 3.0f ? 192 : zoom > 1.5f ? 128 : 64; }
+
+// --- color animation ---
+static uint16_t palette[256];
+static float    currentHue = 200.0f;
+static uint8_t  timeOffset = 0;
+static const uint8_t COLOR_SPEED = 2;
+
+// --- render state ---
+static int      renderIdx  = 0;
+static bool     renderDone = false;
+static uint32_t renderDoneMs = 0;
+static const int      BATCH   = 4000;
+static const uint32_t HOLD_MS = 10000;
+
+// ------------------------------------------------------------------ color ---
+
+static uint16_t rgb565(uint8_t r, uint8_t g, uint8_t b) {
+    return ((uint16_t)(r & 0xF8) << 8) | ((uint16_t)(g & 0xFC) << 3) | (b >> 3);
+}
+
+static uint16_t hsv565(float h, float s, float v) {
+    float f  = fmodf(h / 60.0f, 6.0f);
+    int   hi = (int)f;
+    float ff = f - hi;
+    float p  = v * (1.0f - s);
+    float q  = v * (1.0f - ff * s);
+    float t  = v * (1.0f - (1.0f - ff) * s);
+    float r, g, b;
+    switch (hi % 6) {
+        case 0: r=v; g=t; b=p; break;
+        case 1: r=q; g=v; b=p; break;
+        case 2: r=p; g=v; b=t; break;
+        case 3: r=p; g=q; b=v; break;
+        case 4: r=t; g=p; b=v; break;
+        default:r=v; g=p; b=q; break;
+    }
+    return rgb565((uint8_t)(r*255), (uint8_t)(g*255), (uint8_t)(b*255));
+}
+
+static void buildPalette(float baseHue) {
+    for (int i = 0; i < 254; i++) {
+        float t   = (float)i / 253.0f;
+        float hue = fmodf(baseHue + t * 200.0f, 360.0f);
+        float sat = 0.65f + 0.35f * sinf(t * (float)M_PI);
+        float val = 0.15f + 0.85f * t;
+        palette[i] = hsv565(hue, sat, val);
+    }
+    palette[254] = 0x0000;
+    palette[255] = 0x0000;
+}
+
+// advance lerp; when we arrive at toIdx, pick a new random target
+static void advanceLerp() {
+    lerpT += LERP_STEP;
+    if (lerpT >= 1.0f) {
+        lerpT   = 0.0f;
+        fromIdx = toIdx;
+        int next = fromIdx;
+        while (next == fromIdx) next = (int)(esp_random() % NUM_PRESETS);
+        toIdx      = next;
+        currentHue = fmodf(currentHue + 40.0f + (float)(esp_random() % 80), 360.0f);
+        buildPalette(currentHue);
+        ESP_LOGI(TAG, "→ %s", PRESETS[toIdx].name);
+    }
+}
+
+static void remapPixels() {
+    for (int i = 0; i < NPIX; i++) {
+        uint8_t c = counts[i];
+        uint8_t p = (c >= 254) ? c : (uint8_t)((c + timeOffset) % 254);
+        pixBuf[i] = palette[p];
+    }
+}
+
+// ---------------------------------------------------------------- fractal ---
+
+static void renderPixel(int idx, float cr, float ci, int maxIt) {
+    int   px = idx % W, py = idx / W;
+    float dx = px - 119.5f, dy = py - 119.5f;
+    if (dx*dx + dy*dy > 120.0f * 120.0f) { counts[idx] = 255; return; }
+
+    float zr = dx / (BASE_SCALE * zoom);
+    float zi = dy / (BASE_SCALE * zoom);
+    int n = 0;
+    for (; n < maxIt; n++) {
+        float zr2 = zr*zr - zi*zi + cr;
+        float zi2 = 2.0f*zr*zi + ci;
+        zr = zr2; zi = zi2;
+        if (zr*zr + zi*zi > 4.0f) break;
+    }
+    counts[idx] = (n >= maxIt) ? 254 : (uint8_t)((uint32_t)n * 253 / maxIt);
+}
+
+static void startRender() {
+    CVal c = currentC();
+    renderIdx  = 0;
+    renderDone = false;
+    ESP_LOGI(TAG, "render c=(%.3f,%.3f) t=%.1f zoom=%.2f", c.r, c.i, lerpT, zoom);
+}
+
+static void tickRender() {
+    if (renderDone) return;
+    CVal c     = currentC();
+    int  maxIt = maxIter();
+    int  end   = renderIdx + BATCH;
+    if (end > NPIX) end = NPIX;
+    for (int i = renderIdx; i < end; i++) renderPixel(i, c.r, c.i, maxIt);
+    renderIdx = end;
+    if (renderIdx >= NPIX) {
+        renderDone   = true;
+        renderDoneMs = millis();
+    }
+}
+
+// ----------------------------------------------------------------- display --
+
+static void updateZoomLabel(bool log = false) {
+    char buf[12];
+    snprintf(buf, sizeof(buf), "x%.2f", zoom);
+    lv_label_set_text(zoomLabel, buf);
+    if (log) ESP_LOGI(TAG, "zoom %.2f", zoom);
+}
+
+void my_disp_flush(lv_display_t* disp, const lv_area_t* area, uint8_t* px_map) {
+    uint32_t w = area->x2 - area->x1 + 1;
+    uint32_t h = area->y2 - area->y1 + 1;
+    M5Dial.Display.startWrite();
+    M5Dial.Display.setAddrWindow(area->x1, area->y1, w, h);
+    M5Dial.Display.pushPixels((uint16_t*)px_map, w * h);
+    M5Dial.Display.endWrite();
+    lv_display_flush_ready(disp);
+}
+
+// ------------------------------------------------------------ entry points --
+
+void setup() {
+    auto cfg = M5.config();
+    M5Dial.begin(cfg, true, false);
+    Serial.begin(115200);
+    M5Dial.Display.setBrightness(200);
+
+    lv_init();
+    lv_tick_set_cb([]() -> uint32_t { return (uint32_t)millis(); });
+
+    lv_display_t* disp = lv_display_create(240, 240);
+    lv_display_set_color_format(disp, LV_COLOR_FORMAT_RGB565_SWAPPED);
+    lv_display_set_flush_cb(disp, my_disp_flush);
+    static lv_color_t dispBuf[240 * 24];
+    lv_display_set_buffers(disp, dispBuf, NULL, sizeof(dispBuf), LV_DISPLAY_RENDER_MODE_PARTIAL);
+
+    counts = (uint8_t* )malloc(NPIX);
+    pixBuf = (uint16_t*)malloc(NPIX * 2);
+    if (!counts || !pixBuf) {
+        ESP_LOGE(TAG, "heap alloc failed — free: %lu", esp_get_free_heap_size());
+        while (true) delay(1000);
+    }
+    ESP_LOGI(TAG, "heap ok — free after alloc: %lu", esp_get_free_heap_size());
+    memset(counts, 254, NPIX);
+    memset(pixBuf, 0,   NPIX * 2);
+
+    lv_obj_t* scr = lv_scr_act();
+    lv_obj_set_style_bg_color(scr, lv_color_black(), LV_PART_MAIN);
+
+    canvas = lv_canvas_create(scr);
+    lv_canvas_set_buffer(canvas, pixBuf, W, H, LV_COLOR_FORMAT_RGB565);
+    lv_obj_set_pos(canvas, 0, 0);
+
+    zoomLabel = lv_label_create(lv_layer_top());
+    lv_obj_set_style_text_font(zoomLabel, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_text_color(zoomLabel, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(zoomLabel, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(zoomLabel, LV_OPA_50, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(zoomLabel, 4, LV_PART_MAIN);
+    lv_obj_set_style_radius(zoomLabel, 4, LV_PART_MAIN);
+    lv_obj_set_pos(zoomLabel, 88, 8);
+
+    buildPalette(currentHue);
+
+    // random starting pair
+    fromIdx = (int)(esp_random() % NUM_PRESETS);
+    toIdx   = fromIdx;
+    while (toIdx == fromIdx) toIdx = (int)(esp_random() % NUM_PRESETS);
+    lerpT   = 0.0f;
+    updateZoomLabel();
+    startRender();
+}
+
+void loop() {
+    M5Dial.update();
+
+    timeOffset += COLOR_SPEED;
+    remapPixels();
+    lv_obj_invalidate(canvas);
+
+    if (renderDone) {
+        if (millis() - renderDoneMs >= HOLD_MS) {
+            zoom += ZOOM_STEP;
+            if (zoom > ZOOM_MAX) zoom = ZOOM_RESET;
+            updateZoomLabel(false);
+            advanceLerp();
+            startRender();
+        }
+    } else {
+        tickRender();
+    }
+
+    lv_timer_handler();
+    delay(5);
+
+    // button — jump to a random new target immediately
+    if (M5Dial.BtnA.wasPressed()) {
+        fromIdx = toIdx;
+        lerpT   = 0.0f;
+        int next = fromIdx;
+        while (next == fromIdx) next = (int)(esp_random() % NUM_PRESETS);
+        toIdx      = next;
+        zoom       = ZOOM_RESET;
+        currentHue = (float)(esp_random() % 360);
+        buildPalette(currentHue);
+        memset(counts, 254, NPIX);
+        updateZoomLabel(true);
+        startRender();
+    }
+
+    // encoder — manual zoom
+    static long lastEnc = 0;
+    long enc   = M5Dial.Encoder.read();
+    long delta = enc - lastEnc;
+    if (delta != 0) {
+        zoom *= powf(1.15f, (float)delta);
+        if (zoom < 0.1f)  zoom = 0.1f;
+        if (zoom > 50.0f) zoom = 50.0f;
+        updateZoomLabel(true);
+        startRender();
+        lastEnc = enc;
+    }
+}

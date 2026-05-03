@@ -643,3 +643,48 @@ Still unsupported: em dash `—` (U+2014), euro `€` (U+20AC) — outside 0xC0�
 
 **Fix**: at the top of `tick()`, when sleeping, call `inSleepWindow()` — if false, auto-wake (restore brightness, play wake tone). Only then return. This way the first `tick()` after 07:00 wakes the display without any user input.
 
+---
+
+## M5Dial has no PSRAM — heap budget is tight
+
+M5Dial uses ESP32-S3FN8: 8MB flash, **no PSRAM**. `heap_caps_malloc(MALLOC_CAP_SPIRAM)` always returns null — crashes immediately on `memset`. Use `malloc()` only.
+
+Free heap after Arduino+LVGL startup: ~210KB. In the full app (AppState, HAClient, WebSockets, LVGL widgets) expect ~150KB free.
+
+**For fractal cards:**
+- LVGL canvas (`pixBuf`) at 240×240 RGB565 = **115KB** — unavoidable, always needed
+- Iteration count buffer at 240×240 uint8 = **57KB**
+- Total: 172KB — fits in test build, tight in full app
+- Double buffer (2× count buffer = 230KB total) does **not** fit — no smooth double-buffered shape animation possible without reducing resolution
+
+**Workaround options:**
+- Half-res counts (120×120, 2× upscale): 14KB counts — double buffer fits, slight pixel art look
+- Single buffer + timer-gated shape updates: color cycles smoothly always, shape re-renders every ~10s (scan-line visible for ~400ms during that window)
+- Conway's Game of Life: 60×60 grid = 7KB total extra — trivially fits, smooth at 20fps+
+
+---
+
+## Art card canvas must be created in init(), not show()
+
+For art cards that use an LVGL canvas covering the full 240×240 display, the canvas z-order matters. `RestScreen` creates the timer ring and fade overlay in `init()` **after** calling `card->init()` on all cards. If the canvas is created in `show()`, it lands on top of the ring arc and overlay — the arc is invisible.
+
+**Fix**: create the canvas in `init()` (so it precedes the ring in z-order), hide it with `LV_OBJ_FLAG_HIDDEN`, and just toggle the flag in `show()`/`hide()`. This is also consistent with how all data cards work.
+
+---
+
+## Art cards share a single pixBuf — allocate in base class init()
+
+`MathArtCard` subclasses cannot each own a 115KB pixel buffer — with 3+ art cards that exceeds free heap (~150KB in full app). Since only one card is ever active at a time, a single `static uint16_t* pixBuf` shared across all subclasses is correct.
+
+Allocate lazily in `MathArtCard::init()` on first call. Never free it. All subclasses access it via the protected `pixBuf` pointer.
+
+---
+
+## Fractal animation without double buffer — render-then-hold pattern
+
+Writing new iteration counts directly into the live display buffer (in-place overwrite) while color cycling reads the same buffer produces two visible artifacts:
+1. **Scan-line sweep**: top of image shows new frame, bottom shows old frame simultaneously
+2. **"Never finishes" look**: if new renders start immediately after completion, the image is always partially overwritten
+
+**Fix**: render-then-hold. After one full render completes, color cycle indefinitely over the complete image. Only start the next render after a timer (e.g. every 10s). Scan-line appears once for ~400ms then the image is clean again. Color cycling runs uninterrupted throughout.
+
