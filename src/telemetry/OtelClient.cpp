@@ -34,12 +34,14 @@ void OtelClient::recordLoopDuration(uint32_t ms) {
 
 // --- OTLP/HTTP push ---------------------------------------------------------
 
-bool OtelClient::addGauge(void* arr, const char* name, const char* unit,
+// NOTE: no OTLP `unit` field is emitted. The Prometheus exporter appends the
+// unit to the metric name (rssi_dbm → rssi_dbm_dBm), so we encode the unit in
+// the name directly (Prometheus convention) and leave the OTLP unit empty.
+bool OtelClient::addGauge(void* arr, const char* name,
                            int64_t value, uint64_t timeNs) {
     JsonArray& metrics = *reinterpret_cast<JsonArray*>(arr);
     JsonObject m  = metrics.add<JsonObject>();
     m["name"]     = name;
-    m["unit"]     = unit;
     JsonArray dp  = m["gauge"]["dataPoints"].to<JsonArray>();
     JsonObject pt = dp.add<JsonObject>();
     pt["asInt"]   = value;
@@ -90,14 +92,14 @@ void OtelClient::push() {
     sm["scope"]["name"] = "m5dial/firmware";
     JsonArray metrics   = sm["metrics"].to<JsonArray>();
 
-    addGauge(&metrics, "m5dial_memory_free_bytes",           "By",  freeHeap,    timeNs);
-    addGauge(&metrics, "m5dial_memory_min_free_bytes",       "By",  minFreeHeap, timeNs);
-    addGauge(&metrics, "m5dial_memory_largest_block_bytes",  "By",  largestBlk,  timeNs);
-    addGauge(&metrics, "m5dial_loop_max_duration_milliseconds", "ms", maxLoop,   timeNs);
-    addGauge(&metrics, "m5dial_wifi_rssi_dbm",               "dBm", rssi,        timeNs);
-    addGauge(&metrics, "m5dial_ha_connected",                "1",   haConn,      timeNs);
-    addGauge(&metrics, "m5dial_ha_ws_reconnects_total",      "1",   reconnects,  timeNs);
-    addGauge(&metrics, "m5dial_uptime_seconds_total",        "s",   uptime,      timeNs);
+    addGauge(&metrics, "m5dial_memory_free_bytes",              freeHeap,    timeNs);
+    addGauge(&metrics, "m5dial_memory_min_free_bytes",          minFreeHeap, timeNs);
+    addGauge(&metrics, "m5dial_memory_largest_block_bytes",     largestBlk,  timeNs);
+    addGauge(&metrics, "m5dial_loop_max_duration_milliseconds", maxLoop,     timeNs);
+    addGauge(&metrics, "m5dial_wifi_rssi_dbm",                  rssi,        timeNs);
+    addGauge(&metrics, "m5dial_ha_connected",                   haConn,      timeNs);
+    addGauge(&metrics, "m5dial_ha_ws_reconnects_total",         reconnects,  timeNs);
+    addGauge(&metrics, "m5dial_uptime_seconds_total",           uptime,      timeNs);
 
     String body;
     serializeJson(doc, body);

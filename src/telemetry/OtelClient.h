@@ -9,7 +9,7 @@ public:
 
 private:
     void push();
-    bool addGauge(void* metricsArray, const char* name, const char* unit,
+    bool addGauge(void* metricsArray, const char* name,
                   int64_t value, uint64_t timeNs);
 
     const char* _host = nullptr;

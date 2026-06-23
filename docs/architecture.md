@@ -232,6 +232,8 @@ haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN, true);
 | `m5dial_ha_ws_reconnects_total` | 1 | cumulative WS disconnect count (in `HAClient`) |
 | `m5dial_uptime_seconds_total` | s | `millis() / 1000` |
 
+The unit is encoded in the metric name (Prometheus convention); **no OTLP `unit` field is emitted**. The collector's Prometheus exporter appends the OTLP unit to the name (`m5dial_wifi_rssi_dbm` would become `..._dbm_dBm`), so emitting a unit double-suffixes — leave it empty.
+
 **Wiring:** `otelClient.tick()` and `otelClient.recordLoopDuration()` called at end of `loop()`. Push skipped when WiFi is not connected or clock not yet NTP-synced. Same 5s connect / 8s transfer timeout as `SpotifyClient`. Collector endpoint configured via `OTEL_HOST` / `OTEL_PORT` in `credentials.h`.
 
 ---
