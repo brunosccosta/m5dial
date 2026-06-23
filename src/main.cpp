@@ -23,6 +23,7 @@
 #include "SpotifyHandler.h"
 #include "HAHandler.h"
 #include "SpotifyClient.h"
+#include "telemetry/OtelClient.h"
 
 // --- AC control ---
 ACControlScreen acControl;
@@ -131,6 +132,7 @@ void setup() {
     rfidDispatcher.registerHandler(&haHandler);
     rfidReader.onTag([](const char* uri) { rfidDispatcher.dispatch(uri); });
     haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
+    otelClient.begin(OTEL_HOST, OTEL_PORT);
     errorOverlay.init();
     toast.init();
     quickPanel.init(acControl, appState.ac, appState.heater);
@@ -142,6 +144,8 @@ void setup() {
 }
 
 void loop() {
+    uint32_t loopStart = millis();
+
     M5Dial.update();
     haClient.update();
     spotifyClient.update();
@@ -255,4 +259,7 @@ void loop() {
         screenManager.refresh();
         appState.dirty = false;
     }
+
+    otelClient.recordLoopDuration(millis() - loopStart);
+    otelClient.tick();
 }

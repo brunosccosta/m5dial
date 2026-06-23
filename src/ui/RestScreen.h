@@ -9,6 +9,7 @@
 #include "cards/ForecastCard.h"
 #include "cards/SpotifyCard.h"
 #include "cards/EnergyCard.h"
+#include "cards/EnergyPriceCard.h"
 #include "cards/MeshCoreCard.h"
 #include "cards/LoveCard.h"
 #include "cards/FlightCard.h"
@@ -33,7 +34,9 @@ public:
     static constexpr uint32_t CARD_INTERVAL_MS = 60000;
 
     // Pin to a specific card index during development (-1 = normal rotation).
-    // 0 = ClockCard, 1 = WeatherNowCard, 2 = ForecastCard, 3 = IndoorTempsCard, 4 = SpotifyCard, 5 = EnergyCard, 6 = MeshCoreCard, 7 = LoveCard, 8 = FlightCard
+    // 0 = ClockCard, 1 = WeatherNowCard, 2 = ForecastCard, 3 = IndoorTempsCard,
+    // 4 = SpotifyCard, 5 = EnergyCard, 6 = EnergyPriceCard, 7 = SolarCard,
+    // 8 = MeshCoreCard, 9 = LoveCard, 10 = FlightCard
     static constexpr int DEV_CARD_PIN = -1;
 
     // Timer ring — thin arc around the dial edge showing time until next card.
@@ -61,6 +64,7 @@ private:
     ForecastCard     _cardForecast;
     SpotifyCard      _cardSpotify;
     EnergyCard       _cardEnergy;
+    EnergyPriceCard  _cardEnergyPrice;
     SolarCard        _cardSolar;
     MeshCoreCard     _cardMeshCore;
     LoveCard         _cardLove;

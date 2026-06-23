@@ -60,6 +60,22 @@ struct SolarState {
     bool  valid;
 };
 
+struct PricePoint {
+    float   price;       // €/kWh
+    uint8_t group;       // tariff_group: 0 low, 1 normal, 2 high
+    uint8_t hourLocal;   // local hour-of-day this point starts
+};
+
+struct PriceState {                 // zonneplan tariff `forecast` attribute
+    PricePoint pts[36];             // current hour → end of forecast (variable)
+    int   count;
+    int   peakIdx;
+    float peakPrice;
+    int   peakHourLocal;
+    bool  peakIsHigh;
+    bool  valid;
+};
+
 struct SpotifyState {
     char  state[12];  // "playing" / "paused" / "idle" / "off"
     char  title[64];
@@ -80,6 +96,7 @@ struct AppState {
     ForecastDay  forecastTomorrow; // sensor.*_2d
     SpotifyState  spotify;         // media_player.spotify
     EnergyState   energy;          // zonneplan sensors
+    PriceState    price;           // zonneplan hourly price forecast
     SolarState    solar;           // bluetti e200 + derived HA sensors
     MeshCoreState meshcore;        // meshcore repeater GigiTower (binary_sensor + sensors)
     bool         loveMode;     // easter egg — shows LoveCard; driven by input_boolean.nastya_at_home
@@ -195,6 +212,27 @@ haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN, true);
 ```
 
 **Libraries**: `Links2004/WebSockets`, `ArduinoJson@^7`
+
+---
+
+## OtelClient
+
+`src/telemetry/OtelClient.h/.cpp` — pushes device metrics to an OpenTelemetry Collector every 60s via OTLP/HTTP JSON (`POST /v1/metrics`). Instantiated as `otelClient` (global singleton).
+
+**Metrics pushed:**
+
+| Metric | Unit | Source |
+|---|---|---|
+| `m5dial_memory_free_bytes` | By | `ESP.getFreeHeap()` |
+| `m5dial_memory_min_free_bytes` | By | `ESP.getMinFreeHeap()` |
+| `m5dial_memory_largest_block_bytes` | By | `ESP.getMaxAllocHeap()` |
+| `m5dial_loop_max_duration_milliseconds` | ms | max `loop()` iteration time since last push |
+| `m5dial_wifi_rssi_dbm` | dBm | `WiFi.RSSI()` |
+| `m5dial_ha_connected` | 1 | 1 when `HA_READY`, else 0 |
+| `m5dial_ha_ws_reconnects_total` | 1 | cumulative WS disconnect count (in `HAClient`) |
+| `m5dial_uptime_seconds_total` | s | `millis() / 1000` |
+
+**Wiring:** `otelClient.tick()` and `otelClient.recordLoopDuration()` called at end of `loop()`. Push skipped when WiFi is not connected or clock not yet NTP-synced. Same 5s connect / 8s transfer timeout as `SpotifyClient`. Collector endpoint configured via `OTEL_HOST` / `OTEL_PORT` in `credentials.h`.
 
 ---
 
@@ -469,34 +507,11 @@ public:
     virtual void update()               = 0;  // refresh labels from AppState
     virtual void show()                 = 0;  // make objects visible
     virtual void hide()                 = 0;  // hide objects
-    virtual void tick()                 {}    // called every loop; override for animation
     virtual bool isVisible() const      { return true; }  // override to conditionally skip
 };
 ```
 
-`RestScreen::tick()` calls `_cards[_activeCard]->tick()` every loop. Data cards leave it as a no-op. Animation cards override it.
-
 `RestScreen` owns a `RestCard* _cards[]` array and a `_cardCount`. To add a new card: implement `RestCard`, instantiate it, add it to the array. No other changes needed.
-
-#### Math art cards
-
-Generative animation cards live in `src/ui/cards/art/`. They share a base class:
-
-**`MathArtCard`** (`art/MathArtCard.h/.cpp`) — extends `RestCard`:
-- Owns a single shared `static uint16_t* pixBuf` (115KB, allocated once on first `init()`). Shared across all subclasses — only one art card is active at a time, and 3×115KB would exceed free heap.
-- Creates the LVGL canvas in `init()` (before the timer ring, so it sits below it in z-order) and shows/hides it via `LV_OBJ_FLAG_HIDDEN`.
-- Provides `rgb565()` and `hsv565()` color utilities.
-- Subclasses implement `onInit()`, `onShow()`, `onTick()`, `onHide()`.
-- `isVisible()` always true (pure generative, no AppState dependency).
-- `update()` is a no-op.
-
-**`GoLCard`** (`art/GoLCard.h/.cpp`) — Conway's Game of Life:
-- 48×48 grid, 5×5 px cells, toroidal wrapping
-- Age coloring: newborn=white → yellow → orange → blue-purple (old). Trail: 8-gen dim blue ghost on death.
-- `onShow()`: seeds center 20×20 random cluster, builds palette, precomputes per-cell circular clip
-- `onTick()`: steps one generation every `_genInterval` ticks (~28 gen/s at default 6), redraws pixBuf directly, invalidates canvas
-- Auto-reseeds when alive cells < 30
-- Clip precomputation: each cell tagged 0=skip/1=full draw/2=per-pixel check — avoids redundant sqrt for interior cells
 
 #### CardLayout
 
@@ -552,11 +567,11 @@ Implemented as an `lv_arc` sized 240×240, centered on the screen, on top of the
 | 3 | `IndoorTempsCard` | `sensor.atc_3294/03be/88dc` temp + humidity (balcony, bedroom, bathroom) | always |
 | 4 | `SpotifyCard` | `media_player.spotify` — title, artist, source, volume, shuffle, repeat | only when state is `"playing"` or `"paused"` |
 | 5 | `EnergyCard` | Zonneplan sensors — daily kWh, live watts, tariff, sustainability score, status tip | only when `energy.valid` |
-| 6 | `SolarCard` | Bluetti E200 — today's Wh, live watts, solar value (ct), battery savings (ct) | only when `solar.valid` |
-| 7 | `MeshCoreCard` | MeshCore repeater GigiTower — battery %, 24h trend, uptime, last-updated | always |
-| 8 | `LoveCard` | Easter egg — beating heart + cycling messages (Russian/English/Portuguese); peach emoji swaps in for "Gostosa!" | `appState.loveMode` (driven by `input_boolean.nastya_at_home`) |
-| 9 | `FlightCard` | Countdown to next flight — flag emoji, destination, days + date, hint line for next-next flight; urgency coloring ≤14d/≤6d | at least one flight with `daysUntil >= 0` in `src/flights.h` |
-| 10 | `GoLCard` | Conway's Game of Life — 48×48 grid, 5px cells, age coloring + trail effect | always |
+| 6 | `EnergyPriceCard` | Zonneplan `forecast` attribute — hourly price bar chart (now → end of forecast), per-bar tariff-group coloring, peak callout | only when `price.valid` |
+| 7 | `SolarCard` | Bluetti E200 — today's Wh, live watts, solar value (ct), battery savings (ct) | only when `solar.valid` |
+| 8 | `MeshCoreCard` | MeshCore repeater GigiTower — battery %, 24h trend, uptime, last-updated | always |
+| 9 | `LoveCard` | Easter egg — beating heart + cycling messages (Russian/English/Portuguese); peach emoji swaps in for "Gostosa!" | `appState.loveMode` (driven by `input_boolean.nastya_at_home`) |
+| 10 | `FlightCard` | Countdown to next flight — flag emoji, destination, days + date, hint line for next-next flight; urgency coloring ≤14d/≤6d | at least one flight with `daysUntil >= 0` in `src/flights.h` |
 
 #### MeshCoreCard layout
 
@@ -662,6 +677,20 @@ Style C — `makeContainer` + `makeRow` rows. Countdown urgency: white > 14d, or
 
 Style A — `makeContainer` + `makeRow` rows. Energy displayed in Wh (not kWh) since panels are small — kWh would show `0.x`. Sun icon and live-watts label turn yellow (`TEMP_WARM`) when producing ≥ 1W, dim otherwise. Savings row green (`AC_MODE_AUTO`) when non-zero. `isVisible()` returns `solar.valid`.
 
+#### EnergyPriceCard layout
+
+```
+┌──────────────────────────────┐
+│        0.36  €/kWh           │  ← hero: current-hour price (montserrat_28), coloured by tariff group
+│      ▁▁▂▁▁▃▅█▇▅▃▁▁           │  ← lv_chart BAR, one bar/hour, now → end of forecast
+│     Peak 1.10 @ 21:00        │  ← peak callout (montserrat_14); red when peak is "high" group
+└──────────────────────────────┘
+```
+
+Reads `appState.price` (`PriceState`), populated by `parsePriceForecast()` in HAClient from the `forecast` attribute of `sensor.zonneplan_current_electricity_tariff` — **no extra subscription**; the attribute already arrives with each hourly tariff update. `electricity_price` is in units of 1e-7 €/kWh; `datetime` is UTC (parsed with `timegm`). Points from the current hour onward are kept (capped at `PriceState::MAX_POINTS = 36`); horizon is variable (~5–30h) since day-ahead prices publish ~13:00 CET.
+
+Chart is `lv_chart` BAR (no pixel buffer — unlike art cards). Per-bar colour comes from a `LV_EVENT_DRAW_TASK_ADDED` handler (chart has `LV_OBJ_FLAG_SEND_DRAW_TASK_EVENTS`): for `LV_PART_ITEMS`, `base->id2` is the point index → `pts[idx].group` → green (low) / amber (normal, `TEMP_MID`) / red (high, `ACCENT_ERROR`). Hero and peak callout coloured the same way. `isVisible()` returns `price.valid`.
+
 #### LoveCard layout
 
 ```
@@ -684,15 +713,13 @@ Style D — `makeContainer` flex column (PAD_ROW_LIST gap). Icon slot is a fixed
 
 ```
 ┌──────────────────────────────┐
-│           playing            │  ← state, montserrat_14 (TEXT_MUTED)
-│        Song Title            │  ← montserrat_24, w=180, scroll circular (19s)
-│         Artist               │  ← montserrat_14 (TEXT_DIM), w=180, scroll (14s)
-│  📱 iPhone        🔊 75%     │  ← source group left ←space-between→ vol group right; 180px row
-│       🔀              🔁     │  ← shuffle + repeat; always visible, dim when off, green when on
+│           playing            │  ← state, montserrat_14 (TEXT_MUTED), y=−77, centered
+│        Song Title            │  ← montserrat_24, y=−40, w=180, scroll circular (19s)
+│         Artist               │  ← montserrat_14 (TEXT_DIM), y=−12, w=180, scroll (14s)
+│  📱 iPhone   🔊 75%          │  ← source icon+label left (x=−82/−29), vol icon+label right (x=+40/+76), y=+14
+│       🔀        🔁           │  ← shuffle (x=−12) + repeat (x=+12), y=+36; hidden when inactive
 └──────────────────────────────┘
 ```
-
-`makeContainer` flex-col (`PAD_ROW=8` gap) — content centered on circle. Details row is a fixed 180px flex-row with `LV_FLEX_ALIGN_SPACE_BETWEEN` to push source left and volume right. Each side is a `makeRow` sub-group (icon + label). Toggles row is a `makeRow` with 20px gap; shuffle/repeat always rendered — `AC_MODE_AUTO` (green) when active, `TEXT_MUTED` when off.
 
 `isVisible()` returns true only when state is `"playing"` or `"paused"`. Source icon maps: iPhone→`FA_MOBILE`, Sala→`FA_TOWER_BROADCAST`, Living Room→`FA_TV`.
 

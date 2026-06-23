@@ -125,3 +125,4 @@ The display is a **240×240 circle**. All coordinates below are offsets from cen
 | `WeatherNowCard` | Temp 48px + feels-like 14px / icon + condition 24px | -45 to -8 |
 | `IndoorTempsCard` | 3 rows: balcony/bedroom/bathroom — icon + temp 24px + droplet + humidity | -58 to +8 |
 | `ForecastCard` | 2-column: TODAY / TMR — icon + max temp + rain % | -72 to -8 |
+| `EnergyPriceCard` | hero price + `lv_chart` BAR (per-bar tariff-group color via `LV_EVENT_DRAW_TASK_ADDED`) + peak callout | hero -60, chart mid, callout +30 |

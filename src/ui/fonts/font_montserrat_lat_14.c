@@ -1,7 +1,7 @@
 /*******************************************************************************
  * Size: 14 px
  * Bpp: 4
- * Opts: --bpp 4 --size 14 --no-compress --font tools/fonts/Montserrat-Medium.ttf --range 0x20-0x7E,0xA0-0xFF --format lvgl -o src/ui/fonts/font_montserrat_lat_14.c
+ * Opts: --bpp 4 --size 14 --no-compress --font tools/fonts/Montserrat-Medium.ttf --range 0x20-0x7E,0xA0-0xFF,0x20AC --format lvgl -o src/ui/fonts/font_montserrat_lat_14.c
  ******************************************************************************/
 
 #ifdef LV_LVGL_H_INCLUDE_SIMPLE
@@ -1472,7 +1472,16 @@ static LV_ATTRIBUTE_LARGE_CONST const uint8_t glyph_bitmap[] = {
     0x2, 0xf3, 0x4f, 0x0, 0x0, 0xc, 0x9a, 0x90,
     0x0, 0x0, 0x5f, 0xf2, 0x0, 0x0, 0x0, 0xec,
     0x0, 0x0, 0x0, 0xe, 0x50, 0x0, 0x9, 0x4a,
-    0xd0, 0x0, 0x1, 0xbf, 0xc2, 0x0, 0x0
+    0xd0, 0x0, 0x1, 0xbf, 0xc2, 0x0, 0x0,
+
+    /* U+20AC "€" */
+    0x0, 0x0, 0x7c, 0xff, 0xc6, 0x0, 0x1, 0xdf,
+    0x96, 0x68, 0xe7, 0x0, 0xbd, 0x10, 0x0, 0x0,
+    0x7, 0xdf, 0xed, 0xdd, 0xc0, 0x0, 0x2, 0xf4,
+    0x0, 0x0, 0x0, 0x7, 0xdf, 0xed, 0xdd, 0xc0,
+    0x0, 0x0, 0xcc, 0x0, 0x0, 0x0, 0x0, 0x5,
+    0xf7, 0x0, 0x0, 0x42, 0x0, 0x8, 0xfb, 0x66,
+    0xaf, 0x70, 0x0, 0x4, 0xbf, 0xfc, 0x50
 };
 
 
@@ -1672,7 +1681,8 @@ static const lv_font_fmt_txt_glyph_dsc_t glyph_dsc[] = {
     {.bitmap_index = 7746, .adv_w = 152, .box_w = 8, .box_h = 11, .ofs_x = 1, .ofs_y = 0},
     {.bitmap_index = 7790, .adv_w = 125, .box_w = 9, .box_h = 14, .ofs_x = -1, .ofs_y = -3},
     {.bitmap_index = 7853, .adv_w = 153, .box_w = 8, .box_h = 14, .ofs_x = 1, .ofs_y = -3},
-    {.bitmap_index = 7909, .adv_w = 125, .box_w = 9, .box_h = 14, .ofs_x = -1, .ofs_y = -3}
+    {.bitmap_index = 7909, .adv_w = 125, .box_w = 9, .box_h = 14, .ofs_x = -1, .ofs_y = -3},
+    {.bitmap_index = 7972, .adv_w = 181, .box_w = 11, .box_h = 10, .ofs_x = 0, .ofs_y = 0}
 };
 
 /*---------------------
@@ -1690,6 +1700,10 @@ static const lv_font_fmt_txt_cmap_t cmaps[] =
     },
     {
         .range_start = 160, .range_length = 96, .glyph_id_start = 96,
+        .unicode_list = NULL, .glyph_id_ofs_list = NULL, .list_length = 0, .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY
+    },
+    {
+        .range_start = 8364, .range_length = 1, .glyph_id_start = 192,
         .unicode_list = NULL, .glyph_id_ofs_list = NULL, .list_length = 0, .type = LV_FONT_FMT_TXT_CMAP_FORMAT0_TINY
     }
 };
@@ -1725,7 +1739,8 @@ static const uint8_t kern_left_class_mapping[] =
     45, 45, 45, 45, 45, 45, 49, 47,
     49, 49, 49, 49, 51, 51, 70, 51,
     71, 45, 46, 46, 46, 46, 46, 9,
-    46, 51, 51, 51, 51, 58, 46, 58
+    46, 51, 51, 51, 51, 58, 46, 58,
+    25
 };
 
 /*Map glyph_ids to kern right classes*/
@@ -1754,7 +1769,8 @@ static const uint8_t kern_right_class_mapping[] =
     37, 37, 37, 37, 37, 37, 37, 39,
     39, 39, 39, 39, 58, 42, 59, 60,
     39, 42, 39, 39, 39, 39, 39, 9,
-    39, 45, 45, 45, 45, 46, 38, 46
+    39, 45, 45, 45, 45, 46, 38, 46,
+    51
 };
 
 /*Kern values between classes*/
@@ -2325,7 +2341,7 @@ static lv_font_fmt_txt_dsc_t font_dsc = {
     .cmaps = cmaps,
     .kern_dsc = &kern_classes,
     .kern_scale = 16,
-    .cmap_num = 2,
+    .cmap_num = 3,
     .bpp = 4,
     .kern_classes = 1,
     .bitmap_format = 0,

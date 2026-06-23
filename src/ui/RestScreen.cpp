@@ -32,11 +32,14 @@ void RestScreen::init() {
     _cards[_cardCount++] = &_cardIndoorTemps;
     _cards[_cardCount++] = &_cardSpotify;
     _cards[_cardCount++] = &_cardEnergy;
+    _cards[_cardCount++] = &_cardEnergyPrice;
     _cards[_cardCount++] = &_cardSolar;
     _cards[_cardCount++] = &_cardMeshCore;
     _cards[_cardCount++] = &_cardLove;
     _cards[_cardCount++] = &_cardFlight;
-    _cards[_cardCount++] = &_cardGoL;
+    // _cardGoL disabled: 115KB pixBuf malloc fails under DRAM pressure (no PSRAM on StampS3).
+    // Re-enable once metrics confirm headroom / buffer redesigned. See docs/learnings.md.
+    // _cards[_cardCount++] = &_cardGoL;
 
     // Init all cards; show first (or pinned), hide the rest
     _activeCard = (DEV_CARD_PIN >= 0 && DEV_CARD_PIN < _cardCount) ? DEV_CARD_PIN : 0;

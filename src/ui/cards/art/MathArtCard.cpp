@@ -2,6 +2,7 @@
 #include <math.h>
 #include <string.h>
 #include <esp_log.h>
+#include <esp_heap_caps.h>
 
 static const char* TAG = "MATH_ART";
 
@@ -9,9 +10,14 @@ uint16_t* MathArtCard::pixBuf = nullptr;
 
 void MathArtCard::init(lv_obj_t* parent) {
     if (!pixBuf) {
+        ESP_LOGI(TAG, "free heap before pixBuf alloc: %u, largest block: %u",
+                 (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT),
+                 (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
         pixBuf = (uint16_t*)malloc(W * H * 2);
         if (!pixBuf) {
-            ESP_LOGE(TAG, "pixBuf alloc failed");
+            ESP_LOGE(TAG, "pixBuf alloc failed (%u bytes, largest block %u)",
+                     (unsigned)(W * H * 2),
+                     (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
             return;
         }
         ESP_LOGI(TAG, "pixBuf allocated");

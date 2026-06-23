@@ -119,6 +119,7 @@ void HAClient::onWsEvent(WStype_t type, uint8_t* payload, size_t length) {
                 appState.connection == ConnectionState::HA_CONNECTING) {
                 appState.connection = ConnectionState::HA_CONNECTING;
                 appState.setError(ErrorKey::HA_WS, HA_WS_ERROR_DELAY_MS);
+                _wsReconnects++;
             }
             break;
         case WStype_TEXT:
@@ -432,10 +433,76 @@ static void parseEnergyCurrentUsage(const char* entity_id, const char* state, Js
     ESP_LOGI(TAG, "energy current: %.0f W", appState.energy.currentW);
 }
 
+// Zonneplan forecast datetime carries a 'Z' suffix → UTC. ESP32 newlib has no
+// timegm(), and mktime() assumes local time, so convert the UTC calendar fields
+// to epoch seconds directly via the civil-days algorithm (no TZ side effects).
+static time_t parseUtcTimestamp(const char* ts) {
+    int y, mo, d, h, mn, s;
+    if (sscanf(ts, "%d-%d-%dT%d:%d:%d", &y, &mo, &d, &h, &mn, &s) != 6) return 0;
+    // days_from_civil (Howard Hinnant): days since 1970-01-01 for a UTC date
+    int yy = y - (mo <= 2);
+    int era = (yy >= 0 ? yy : yy - 399) / 400;
+    unsigned yoe = (unsigned)(yy - era * 400);
+    unsigned doy = (153 * (mo + (mo > 2 ? -3 : 9)) + 2) / 5 + d - 1;
+    unsigned doe = yoe * 365 + yoe / 4 - yoe / 100 + doy;
+    long days = (long)era * 146097 + (long)doe - 719468;
+    return (time_t)days * 86400 + h * 3600 + mn * 60 + s;
+}
+
+static uint8_t tariffGroupCode(const char* g) {
+    if (!g) return 0;
+    if (strcmp(g, "high")   == 0) return 2;
+    if (strcmp(g, "normal") == 0) return 1;
+    return 0; // "low" or unknown
+}
+
+// Walk the forecast array, keeping hourly points from the current hour onward.
+// electricity_price is in units of 1e-7 €/kWh.
+static void parsePriceForecast(JsonArray forecast) {
+    PriceState& p = appState.price;
+
+    time_t now = time(nullptr);
+    if (now < 1577836800LL) {
+        ESP_LOGW(TAG, "clock not synced, skipping price forecast");
+        return;
+    }
+    time_t hourStart = now - (now % 3600); // truncate to current hour (UTC)
+
+    p.count = 0;
+    p.peakIdx = 0;
+    p.peakPrice = 0.0f;
+    for (JsonObject e : forecast) {
+        if (p.count >= PriceState::MAX_POINTS) break;
+        const char* dt = e["datetime"];
+        time_t ts = parseUtcTimestamp(dt);
+        if (ts < hourStart) continue; // past hour — skip
+
+        PricePoint& pt = p.pts[p.count];
+        pt.price = (float)(e["electricity_price"].as<double>() / 1e7);
+        pt.group = tariffGroupCode(e["tariff_group"]);
+        struct tm lt; localtime_r(&ts, &lt);
+        pt.hourLocal = (uint8_t)lt.tm_hour;
+
+        if (pt.price > p.peakPrice) { p.peakPrice = pt.price; p.peakIdx = p.count; }
+        p.count++;
+    }
+
+    if (p.count > 0) {
+        p.peakHourLocal = p.pts[p.peakIdx].hourLocal;
+        p.peakIsHigh    = (p.pts[p.peakIdx].group == 2);
+        p.valid         = true;
+        ESP_LOGI(TAG, "price forecast: %d pts, peak %.3f @ %02d:00 (high=%d)",
+                 p.count, p.peakPrice, p.peakHourLocal, p.peakIsHigh);
+    }
+}
+
 static void parseEnergyTariff(const char* entity_id, const char* state, JsonObject attrs) {
     if (state) appState.energy.tariff = atof(state);
     appState.energy.valid = true;
     ESP_LOGI(TAG, "energy tariff: %.4f", appState.energy.tariff);
+
+    JsonArray forecast = attrs["forecast"];
+    if (!forecast.isNull()) parsePriceForecast(forecast);
 }
 
 static void parseEnergySustainScore(const char* entity_id, const char* state, JsonObject attrs) {

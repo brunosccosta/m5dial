@@ -97,9 +97,15 @@ Alternative: a MenuCard for Spotify (alongside AC, Heater). Less discoverable bu
 
 ---
 
-## Feature: Math art cards ✓ (phase 1)
+## Feature: Math art cards ⛔ (disabled — no PSRAM)
 
-`MathArtCard` base class + `GoLCard` implemented and registered in RestScreen.
+`MathArtCard` base class + `GoLCard` implemented, but **currently unregistered** in
+RestScreen: the shared 115KB `pixBuf` `malloc` fails under full app load (StampS3 has
+no PSRAM; ~320KB internal DRAM fragmented by WiFi/WS/LVGL/JSON → no 115KB contiguous
+block). Boot hung at `pixBuf alloc failed`. See `docs/learnings.md`.
+
+**To revive:** half-res buffer (120×120×2 = 28KB) + 2× upscale, or lazy alloc+free
+around show/hide. Wait on `m5dial_memory_free_bytes` OTel metric to size real headroom.
 
 **Done:**
 - `RestCard::tick()` added (default no-op) — called every loop from `RestScreen::tick()`
@@ -123,6 +129,21 @@ Alternative: a MenuCard for Spotify (alongside AC, Heater). Less discoverable bu
 - `sensor.zonneplan_status_tip` — Dutch status tip, scrolling at top, color-coded
 
 Card visible only when `energy.valid`. Tip colors: green if "groen"/"goedkoop", orange if "hoog".
+
+---
+
+## Feature: Energy price card ✓
+
+`EnergyPriceCard` — hourly electricity-price forecast bar chart (catches evening price
+spikes at a glance). Reads the `forecast` attribute already carried on
+`sensor.zonneplan_current_electricity_tariff` (no extra subscription); parsed into
+`PriceState` by `parsePriceForecast()` in HAClient. `lv_chart` BAR, one bar per hour
+from now → end of forecast (variable ~5–30h), per-bar color by tariff group
+(low/normal/high → green/amber/red) via `LV_EVENT_DRAW_TASK_ADDED`. Hero = current price,
+callout = next peak. Visible only when `price.valid`.
+
+**Possible follow-ups:** mark the "now" bar distinctly; show solar_percentage overlay;
+automation to alert before a high-tariff window.
 
 ---
 

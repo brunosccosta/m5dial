@@ -688,3 +688,13 @@ Writing new iteration counts directly into the live display buffer (in-place ove
 
 **Fix**: render-then-hold. After one full render completes, color cycle indefinitely over the complete image. Only start the next render after a timer (e.g. every 10s). Scan-line appears once for ~400ms then the image is clean again. Color cycling runs uninterrupted throughout.
 
+
+---
+
+## StampS3 has no PSRAM — 115KB pixBuf malloc fails under app load, freezes boot
+
+The M5Dial is built on the M5Stamp S3 (ESP32-S3FN8): **8MB flash, zero PSRAM**. The art-card `pixBuf` (240×240×2 = 115KB) `malloc` succeeds in a bare sketch but **fails in the full app** — WiFi stack + WebSocket buffers + LVGL + ArduinoJson fragment the ~320KB internal DRAM heap, leaving no 115KB contiguous block. Boot log ended at `E MATH_ART: pixBuf alloc failed` and the device hung.
+
+Dead ends tried: `ps_malloc` / `heap_caps_malloc(.., MALLOC_CAP_SPIRAM)` — both return null because there is **no** PSRAM to allocate from. There is no build flag that conjures PSRAM the silicon lacks.
+
+**Fix (for now)**: art cards (`GoLCard`) disabled — not registered in `RestScreen`, so the buffer never allocates. To revive: render at half resolution (120×120×2 = 28KB), or lazily alloc+free around show/hide so the block is only held while an art card is visible. `heap_caps_get_largest_free_block(MALLOC_CAP_8BIT)` logging left in `MathArtCard::init()` to size the headroom. The `m5dial_memory_free_bytes` OTel metric will reveal real-world DRAM headroom over time.

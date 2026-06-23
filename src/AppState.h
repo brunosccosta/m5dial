@@ -98,6 +98,26 @@ struct ForecastDay {
     bool  valid;                 // false until first HA update arrives
 };
 
+// One hourly point of the electricity price forecast (Zonneplan).
+struct PricePoint {
+    float   price;       // €/kWh
+    uint8_t group;       // tariff_group: 0 low, 1 normal, 2 high
+    uint8_t hourLocal;   // local hour-of-day (0–23) this point starts
+};
+
+// Forward-looking price window, parsed from the tariff sensor's `forecast`
+// attribute. Spans current hour → end of published forecast (variable length).
+struct PriceState {
+    static constexpr int MAX_POINTS = 36;
+    PricePoint pts[MAX_POINTS];
+    int   count;        // number of valid points in pts[]
+    int   peakIdx;      // index of highest-price point in window
+    float peakPrice;    // €/kWh at peakIdx
+    int   peakHourLocal;// local hour of the peak (for "21:00" label)
+    bool  peakIsHigh;   // peak point falls in the "high" tariff group
+    bool  valid;        // false until first forecast parse succeeds
+};
+
 struct AppState {
     ACState      ac;               // climate.forninho_room_temperature
     ACState      heater;           // climate.forninho_portatil
@@ -107,6 +127,7 @@ struct AppState {
     ForecastDay  forecastTomorrow; // sensor.*_2d
     SpotifyState  spotify;         // media_player.spotify
     EnergyState   energy;          // zonneplan sensors
+    PriceState    price;           // zonneplan hourly price forecast
     SolarState    solar;           // bluetti e200 + derived HA sensors
     MeshCoreState meshcore;        // meshcore repeater GigiTower
 

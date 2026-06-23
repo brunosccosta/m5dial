@@ -18,6 +18,8 @@ public:
 
     void onWsEvent(WStype_t type, uint8_t* payload, size_t length);
 
+    uint32_t wsReconnects() const { return _wsReconnects; }
+
 private:
     void handleWifiConnecting();
     void handleWifiConnected();
@@ -47,6 +49,7 @@ private:
     int      _subscribeCount     = 0; // number of subscribe_entities batches sent (ids 1.._subscribeCount)
     uint16_t _batteryHistoryMsgId = 0;
     uint16_t _kwhBaselineMsgId    = 0;
+    uint32_t _wsReconnects        = 0;
 };
 
 extern HAClient haClient;
