@@ -25,6 +25,16 @@
 #include "SpotifyClient.h"
 #include "telemetry/OtelClient.h"
 
+#if LOKI_LOGGING
+#include "telemetry/LokiClient.h"
+#ifndef LOKI_HOST
+#define LOKI_HOST "homeassistant.local"
+#endif
+#ifndef LOKI_PORT
+#define LOKI_PORT 3100
+#endif
+#endif
+
 // --- AC control ---
 ACControlScreen acControl;
 
@@ -92,6 +102,11 @@ void setup() {
     M5Dial.begin(cfg, true, true);
     Serial.begin(115200);
 
+    // With USE_ESP_IDF_LOG, ESP_LOGx route through IDF esp_log, whose *runtime*
+    // level defaults to ERROR — INFO lines get filtered before the vprintf hook,
+    // so neither Serial nor Loki would see them. Raise it to INFO.
+    esp_log_level_set("*", ESP_LOG_INFO);
+
     ESP_LOGI("BOOT", "M5Dial SmartHome starting");
 
     M5Dial.Display.setBrightness(128);
@@ -133,6 +148,9 @@ void setup() {
     rfidReader.onTag([](const char* uri) { rfidDispatcher.dispatch(uri); });
     haClient.begin(WIFI_SSID, WIFI_PASSWORD, HA_HOST, HA_PORT, HA_TOKEN);
     otelClient.begin(OTEL_HOST, OTEL_PORT);
+#if LOKI_LOGGING
+    lokiClient.begin(LOKI_HOST, LOKI_PORT);
+#endif
     errorOverlay.init();
     toast.init();
     quickPanel.init(acControl, appState.ac, appState.heater);
@@ -262,4 +280,7 @@ void loop() {
 
     otelClient.recordLoopDuration(millis() - loopStart);
     otelClient.tick();
+#if LOKI_LOGGING
+    lokiClient.tick();
+#endif
 }

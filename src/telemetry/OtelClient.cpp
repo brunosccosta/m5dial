@@ -7,6 +7,9 @@
 #include <ArduinoJson.h>
 #include <esp_log.h>
 #include "../util/JsonArena.h"
+#if LOKI_LOGGING
+#include "LokiClient.h"
+#endif
 
 static const char* TAG = "Otel";
 
@@ -105,6 +108,11 @@ void OtelClient::push() {
     addGauge(&metrics, "m5dial_uptime_seconds_total",           uptime,      timeNs);
     addGauge(&metrics, "m5dial_json_arena_high_water_bytes",    arenaPeak,   timeNs);
     addGauge(&metrics, "m5dial_json_arena_overflow_total",      arenaOvf,    timeNs);
+#if LOKI_LOGGING
+    addGauge(&metrics, "m5dial_loki_lines_sent_total",     (int64_t)lokiClient.linesSent(),    timeNs);
+    addGauge(&metrics, "m5dial_loki_push_failures_total",  (int64_t)lokiClient.pushFailures(), timeNs);
+    addGauge(&metrics, "m5dial_loki_dropped_lines_total",  (int64_t)lokiClient.droppedLines(), timeNs);
+#endif
 
     String body;
     serializeJson(doc, body);

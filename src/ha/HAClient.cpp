@@ -283,32 +283,32 @@ static void parseDetailedCondition(const char* entity_id, const char* state, Jso
 
 static void parseOutdoorTemp(const char* entity_id, const char* state, JsonObject attrs) {
     if (state) appState.sensors.outdoorTemp = atof(state);
-    ESP_LOGI(TAG, "outdoor temp: %.1f°C", appState.sensors.outdoorTemp);
+    ESP_LOGD(TAG, "outdoor temp: %.1f°C", appState.sensors.outdoorTemp);
 }
 
 static void parseOutdoorHumidity(const char* entity_id, const char* state, JsonObject attrs) {
     if (state) appState.sensors.outdoorHumidity = atof(state);
-    ESP_LOGI(TAG, "outdoor humidity: %.0f%%", appState.sensors.outdoorHumidity);
+    ESP_LOGD(TAG, "outdoor humidity: %.0f%%", appState.sensors.outdoorHumidity);
 }
 
 static void parseBedroomTemp(const char* entity_id, const char* state, JsonObject attrs) {
     if (state) appState.sensors.bedroomTemp = atof(state);
-    ESP_LOGI(TAG, "bedroom temp: %.1f°C", appState.sensors.bedroomTemp);
+    ESP_LOGD(TAG, "bedroom temp: %.1f°C", appState.sensors.bedroomTemp);
 }
 
 static void parseBedroomHumidity(const char* entity_id, const char* state, JsonObject attrs) {
     if (state) appState.sensors.bedroomHumidity = atof(state);
-    ESP_LOGI(TAG, "bedroom humidity: %.0f%%", appState.sensors.bedroomHumidity);
+    ESP_LOGD(TAG, "bedroom humidity: %.0f%%", appState.sensors.bedroomHumidity);
 }
 
 static void parseBathroomTemp(const char* entity_id, const char* state, JsonObject attrs) {
     if (state) appState.sensors.bathroomTemp = atof(state);
-    ESP_LOGI(TAG, "bathroom temp: %.1f°C", appState.sensors.bathroomTemp);
+    ESP_LOGD(TAG, "bathroom temp: %.1f°C", appState.sensors.bathroomTemp);
 }
 
 static void parseBathroomHumidity(const char* entity_id, const char* state, JsonObject attrs) {
     if (state) appState.sensors.bathroomHumidity = atof(state);
-    ESP_LOGI(TAG, "bathroom humidity: %.0f%%", appState.sensors.bathroomHumidity);
+    ESP_LOGD(TAG, "bathroom humidity: %.0f%%", appState.sensors.bathroomHumidity);
 }
 
 static void parseSun(const char* entity_id, const char* state, JsonObject attrs) {
