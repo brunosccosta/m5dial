@@ -9,6 +9,7 @@
 #include <mbedtls/base64.h>
 #include <esp_log.h>
 #include <string.h>
+#include "util/JsonArena.h"
 
 static const char* TAG       = "Spotify";
 static const char* NVS_NS    = "spotify";
@@ -74,7 +75,7 @@ bool SpotifyClient::refreshAccessToken() {
         return false;
     }
 
-    JsonDocument doc;
+    JsonDocument doc(&sharedJsonArena());
     deserializeJson(doc, http.getStream());
     http.end();
 
@@ -170,7 +171,7 @@ void SpotifyClient::logDevices() {
         return;
     }
 
-    JsonDocument doc;
+    JsonDocument doc(&sharedJsonArena());
     deserializeJson(doc, http.getStream());
     http.end();
 

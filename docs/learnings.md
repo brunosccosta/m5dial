@@ -637,6 +637,56 @@ Still unsupported: em dash `—` (U+2014), euro `€` (U+20AC) — outside 0xC0�
 
 ---
 
+## Heap fragmentation causes hard freezes (open investigation, 2026-06-28)
+
+Device hard-hangs every ~1–3 days, requiring a manual power-cycle. Investigated via the OTel metrics (`m5dial_*` in VictoriaMetrics) over 5 days — **6 reboots**. No logs (Loki not wired yet); diagnosis is metrics-only.
+
+**It is NOT a classic leak.** Free heap (`m5dial_memory_free_bytes`) stays flat at ~82KB the entire time. What collapses is the *largest contiguous block* (`m5dial_memory_largest_block_bytes`, = `ESP.getMaxAllocHeap()`):
+
+```
+Boot 1: 65524 → 63476 → 42996 ──────────── FREEZE (~14h uptime)
+Boot 2: 65524 → 40948 → 25588 → 28660 ──── FREEZE (~57h, ratcheting)
+Boot 3: 55284 → 34804 (stuck low) ───────── current
+```
+
+The largest block **ratchets down in discrete ~2048-byte steps and never recovers without a reboot**. Fragmentation ratio (largest-block / free) is ~0.43 and falling — 82KB free but the biggest single allocatable chunk is only ~35KB. When a required contiguous alloc (LVGL canvas/object, `JsonDocument`, WS frame, `String`) can't be satisfied, the firmware hard-faults/hangs — loop never returns, so telemetry stops (visible as **data gaps**, not a value dropping to zero) until manual restart.
+
+**Why this device is prone to it:** no PSRAM (see heap-budget entry below), so everything competes for one ~150KB heap arena. Any cyclic alloc/free of variable-size buffers punches permanent holes.
+
+**Freeze-detection signals (all on the dashboard):**
+- Reboot = `resets(m5dial_uptime_seconds_total[$__range])` (also red annotations)
+- Freeze = a *gap* in `up{job="m5dial"}` / any series (device stopped scraping)
+- Precursor = downward ratchet of largest-block + falling frag ratio
+
+**Suspected churners (unconfirmed), in priority order:**
+1. Card show/hide creating + deleting LVGL objects/buffers (irregular timing matches card switches)
+2. `HAClient` per-message `JsonDocument` on heap during WS event bursts
+3. `OtelClient::push()` — allocates `JsonDocument` + `String body` + `HTTPClient` every interval (regular cadence; less likely given irregular steps, but contributes)
+
+**Dashboard:** Grafana `M5Dial — Freeze Investigation` (uid `m5dial-freeze`).
+
+### Root cause (pinned)
+
+`HAClient::handleMessage` created a heap-allocated `JsonDocument` per WS message. Every HA `state_changed` event → one variable-size alloc/free. Signature match: the largest-block ratchet is **irregular** (fires per entity change), while the OtelClient push (regular interval) would have produced regular steps — it doesn't, so HAClient is primary. Reconnect storms amplify it: each reconnect re-parses the full per-batch entity snapshot (`event.a`), a big allocation.
+
+LVGL card-switch churn was **ruled out** — all `lv_*_create` calls are one-time in `init()`; cards keep widgets and just toggle `LV_OBJ_FLAG_HIDDEN`. `EnergyPriceCard`'s `lv_chart_set_point_count` reallocs only when the forecast hour count changes (~hourly) and LVGL guards the no-change case — minor.
+
+### Fix applied (A + C)
+
+**A — static-arena allocator** (`src/util/JsonArena.h`): a 24KB bump arena reused for every parse, reset to base when its live-block count returns to zero, so the same bytes serve every message → **zero heap churn**. Per-block 8-byte size header makes `reallocate()` correct; oversized messages transparently fall back to `malloc` (graceful, never corrupts). One shared arena (`sharedJsonArena()`) for all three `JsonDocument` sites — `HAClient`, `OtelClient`, `SpotifyClient` — safe because they run sequentially on the loop() thread, never nested. (ArduinoJson v7.4.3 `Allocator` API: `allocate`/`deallocate`/`reallocate`.)
+
+> CAP sizing: first deploy at **12KB** pegged high-water at the ceiling with `overflow_total`=6 within a minute of boot, so CAP was raised to **24KB**. The arena is shared across `HAClient`, `OtelClient` and `SpotifyClient`, and the overflow counter is global — **we have not confirmed which source caused it.** Hypothesis: `SpotifyClient` parses from `http.getStream()`, which **copies** all strings into the pool (large), whereas `HAClient` parses zero-copy from the mutable WS payload (only variant slots hit the arena, small). But the HA initial-snapshot burst also fires at boot, so it is unproven. To attribute, add per-call-site arena accounting (e.g. separate high-water per source, or log pool size after each parse). A larger static `.bss` reservation does not fragment the heap the way per-message churn did. The 45KB seen at the time was `min_free_bytes` (worst-case watermark), not spare RAM — at 24KB the watermark sits ~33KB; 48KB would push it near OOM. Watch `m5dial_json_arena_high_water_bytes` / `overflow_total` to confirm 24KB holds.
+
+**C — loosen WS heartbeat** (`HAClient::connectWebSocket`): `enableHeartbeat(15000, 3000, 2)` → `(15000, 10000, 3)`. The old 3s pong timeout was shorter than the OtelClient push's 8s blocking HTTP window, so a routine push stalled `_ws.loop()`, the pong was missed, and the link was falsely declared dead → reconnect storm (explains the old 70-reconnects-in-8.4h flag). New timeout tolerates one blocked push; a genuinely dead link still drops in ~45s.
+
+**New telemetry:** `m5dial_json_arena_high_water_bytes` (peak arena bytes vs 12KB CAP — confirms sizing) and `m5dial_json_arena_overflow_total` (heap-fallback count — should stay ~0). On the freeze dashboard.
+
+**Verify after deploy:** `m5dial_memory_largest_block_bytes` should stay flat across uptime instead of ratcheting down; reboot count and reconnect rate should drop; arena high-water should sit under 24KB with overflow ~0.
+
+**Status:** flashed and booting (RAM 52.7% at 24KB CAP). Pending: watch dashboard 2–3 days to confirm the largest-block ratchet is gone and arena overflow stays 0.
+
+---
+
 ## SleepManager must check for window-end while sleeping
 
 `tick()` originally returned immediately when `_sleeping` was true, so the display stayed off past 07:00 until the user manually interacted. The sleep window exit was never detected.

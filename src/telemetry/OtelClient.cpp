@@ -6,6 +6,7 @@
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
 #include <esp_log.h>
+#include "../util/JsonArena.h"
 
 static const char* TAG = "Otel";
 
@@ -71,9 +72,11 @@ void OtelClient::push() {
     int64_t haConn      = (appState.connection == ConnectionState::HA_READY) ? 1 : 0;
     int64_t reconnects  = (int64_t)haClient.wsReconnects();
     int64_t uptime      = (int64_t)(millis() / 1000);
+    int64_t arenaPeak   = (int64_t)sharedJsonArena().highWater();
+    int64_t arenaOvf    = (int64_t)sharedJsonArena().overflows();
     _maxLoopMs = 0; // reset after snapshot
 
-    JsonDocument doc;
+    JsonDocument doc(&sharedJsonArena());
     JsonArray resourceMetrics = doc["resourceMetrics"].to<JsonArray>();
     JsonObject rm = resourceMetrics.add<JsonObject>();
 
@@ -100,6 +103,8 @@ void OtelClient::push() {
     addGauge(&metrics, "m5dial_ha_connected",                   haConn,      timeNs);
     addGauge(&metrics, "m5dial_ha_ws_reconnects_total",         reconnects,  timeNs);
     addGauge(&metrics, "m5dial_uptime_seconds_total",           uptime,      timeNs);
+    addGauge(&metrics, "m5dial_json_arena_high_water_bytes",    arenaPeak,   timeNs);
+    addGauge(&metrics, "m5dial_json_arena_overflow_total",      arenaOvf,    timeNs);
 
     String body;
     serializeJson(doc, body);

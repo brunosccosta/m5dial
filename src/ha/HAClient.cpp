@@ -4,6 +4,7 @@
 #include "HAClient.h"
 #include "../AppState.h"
 #include "../Config.h"
+#include "../util/JsonArena.h"
 
 static const char* TAG = "HA";
 static constexpr uint32_t WIFI_RETRY_MS = 5000;
@@ -77,7 +78,13 @@ void HAClient::connectWebSocket() {
         haClient.onWsEvent(type, payload, length);
     });
     _ws.setReconnectInterval(5000);
-    _ws.enableHeartbeat(15000, 3000, 2);
+    // Pong timeout must exceed the longest loop()-blocking call (OtelClient push
+    // setTimeout is 8s) — otherwise a routine blocking HTTP push stalls _ws.loop(),
+    // the pong is missed, and the link is falsely declared dead → reconnect storm.
+    // 10s timeout / 3 missed = tolerate one blocked push, still drop a truly dead
+    // link in ~45s. Reconnect storms churn large snapshot JSON and feed the heap
+    // fragmentation freeze (see docs/learnings.md).
+    _ws.enableHeartbeat(15000, 10000, 3);
 }
 
 void HAClient::handleHaConnecting() {
@@ -132,7 +139,7 @@ void HAClient::onWsEvent(WStype_t type, uint8_t* payload, size_t length) {
 }
 
 void HAClient::handleMessage(uint8_t* payload, size_t length) {
-    JsonDocument doc;
+    JsonDocument doc(&sharedJsonArena());
     DeserializationError err = deserializeJson(doc, payload, length);
     if (err) {
         ESP_LOGW(TAG, "JSON parse error: %s", err.c_str());
